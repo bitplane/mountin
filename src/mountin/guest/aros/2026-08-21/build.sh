@@ -11,6 +11,21 @@ OUTPUT_DIR=/host/build/guest/${MOUNTIN_TARGET_ARCH}-aros/2026-08-21
 ISO_OUTPUT=$OUTPUT_DIR/aros.iso
 MOUNTIN_BUILD_JOBS=${MOUNTIN_BUILD_JOBS:-1}
 
+case "$MOUNTIN_TARGET_ARCH" in
+    i386)
+        MOUNTIN_AROS_TARGET=pc-i386
+        MOUNTIN_AROS_VARIANT=tiny
+        ;;
+    aarch64)
+        MOUNTIN_AROS_TARGET=raspi-aarch64
+        MOUNTIN_AROS_VARIANT=
+        ;;
+    *)
+        echo "Unsupported AROS architecture: $MOUNTIN_TARGET_ARCH" >&2
+        exit 1
+        ;;
+esac
+
 # The compiler toolbox defaults ordinary consumers to the AROS target. This
 # source build also creates Linux host tools and selects both compilers through
 # its own configure machinery, so it must start without an ambient toolchain.
@@ -26,6 +41,14 @@ if [ "$#" -ne 0 ]; then
         case "/host/build/$output" in
             "$ISO_OUTPUT")
                 write_iso=true
+                ;;
+            "$OUTPUT_DIR/aros-aarch64-raspi.img"|\
+            "$OUTPUT_DIR/aros-aarch64-bsp.rom"|\
+            "$OUTPUT_DIR/config.txt")
+                if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
+                    echo "Unexpected AROS AArch64 output: $output" >&2
+                    exit 1
+                fi
                 ;;
             *)
                 echo "Unknown AROS base output: $output" >&2
@@ -58,18 +81,46 @@ if [ ! -f "$GUEST_BUILD_DIR/.mountin-bootstrap" ]; then
     touch "$GUEST_BUILD_DIR/.mountin-bootstrap"
 fi
 cd "$GUEST_BUILD_DIR"
-"$SOURCE_DIR/configure" \
+set -- \
     --target="$MOUNTIN_AROS_TARGET" \
-    --enable-target-variant="$MOUNTIN_AROS_VARIANT" \
     --enable-build-type=nightly \
     --enable-ccache \
     --with-portssources="$PORTS_DIR" \
     --with-aros-toolchain-install="$TOOLCHAIN_DIR" \
     --with-aros-toolchain=yes \
-    --with-optimization="-Os -fno-defer-pop -mpreferred-stack-boundary=4" \
     --with-theme=AmigaOS3.x \
-    --with-iconset=Mason \
-    --with-bootloader=grub2
+    --with-iconset=Mason
+if [ -n "$MOUNTIN_AROS_VARIANT" ]; then
+    set -- "$@" --enable-target-variant="$MOUNTIN_AROS_VARIANT"
+fi
+if [ "$MOUNTIN_TARGET_ARCH" = i386 ]; then
+    set -- "$@" \
+        --with-optimization="-Os -fno-defer-pop -mpreferred-stack-boundary=4" \
+        --with-bootloader=grub2
+else
+    set -- "$@" --with-optimization=-Os
+fi
+"$SOURCE_DIR/configure" "$@"
+
+if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
+    make -j"$MOUNTIN_BUILD_JOBS" \
+        kernel-package-raspi-aarch64 \
+        distfiles-raspi-aarch64le-bootimg
+    AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
+    mkdir -p "$OUTPUT_DIR"
+    cp "$AROS_DIR/aros-aarch64-raspi.img" \
+        "$OUTPUT_DIR/aros-aarch64-raspi.img"
+    cp "$AROS_DIR/aros-aarch64-bsp.rom" \
+        "$OUTPUT_DIR/aros-aarch64-bsp.rom"
+    printf '%s\n' \
+        'kernel=aros-aarch64-raspi.img' \
+        'kernel_address=0x80000' \
+        'initramfs aros-aarch64-bsp.rom 0x00800000' \
+        'enable_uart=1' \
+        'arm_64bit=1' \
+        >"$OUTPUT_DIR/config.txt"
+    exit 0
+fi
 
 # Unlike the other fetched build inputs, AROS looks for pci.ids in its
 # generated-file directory rather than PORTSSOURCEDIR.

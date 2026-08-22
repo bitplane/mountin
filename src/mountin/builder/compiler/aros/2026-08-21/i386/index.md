@@ -1,5 +1,5 @@
 ---
-title: AROS 2026-07-30 PC i386 Cross-Compiler
+title: AROS 2026-08-21 PC i386 Cross-Compiler
 env:
   MOUNTIN_BUILDER: builder/compiler/aros
 execution_env:
@@ -15,10 +15,10 @@ build_requires:
   - sources/aros-ports/mpc-1.4.1.tar.xz
   - sources/aros-ports/mpfr-4.2.2.tar.bz2
 provides:
-  - docker:builder/compiler/aros/2026-08-21/pc-i386
+  - docker:builder/compiler/aros/2026-08-21/i386
 ---
 
-# AROS 2026-07-30 PC i386 Cross-Compiler
+# AROS 2026-08-21 PC i386 Cross-Compiler
 
 AROS's GCC and binutils cross-toolchain and matching Developer tree for native
 32-bit x86 PC guests. The image is tied to the selected AROS source revision
