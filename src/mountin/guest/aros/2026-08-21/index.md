@@ -18,6 +18,7 @@ output_platforms:
       - guest/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
       - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
       - guest/aarch64-aros/2026-08-21/config.txt
+      - guest/aarch64-aros/2026-08-21/rawio-handler
 requires:
   - sources/aros-2026-08-21.tar.gz
   - sources/aros-ports/UnicodeData.txt

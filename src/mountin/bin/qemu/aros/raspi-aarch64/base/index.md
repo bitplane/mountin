@@ -8,6 +8,8 @@ requires:
   - guest/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
   - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
   - guest/aarch64-aros/2026-08-21/config.txt
+  - guest/aarch64-aros/2026-08-21/rawio-handler
+  - bin/aarch64-aros/9d
 provides:
   - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
   - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
@@ -18,6 +20,5 @@ provides:
 
 # AROS Raspberry Pi AArch64 Base Guest
 
-QEMU boot components and a minimal FAT system volume for AROS AArch64. This is
-the bring-up guest; its 9P appliance transport remains pending until the AROS
-Raspberry Pi target has a bidirectional guest device suitable for 9d.
+QEMU boot components and a minimal FAT system volume for AROS AArch64. A small
+DOS handler exposes the kernel's bidirectional debug UART as a stream for 9d.

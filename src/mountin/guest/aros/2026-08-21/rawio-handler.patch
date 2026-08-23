@@ -1,0 +1,95 @@
+diff --git a/workbench/fs/debug/debug-handler.c b/workbench/fs/debug/debug-handler.c
+index b0bbec4..7135432 100644
+--- a/workbench/fs/debug/debug-handler.c
++++ b/workbench/fs/debug/debug-handler.c
+@@ -86,5 +86,6 @@ LONG debug_handler(struct ExecBase *SysBase)
+ 
+     NEWLIST(&pb.pb_Openers);
++    RawIOInit();
+ 
+     WaitPort(mp);
+ 
+@@ -108,9 +109,21 @@ LONG debug_handler(struct ExecBase *SysBase)
+             dp->dp_Res1 = (dp->dp_Res2 == 0) ? DOSTRUE : DOSFALSE;
+             break;
+         case ACTION_READ:
+             if ((pa = (struct debugArgs *)dp->dp_Arg1)) {
+-                dp->dp_Res1 = DOSFALSE;
+-                dp->dp_Res2 = ERROR_READ_PROTECTED;
++                UBYTE *buffer = (UBYTE *)dp->dp_Arg2;
++                LONG length = dp->dp_Arg3;
++                LONG count = 0;
++                LONG value;
++
++                while (length > 0 && (value = RawMayGetChar()) < 0)
++                    Delay(1);
++                while (count < length && value >= 0) {
++                    buffer[count++] = value;
++                    if (count < length)
++                        value = RawMayGetChar();
++                }
++                dp->dp_Res1 = count;
++                dp->dp_Res2 = 0;
+             } else {
+                 dp->dp_Res1 = DOSFALSE;
+                 dp->dp_Res2 = ERROR_OBJECT_WRONG_TYPE;
+@@ -119,20 +131,12 @@ LONG debug_handler(struct ExecBase *SysBase)
+             break;
+         case ACTION_WRITE:
+             if ((pa = (struct debugArgs *)dp->dp_Arg1)) {
+-                ULONG len = dp->dp_Arg3 > OUTBUF_SIZE - 1 ? OUTBUF_SIZE - 1 : dp->dp_Arg3;
+-                pa->outbuf[0] = '\0';
+-                if (is_ascii((char *)dp->dp_Arg2, len))
+-                {
+-                    CopyMem((APTR)dp->dp_Arg2, pa->outbuf, len);
+-                    pa->outbuf[len] = '\0';
+-                }
+-                else
+-                {
+-                    int i;
+-                    for (i = 0; i < (len >> 1); i ++)
+-                        pa->outbuf[i] = *(UBYTE *)(dp->dp_Arg2 + (i << 1) + 1);
+-                }
+-                kprintf("%s", pa->outbuf);
++                const UBYTE *buffer = (const UBYTE *)dp->dp_Arg2;
++                LONG len = dp->dp_Arg3;
++                LONG i;
++
++                for (i = 0; i < len; i++)
++                    RawPutChar(buffer[i]);
+                 dp->dp_Res1 = len;
+                 dp->dp_Res2 = 0;
+             } else {
+diff --git a/arch/aarch64-native/kernel/maygetchar.c b/arch/aarch64-native/kernel/maygetchar.c
+new file mode 100644
+index 0000000..5732cc7
+--- /dev/null
++++ b/arch/aarch64-native/kernel/maygetchar.c
+@@ -0,0 +1,27 @@
++/*
++    Copyright (C) 2013-2026, The AROS Development Team. All rights reserved.
++*/
++
++#include <aros/kernel.h>
++
++#include <kernel_base.h>
++#include <kernel_debug.h>
++#include "kernel_intern.h"
++
++#include <proto/kernel.h>
++#include <stdint.h>
++
++/* See rom/kernel/maygetchar.c for documentation */
++
++AROS_LH0(int, KrnMayGetChar,
++    struct KernelBase *, KernelBase, 26, Kernel)
++{
++    AROS_LIBFUNC_INIT
++
++    if (__arm_arosintern.ARMI_SerGetChar)
++        return __arm_arosintern.ARMI_SerGetChar();
++
++    return -1;
++
++    AROS_LIBFUNC_EXIT
++}

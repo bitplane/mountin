@@ -104,15 +104,18 @@ fi
 "$SOURCE_DIR/configure" "$@"
 
 if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
+    patch -d "$SOURCE_DIR" -p1 < /build/rawio-handler.patch
     make -j"$MOUNTIN_BUILD_JOBS" kernel-package-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" kernel-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" distfiles-raspi-aarch64le-bootimg
+    make -j"$MOUNTIN_BUILD_JOBS" workbench-fs-debug
     AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
     mkdir -p "$OUTPUT_DIR"
     cp "$AROS_DIR/aros-aarch64-raspi.img" \
         "$OUTPUT_DIR/aros-aarch64-raspi.img"
     cp "$AROS_DIR/aros-aarch64-bsp.rom" \
         "$OUTPUT_DIR/aros-aarch64-bsp.rom"
+    cp "$AROS_DIR/L/debug-handler" "$OUTPUT_DIR/rawio-handler"
     LINUX_SOURCE_DIR=$CACHE_DIR/linux-source
     if [ ! -d "$LINUX_SOURCE_DIR" ]; then
         temporary=$CACHE_DIR/linux-source.tmp.$$
