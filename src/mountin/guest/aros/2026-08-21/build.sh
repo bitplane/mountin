@@ -51,7 +51,9 @@ if [ "$#" -ne 0 ]; then
             "$OUTPUT_DIR/Mount"|\
             "$OUTPUT_DIR/stdc.library"|\
             "$OUTPUT_DIR/stdcio.library"|\
-            "$OUTPUT_DIR/posixc.library")
+            "$OUTPUT_DIR/posixc.library"|\
+            "$OUTPUT_DIR/locale.library"|\
+            "$OUTPUT_DIR/usergroup.library")
                 if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
                     echo "Unexpected AROS AArch64 output: $output" >&2
                     exit 1
@@ -119,7 +121,9 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     make -j"$MOUNTIN_BUILD_JOBS" distfiles-raspi-aarch64le-bootimg
     make -j"$MOUNTIN_BUILD_JOBS" workbench-fs-debug
     make -j"$MOUNTIN_BUILD_JOBS" workbench-c
-    make -j"$MOUNTIN_BUILD_JOBS" compiler-stdc compiler-stdcio compiler-posixc
+    make -j"$MOUNTIN_BUILD_JOBS" \
+        compiler-stdc compiler-stdcio compiler-posixc \
+        workbench-libs-locale workbench-libs-usergroup
     AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
     mkdir -p "$OUTPUT_DIR"
     cp "$AROS_DIR/aros-aarch64-raspi.img" \
@@ -132,6 +136,8 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     cp "$AROS_DIR/Libs/stdc.library" "$OUTPUT_DIR/stdc.library"
     cp "$AROS_DIR/Libs/stdcio.library" "$OUTPUT_DIR/stdcio.library"
     cp "$AROS_DIR/Libs/posixc.library" "$OUTPUT_DIR/posixc.library"
+    cp "$AROS_DIR/Libs/locale.library" "$OUTPUT_DIR/locale.library"
+    cp "$AROS_DIR/Libs/usergroup.library" "$OUTPUT_DIR/usergroup.library"
     LINUX_SOURCE_DIR=$CACHE_DIR/linux-source
     if [ ! -d "$LINUX_SOURCE_DIR" ]; then
         temporary=$CACHE_DIR/linux-source.tmp.$$

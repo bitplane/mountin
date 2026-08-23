@@ -25,6 +25,8 @@ mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/rawio-handler" ::L/rawio-handler
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/stdc.library" ::Libs/stdc.library
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/stdcio.library" ::Libs/stdcio.library
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/posixc.library" ::Libs/posixc.library
+mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/locale.library" ::Libs/locale.library
+mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/usergroup.library" ::Libs/usergroup.library
 printf '%s\n' \
     'Handler = L:rawio-handler' \
     'Priority = 5' \

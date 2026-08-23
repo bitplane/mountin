@@ -24,6 +24,8 @@ output_platforms:
       - guest/aarch64-aros/2026-08-21/stdc.library
       - guest/aarch64-aros/2026-08-21/stdcio.library
       - guest/aarch64-aros/2026-08-21/posixc.library
+      - guest/aarch64-aros/2026-08-21/locale.library
+      - guest/aarch64-aros/2026-08-21/usergroup.library
 requires:
   - sources/aros-2026-08-21.tar.gz
   - sources/aros-ports/UnicodeData.txt

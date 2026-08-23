@@ -14,6 +14,8 @@ requires:
   - guest/aarch64-aros/2026-08-21/stdc.library
   - guest/aarch64-aros/2026-08-21/stdcio.library
   - guest/aarch64-aros/2026-08-21/posixc.library
+  - guest/aarch64-aros/2026-08-21/locale.library
+  - guest/aarch64-aros/2026-08-21/usergroup.library
   - bin/aarch64-aros/9d
 provides:
   - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
