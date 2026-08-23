@@ -14,6 +14,8 @@ build_requires:
   - sources/aros-ports/isl-0.25.tar.bz2
   - sources/aros-ports/mpc-1.4.1.tar.xz
   - sources/aros-ports/mpfr-4.2.2.tar.bz2
+  - sources/aros-ports/UnicodeData.txt
+  - sources/aros-ports/SpecialCasing.txt
 provides:
   - docker:builder/compiler/aros/2026-08-21/aarch64
 ---

@@ -18,6 +18,8 @@ output_platforms:
       - guest/aarch64-aros/2026-08-21/config.txt
 requires:
   - sources/aros-2026-08-21.tar.gz
+  - sources/aros-ports/UnicodeData.txt
+  - sources/aros-ports/SpecialCasing.txt
 ---
 
 # AROS 2026-08-21 guest components
