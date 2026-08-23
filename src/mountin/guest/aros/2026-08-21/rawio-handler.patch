@@ -44,7 +44,7 @@ index b0bbec4..9858862 100644
 +                LONG value;
 +
 +                while (length > 0 && (value = rawGetChar()) < 0)
-+                    Delay(1);
++                    ;
 +                while (count < length && value >= 0) {
 +                    buffer[count++] = value;
 +                    if (count < length)
