@@ -2,24 +2,13 @@ diff --git a/workbench/fs/debug/debug-handler.c b/workbench/fs/debug/debug-handl
 index b0bbec4..9858862 100644
 --- a/workbench/fs/debug/debug-handler.c
 +++ b/workbench/fs/debug/debug-handler.c
-@@ -8,12 +8,26 @@
- 
- #include <string.h>
- 
-+#include <aros/kernel.h>
- #include <aros/debug.h>
- 
- #include <proto/exec.h>
- #include <proto/dos.h>
-+#include <proto/kernel.h>
- #include <proto/utility.h>
- 
+@@ -16 +16,13 @@
  #define UtilityBase     (pb->pb_UtilityBase)
-+#define PL011_OFFSET    0x201000
++#define PL011_BASE      0x3f201000
 +#define PL011_FR        0x18
 +#define PL011_FR_TXFF   (1 << 5)
 +
-+static volatile ULONG *uart;
++static volatile ULONG * const uart = (volatile ULONG *)PL011_BASE;
 +
 +static void rawPutChar(UBYTE value)
 +{
@@ -27,15 +16,10 @@ index b0bbec4..9858862 100644
 +        ;
 +    uart[0] = value;
 +}
- 
- #define OUTBUF_SIZE 1024
- 
-@@ -86,5 +100,9 @@ LONG debug_handler(struct ExecBase *SysBase)
+@@ -86,5 +98,6 @@ LONG debug_handler(struct ExecBase *SysBase)
  
      NEWLIST(&pb.pb_Openers);
 +    RawIOInit();
-+    uart = (volatile ULONG *)(KrnGetSystemAttr(KATTR_PeripheralBase)
-+        + PL011_OFFSET);
  
      WaitPort(mp);
  
