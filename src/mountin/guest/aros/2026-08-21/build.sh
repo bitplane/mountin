@@ -45,7 +45,8 @@ if [ "$#" -ne 0 ]; then
             "$OUTPUT_DIR/aros-aarch64-raspi.img"|\
             "$OUTPUT_DIR/aros-aarch64-bsp.rom"|\
             "$OUTPUT_DIR/bcm2837-rpi-3-b.dtb"|\
-            "$OUTPUT_DIR/config.txt")
+            "$OUTPUT_DIR/config.txt"|\
+            "$OUTPUT_DIR/rawio-handler")
                 if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
                     echo "Unexpected AROS AArch64 output: $output" >&2
                     exit 1
