@@ -11,7 +11,7 @@ build_requires:
   - sources/aros-ports/binutils-2.47.tar.bz2
   - sources/aros-ports/gcc-16.2.0.tar.xz
   - sources/aros-ports/gmp-6.3.0.tar.bz2
-  - sources/aros-ports/isl-0.25.tar.bz2
+  - sources/aros-ports/isl-0.27.tar.bz2
   - sources/aros-ports/mpc-1.4.1.tar.xz
   - sources/aros-ports/mpfr-4.2.2.tar.bz2
   - sources/aros-ports/UnicodeData.txt
