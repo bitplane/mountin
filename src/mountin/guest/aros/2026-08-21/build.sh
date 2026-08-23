@@ -53,6 +53,7 @@ if [ "$#" -ne 0 ]; then
             "$OUTPUT_DIR/stdcio.library"|\
             "$OUTPUT_DIR/posixc.library"|\
             "$OUTPUT_DIR/locale.library"|\
+            "$OUTPUT_DIR/iffparse.library"|\
             "$OUTPUT_DIR/usergroup.library")
                 if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
                     echo "Unexpected AROS AArch64 output: $output" >&2
@@ -123,7 +124,8 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     make -j"$MOUNTIN_BUILD_JOBS" workbench-c
     make -j"$MOUNTIN_BUILD_JOBS" \
         compiler-stdc compiler-stdcio compiler-posixc \
-        workbench-libs-locale workbench-libs-usergroup
+        workbench-libs-locale workbench-libs-iffparse \
+        workbench-libs-usergroup
     AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
     mkdir -p "$OUTPUT_DIR"
     cp "$AROS_DIR/aros-aarch64-raspi.img" \
@@ -137,6 +139,7 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     cp "$AROS_DIR/Libs/stdcio.library" "$OUTPUT_DIR/stdcio.library"
     cp "$AROS_DIR/Libs/posixc.library" "$OUTPUT_DIR/posixc.library"
     cp "$AROS_DIR/Libs/locale.library" "$OUTPUT_DIR/locale.library"
+    cp "$AROS_DIR/Libs/iffparse.library" "$OUTPUT_DIR/iffparse.library"
     cp "$AROS_DIR/Libs/usergroup.library" "$OUTPUT_DIR/usergroup.library"
     LINUX_SOURCE_DIR=$CACHE_DIR/linux-source
     if [ ! -d "$LINUX_SOURCE_DIR" ]; then

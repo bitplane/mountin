@@ -15,6 +15,7 @@ requires:
   - guest/aarch64-aros/2026-08-21/stdcio.library
   - guest/aarch64-aros/2026-08-21/posixc.library
   - guest/aarch64-aros/2026-08-21/locale.library
+  - guest/aarch64-aros/2026-08-21/iffparse.library
   - guest/aarch64-aros/2026-08-21/usergroup.library
   - bin/aarch64-aros/9d
 provides:
