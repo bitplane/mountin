@@ -78,6 +78,10 @@ if [ ! -d "$SOURCE_DIR" ]; then
     mv "$temporary" "$SOURCE_DIR"
 fi
 
+if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
+    patch -d "$SOURCE_DIR" -p1 < /build/rawio-handler.patch
+fi
+
 if [ ! -f "$GUEST_BUILD_DIR/.mountin-bootstrap" ]; then
     rm -rf "$GUEST_BUILD_DIR"
     mkdir -p "$GUEST_BUILD_DIR"
@@ -107,7 +111,6 @@ fi
 "$SOURCE_DIR/configure" "$@"
 
 if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
-    patch -d "$SOURCE_DIR" -p1 < /build/rawio-handler.patch
     make -j"$MOUNTIN_BUILD_JOBS" kernel-package-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" kernel-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" distfiles-raspi-aarch64le-bootimg
