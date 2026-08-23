@@ -44,6 +44,7 @@ if [ "$#" -ne 0 ]; then
                 ;;
             "$OUTPUT_DIR/aros-aarch64-raspi.img"|\
             "$OUTPUT_DIR/aros-aarch64-bsp.rom"|\
+            "$OUTPUT_DIR/bcm2837-rpi-3-b.dtb"|\
             "$OUTPUT_DIR/config.txt")
                 if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
                     echo "Unexpected AROS AArch64 output: $output" >&2
@@ -112,6 +113,20 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
         "$OUTPUT_DIR/aros-aarch64-raspi.img"
     cp "$AROS_DIR/aros-aarch64-bsp.rom" \
         "$OUTPUT_DIR/aros-aarch64-bsp.rom"
+    LINUX_SOURCE_DIR=$CACHE_DIR/linux-source
+    if [ ! -d "$LINUX_SOURCE_DIR" ]; then
+        temporary=$CACHE_DIR/linux-source.tmp.$$
+        rm -rf "$temporary"
+        mkdir -p "$temporary"
+        tar --no-same-owner -xJf /host/build/sources/linux-6.12.tar.xz \
+            -C "$temporary" --strip-components=1
+        mv "$temporary" "$LINUX_SOURCE_DIR"
+    fi
+    make -C "$LINUX_SOURCE_DIR" ARCH=arm64 defconfig
+    make -C "$LINUX_SOURCE_DIR" -j"$MOUNTIN_BUILD_JOBS" ARCH=arm64 \
+        broadcom/bcm2837-rpi-3-b.dtb
+    cp "$LINUX_SOURCE_DIR/arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-b.dtb" \
+        "$OUTPUT_DIR/bcm2837-rpi-3-b.dtb"
     printf '%s\n' \
         'kernel=aros-aarch64-raspi.img' \
         'kernel_address=0x80000' \

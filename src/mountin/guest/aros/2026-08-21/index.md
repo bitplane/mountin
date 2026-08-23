@@ -12,9 +12,11 @@ output_platforms:
   aarch64-aros:
     requires:
       - docker:${MOUNTIN_BUILDER}
+      - sources/linux-6.12.tar.xz
     provides:
       - guest/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
       - guest/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
+      - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
       - guest/aarch64-aros/2026-08-21/config.txt
 requires:
   - sources/aros-2026-08-21.tar.gz
@@ -26,5 +28,6 @@ requires:
 
 Builds the operating-system components needed by each AROS target. PC i386
 produces a bootable ISO. Raspberry Pi AArch64 produces its native kernel, BSP
-module package, and firmware configuration without downloading Raspberry Pi
-firmware; QEMU supplies the board firmware and device tree.
+module package, firmware configuration, and a device tree compiled from the
+Linux source already used by Mountin. No Raspberry Pi firmware binaries are
+downloaded.

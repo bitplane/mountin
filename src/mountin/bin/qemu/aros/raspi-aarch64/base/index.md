@@ -6,10 +6,12 @@ requires:
   - docker:${MOUNTIN_BUILDER}
   - guest/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
   - guest/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
+  - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
   - guest/aarch64-aros/2026-08-21/config.txt
 provides:
   - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
   - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
+  - bin/qemu/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
   - bin/qemu/aarch64-aros/2026-08-21/config.txt
   - bin/qemu/aarch64-aros/2026-08-21/system.img
 ---

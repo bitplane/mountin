@@ -9,6 +9,7 @@ PARTITION_OFFSET=1048576
 mkdir -p "$OUTPUT_DIR"
 cp "$GUEST_DIR/aros-aarch64-raspi.img" "$OUTPUT_DIR/"
 cp "$GUEST_DIR/aros-aarch64-bsp.rom" "$OUTPUT_DIR/"
+cp "$GUEST_DIR/bcm2837-rpi-3-b.dtb" "$OUTPUT_DIR/"
 cp "$GUEST_DIR/config.txt" "$OUTPUT_DIR/"
 
 rm -f "$DISK"
