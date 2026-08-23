@@ -14,7 +14,7 @@ cp "$GUEST_DIR/config.txt" "$OUTPUT_DIR/"
 rm -f "$DISK"
 truncate -s 16M "$DISK"
 printf 'label: dos\nstart=2048, type=c, bootable\n' | sfdisk "$DISK"
-mkfs.vfat -F 32 --offset 2048 -n MOUNTIN_AROS "$DISK"
+mkfs.vfat -F 32 --offset 2048 -n MOUNTIN "$DISK"
 mmd -i "$DISK@@$PARTITION_OFFSET" ::S
 printf 'aarch64\n' | mcopy -i "$DISK@@$PARTITION_OFFSET" - ::AROS.boot
 printf '%s\n' 'C:FailAt 21' 'C:Shell' \
