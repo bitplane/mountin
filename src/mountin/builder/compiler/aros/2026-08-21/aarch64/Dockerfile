@@ -28,6 +28,8 @@ RUN set -eu; \
         --target=raspi-aarch64 \
         --enable-build-type=nightly \
         --enable-ccache \
+        --with-binutils-version=2.47 \
+        --with-gcc-version=16.2.0 \
         --with-portssources=/host/build/sources/aros-ports \
         --with-aros-toolchain-install="$INSTALL_DIR" \
         --with-optimization="-Os"; \
