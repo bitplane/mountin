@@ -103,9 +103,8 @@ fi
 "$SOURCE_DIR/configure" "$@"
 
 if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
-    make -j"$MOUNTIN_BUILD_JOBS" \
-        kernel-package-raspi-aarch64 \
-        distfiles-raspi-aarch64le-bootimg
+    make -j"$MOUNTIN_BUILD_JOBS" kernel-package-raspi-aarch64
+    make -j"$MOUNTIN_BUILD_JOBS" distfiles-raspi-aarch64le-bootimg
     AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
     mkdir -p "$OUTPUT_DIR"
     cp "$AROS_DIR/aros-aarch64-raspi.img" \
