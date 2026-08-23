@@ -34,5 +34,6 @@ printf '%s\n' \
     'C:Assign LIBS: SYS:Libs' \
     'C:Automount' \
     'C:Mount DEVS:DOSDrivers/RAWIO' \
+    'Echo "[MOUNTIN] 9d starting" >RAWIO:' \
     'C:9d -p stream!RAWIO:' \
     | mcopy -i "$DISK@@$PARTITION_OFFSET" - ::S/Startup-Sequence

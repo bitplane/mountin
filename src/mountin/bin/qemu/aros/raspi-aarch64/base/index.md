@@ -26,3 +26,4 @@ QEMU boot components and a minimal FAT system volume for AROS AArch64. A small
 DOS handler exposes the kernel's bidirectional debug UART as a stream for 9d.
 The system volume also carries the non-resident commands needed to mount that
 handler and discover attached volumes.
+Startup writes a readiness marker to the UART immediately before entering 9d.
