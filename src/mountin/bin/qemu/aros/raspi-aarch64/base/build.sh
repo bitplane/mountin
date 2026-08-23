@@ -17,11 +17,14 @@ rm -f "$DISK"
 truncate -s 16M "$DISK"
 printf 'label: dos\nstart=2048, type=6, bootable\n' | sfdisk "$DISK"
 mkfs.vfat -F 16 --offset 2048 -n MOUNTIN "$DISK"
-mmd -i "$DISK@@$PARTITION_OFFSET" ::C ::L ::DEVS ::DEVS/DOSDrivers ::S
+mmd -i "$DISK@@$PARTITION_OFFSET" ::C ::L ::Libs ::DEVS ::DEVS/DOSDrivers ::S
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$NINED" ::C/9d
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/Automount" ::C/Automount
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/Mount" ::C/Mount
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/rawio-handler" ::L/rawio-handler
+mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/stdc.library" ::Libs/stdc.library
+mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/stdcio.library" ::Libs/stdcio.library
+mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/posixc.library" ::Libs/posixc.library
 printf '%s\n' \
     'Handler = L:rawio-handler' \
     'Priority = 5' \

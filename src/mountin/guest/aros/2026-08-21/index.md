@@ -21,6 +21,9 @@ output_platforms:
       - guest/aarch64-aros/2026-08-21/rawio-handler
       - guest/aarch64-aros/2026-08-21/Automount
       - guest/aarch64-aros/2026-08-21/Mount
+      - guest/aarch64-aros/2026-08-21/stdc.library
+      - guest/aarch64-aros/2026-08-21/stdcio.library
+      - guest/aarch64-aros/2026-08-21/posixc.library
 requires:
   - sources/aros-2026-08-21.tar.gz
   - sources/aros-ports/UnicodeData.txt
