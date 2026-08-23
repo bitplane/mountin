@@ -8,7 +8,7 @@ requires:
   - docker:${MOUNTIN_BUILDER}
 build_requires:
   - sources/aros-2026-08-21.tar.gz
-  - sources/aros-ports/binutils-2.47.tar.xz
+  - sources/aros-ports/binutils-2.47.tar.bz2
   - sources/aros-ports/gcc-16.2.0.tar.xz
   - sources/aros-ports/gmp-6.3.0.tar.bz2
   - sources/aros-ports/isl-0.25.tar.bz2
