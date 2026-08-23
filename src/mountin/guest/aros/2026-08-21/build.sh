@@ -46,7 +46,9 @@ if [ "$#" -ne 0 ]; then
             "$OUTPUT_DIR/aros-aarch64-bsp.rom"|\
             "$OUTPUT_DIR/bcm2837-rpi-3-b.dtb"|\
             "$OUTPUT_DIR/config.txt"|\
-            "$OUTPUT_DIR/rawio-handler")
+            "$OUTPUT_DIR/rawio-handler"|\
+            "$OUTPUT_DIR/Automount"|\
+            "$OUTPUT_DIR/Mount")
                 if [ "$MOUNTIN_TARGET_ARCH" != aarch64 ]; then
                     echo "Unexpected AROS AArch64 output: $output" >&2
                     exit 1
@@ -110,6 +112,7 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     make -j"$MOUNTIN_BUILD_JOBS" kernel-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" distfiles-raspi-aarch64le-bootimg
     make -j"$MOUNTIN_BUILD_JOBS" workbench-fs-debug
+    make -j"$MOUNTIN_BUILD_JOBS" workbench-c
     AROS_DIR=$GUEST_BUILD_DIR/bin/raspi-aarch64/AROS
     mkdir -p "$OUTPUT_DIR"
     cp "$AROS_DIR/aros-aarch64-raspi.img" \
@@ -117,6 +120,8 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     cp "$AROS_DIR/aros-aarch64-bsp.rom" \
         "$OUTPUT_DIR/aros-aarch64-bsp.rom"
     cp "$AROS_DIR/L/debug-handler" "$OUTPUT_DIR/rawio-handler"
+    cp "$AROS_DIR/C/Automount" "$OUTPUT_DIR/Automount"
+    cp "$AROS_DIR/C/Mount" "$OUTPUT_DIR/Mount"
     LINUX_SOURCE_DIR=$CACHE_DIR/linux-source
     if [ ! -d "$LINUX_SOURCE_DIR" ]; then
         temporary=$CACHE_DIR/linux-source.tmp.$$

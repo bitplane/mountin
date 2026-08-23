@@ -19,6 +19,8 @@ output_platforms:
       - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
       - guest/aarch64-aros/2026-08-21/config.txt
       - guest/aarch64-aros/2026-08-21/rawio-handler
+      - guest/aarch64-aros/2026-08-21/Automount
+      - guest/aarch64-aros/2026-08-21/Mount
 requires:
   - sources/aros-2026-08-21.tar.gz
   - sources/aros-ports/UnicodeData.txt
