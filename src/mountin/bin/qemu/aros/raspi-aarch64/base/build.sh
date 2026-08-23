@@ -15,8 +15,8 @@ cp "$GUEST_DIR/config.txt" "$OUTPUT_DIR/"
 
 rm -f "$DISK"
 truncate -s 16M "$DISK"
-printf 'label: dos\nstart=2048, type=c, bootable\n' | sfdisk "$DISK"
-mkfs.vfat -F 32 --offset 2048 -n MOUNTIN "$DISK"
+printf 'label: dos\nstart=2048, type=6, bootable\n' | sfdisk "$DISK"
+mkfs.vfat -F 16 --offset 2048 -n MOUNTIN "$DISK"
 mmd -i "$DISK@@$PARTITION_OFFSET" ::C ::L ::DEVS ::DEVS/DOSDrivers ::S
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$NINED" ::C/9d
 mcopy -i "$DISK@@$PARTITION_OFFSET" "$GUEST_DIR/Automount" ::C/Automount
