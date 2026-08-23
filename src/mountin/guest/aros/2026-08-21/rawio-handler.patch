@@ -1,8 +1,8 @@
 diff --git a/workbench/fs/debug/debug-handler.c b/workbench/fs/debug/debug-handler.c
-index b0bbec4..f01dd60 100644
+index b0bbec4..9858862 100644
 --- a/workbench/fs/debug/debug-handler.c
 +++ b/workbench/fs/debug/debug-handler.c
-@@ -8,12 +8,36 @@
+@@ -8,12 +8,26 @@
  
  #include <string.h>
  
@@ -16,33 +16,24 @@ index b0bbec4..f01dd60 100644
  
  #define UtilityBase     (pb->pb_UtilityBase)
 +#define PL011_OFFSET    0x201000
-+#define PL011_DR        0x00
 +#define PL011_FR        0x18
-+#define PL011_FR_RXFE   (1 << 4)
 +#define PL011_FR_TXFF   (1 << 5)
 +
 +static volatile ULONG *uart;
-+
-+static LONG rawMayGetChar(void)
-+{
-+    if ((uart[PL011_FR / sizeof(*uart)] & PL011_FR_RXFE) == 0)
-+        return uart[PL011_DR / sizeof(*uart)] & 0xff;
-+
-+    return -1;
-+}
 +
 +static void rawPutChar(UBYTE value)
 +{
 +    while (uart[PL011_FR / sizeof(*uart)] & PL011_FR_TXFF)
 +        ;
-+    uart[PL011_DR / sizeof(*uart)] = value;
++    uart[0] = value;
 +}
  
  #define OUTBUF_SIZE 1024
  
-@@ -86,5 +110,8 @@ LONG debug_handler(struct ExecBase *SysBase)
+@@ -86,5 +100,9 @@ LONG debug_handler(struct ExecBase *SysBase)
  
      NEWLIST(&pb.pb_Openers);
++    RawIOInit();
 +    uart = (volatile ULONG *)(KrnGetSystemAttr(KATTR_PeripheralBase)
 +        + PL011_OFFSET);
  
@@ -60,12 +51,12 @@ index b0bbec4..f01dd60 100644
 +                LONG count = 0;
 +                LONG value;
 +
-+                while (length > 0 && (value = rawMayGetChar()) < 0)
++                while (length > 0 && (value = RawMayGetChar()) < 0)
 +                    Delay(1);
 +                while (count < length && value >= 0) {
 +                    buffer[count++] = value;
 +                    if (count < length)
-+                        value = rawMayGetChar();
++                        value = RawMayGetChar();
 +                }
 +                dp->dp_Res1 = count;
 +                dp->dp_Res2 = 0;
@@ -99,3 +90,36 @@ index b0bbec4..f01dd60 100644
                  dp->dp_Res1 = len;
                  dp->dp_Res2 = 0;
              } else {
+diff --git a/arch/aarch64-native/kernel/maygetchar.c b/arch/aarch64-native/kernel/maygetchar.c
+new file mode 100644
+index 0000000..5732cc7
+--- /dev/null
++++ b/arch/aarch64-native/kernel/maygetchar.c
+@@ -0,0 +1,27 @@
++/*
++    Copyright (C) 2013-2026, The AROS Development Team. All rights reserved.
++*/
++
++#include <aros/kernel.h>
++
++#include <kernel_base.h>
++#include <kernel_debug.h>
++#include "kernel_intern.h"
++
++#include <proto/kernel.h>
++#include <stdint.h>
++
++/* See rom/kernel/maygetchar.c for documentation */
++
++AROS_LH0(int, KrnMayGetChar,
++    struct KernelBase *, KernelBase, 26, Kernel)
++{
++    AROS_LIBFUNC_INIT
++
++    if (__arm_arosintern.ARMI_SerGetChar)
++        return __arm_arosintern.ARMI_SerGetChar();
++
++    return -1;
++
++    AROS_LIBFUNC_EXIT
++}
