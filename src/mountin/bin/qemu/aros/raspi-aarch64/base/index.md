@@ -4,26 +4,26 @@ env:
   MOUNTIN_BUILDER: builder/disk/alpine
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - guest/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
-  - guest/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
-  - guest/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
-  - guest/aarch64-aros/2026-08-21/config.txt
-  - guest/aarch64-aros/2026-08-21/rawio-handler
-  - guest/aarch64-aros/2026-08-21/Automount
-  - guest/aarch64-aros/2026-08-21/Mount
-  - guest/aarch64-aros/2026-08-21/stdc.library
-  - guest/aarch64-aros/2026-08-21/stdcio.library
-  - guest/aarch64-aros/2026-08-21/posixc.library
-  - guest/aarch64-aros/2026-08-21/locale.library
-  - guest/aarch64-aros/2026-08-21/iffparse.library
-  - guest/aarch64-aros/2026-08-21/usergroup.library
+  - guest/aarch64-aros/2026-08-24/aros-aarch64-raspi.img
+  - guest/aarch64-aros/2026-08-24/aros-aarch64-bsp.rom
+  - guest/aarch64-aros/2026-08-24/bcm2837-rpi-3-b.dtb
+  - guest/aarch64-aros/2026-08-24/config.txt
+  - guest/aarch64-aros/2026-08-24/rawio-handler
+  - guest/aarch64-aros/2026-08-24/Automount
+  - guest/aarch64-aros/2026-08-24/Mount
+  - guest/aarch64-aros/2026-08-24/stdc.library
+  - guest/aarch64-aros/2026-08-24/stdcio.library
+  - guest/aarch64-aros/2026-08-24/posixc.library
+  - guest/aarch64-aros/2026-08-24/locale.library
+  - guest/aarch64-aros/2026-08-24/iffparse.library
+  - guest/aarch64-aros/2026-08-24/usergroup.library
   - bin/aarch64-aros/9d
 provides:
-  - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-raspi.img
-  - bin/qemu/aarch64-aros/2026-08-21/aros-aarch64-bsp.rom
-  - bin/qemu/aarch64-aros/2026-08-21/bcm2837-rpi-3-b.dtb
-  - bin/qemu/aarch64-aros/2026-08-21/config.txt
-  - bin/qemu/aarch64-aros/2026-08-21/system.img
+  - bin/qemu/aarch64-aros/2026-08-24/aros-aarch64-raspi.img
+  - bin/qemu/aarch64-aros/2026-08-24/aros-aarch64-bsp.rom
+  - bin/qemu/aarch64-aros/2026-08-24/bcm2837-rpi-3-b.dtb
+  - bin/qemu/aarch64-aros/2026-08-24/config.txt
+  - bin/qemu/aarch64-aros/2026-08-24/system.img
 ---
 
 # AROS Raspberry Pi AArch64 Base Guest

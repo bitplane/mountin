@@ -7,7 +7,7 @@ ARG MOUNTIN_CACHE_DIR
 ENV TAR_OPTIONS=--no-same-owner
 
 RUN set -eu; \
-    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-21.tar.gz; \
+    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-24.tar.gz; \
     CACHE_DIR=$MOUNTIN_CACHE_DIR; \
     SOURCE_DIR=$CACHE_DIR/source; \
     BUILD_DIR=$CACHE_DIR/toolchain-build; \
@@ -25,33 +25,30 @@ RUN set -eu; \
     mkdir -p "$BUILD_DIR" "$INSTALL_DIR"; \
     cd "$BUILD_DIR"; \
     "$SOURCE_DIR/configure" \
-        --target=pc-i386 \
-        --enable-target-variant=tiny \
+        --target=raspi-aarch64 \
         --enable-build-type=nightly \
         --enable-ccache \
+        --with-binutils-version=2.47 \
+        --with-gcc-version=16.2.0 \
         --with-portssources=/host/build/sources/aros-ports \
         --with-aros-toolchain-install="$INSTALL_DIR" \
-        --with-optimization="-Os -fno-defer-pop -mpreferred-stack-boundary=4" \
-    ; \
+        --with-optimization="-Os"; \
     make -j1 tools; \
     make -j"${MOUNTIN_BUILD_JOBS}" crosstools; \
     HOST_TOOLS=bin/linux-${MOUNTIN_BUILD_ARCH}/tools; \
-    mkdir -p \
-        /opt/aros-toolbox/bin/pc-i386-tiny/AROS \
+    mkdir -p /opt/aros-toolbox/bin/raspi-aarch64/AROS \
         "/opt/aros-toolbox/$HOST_TOOLS"; \
-    cp -a \
-        "$BUILD_DIR/bin/pc-i386-tiny/AROS/Developer" \
-        /opt/aros-toolbox/bin/pc-i386-tiny/AROS/; \
-    cp -a \
-        "$BUILD_DIR/$HOST_TOOLS/collect-aros" \
+    cp -a "$BUILD_DIR/bin/raspi-aarch64/AROS/Developer" \
+        /opt/aros-toolbox/bin/raspi-aarch64/AROS/; \
+    cp -a "$BUILD_DIR/$HOST_TOOLS/collect-aros" \
         "/opt/aros-toolbox/$HOST_TOOLS/"
 
 COPY --chmod=755 cc.sh /usr/local/bin/aros-cc
 
-RUN ln -s /opt/aros-toolchain/i386-aros-ar /usr/local/bin/aros-ar && \
-    ln -s /opt/aros-toolchain/i386-aros-strip /usr/local/bin/aros-strip
+RUN ln -s /opt/aros-toolchain/aarch64-aros-ar /usr/local/bin/aros-ar && \
+    ln -s /opt/aros-toolchain/aarch64-aros-strip /usr/local/bin/aros-strip
 
-ENV AROS_SYSROOT=/opt/aros-toolbox/bin/pc-i386-tiny/AROS/Developer \
+ENV AROS_SYSROOT=/opt/aros-toolbox/bin/raspi-aarch64/AROS/Developer \
     CC=aros-cc \
     AR=aros-ar \
     STRIP=aros-strip

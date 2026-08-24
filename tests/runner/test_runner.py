@@ -125,11 +125,11 @@ def test_build_log_path_mirrors_catalogue_path(tmp_path):
     """Stage logs mirror catalogue paths and distinguish command phases."""
     result = build_log_path(
         tmp_path,
-        "guest/aros/2026-08-21",
+        "guest/aros/2026-08-24",
         "run",
     )
 
-    assert result == (tmp_path / "logs/guest/aros/2026-08-21.run.log")
+    assert result == (tmp_path / "logs/guest/aros/2026-08-24.run.log")
 
 
 def test_run_streaming_tees_output_to_stream_and_log(tmp_path):
