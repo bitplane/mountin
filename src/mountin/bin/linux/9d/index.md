@@ -2,7 +2,7 @@
 title: 9d
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - sources/9d-0.7.1.tar.xz
+  - sources/9d-0.7.2.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-linux-${MOUNTIN_LIBC}/9d
 ---

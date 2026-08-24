@@ -8,7 +8,7 @@ output=/host/build/bin/${MOUNTIN_TARGET_PLATFORM}/9d
 
 rm -rf "$source"
 mkdir -p "$source" "${output%/*}"
-tar -xf /host/build/sources/9d-0.7.1.tar.xz \
+tar -xf /host/build/sources/9d-0.7.2.tar.xz \
     -C "$source" --strip-components=1
 
 make -C "$source" release \
