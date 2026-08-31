@@ -54,7 +54,6 @@ kernel-fs-cdvdfs-includes-dirs
 kernel-partition-includes-dirs
 kernel-fs-sfs-includes-dirs
 kernel-fs-fat-includes-dirs
-kernel-security-includes-dirs
 kernel-fs-pfs3-includes-dirs
 workbench-libs-uuid-includes-dirs
 kernel-fs-con-includes-dirs

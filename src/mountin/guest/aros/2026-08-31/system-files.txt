@@ -54,7 +54,6 @@ Libs/muimaster.library
 Libs/muiscreen.library
 Libs/posixc.library
 Libs/rexxsyslib.library
-Libs/security.library
 Libs/stdc.library
 Libs/stdcio.library
 Libs/workbench.library
