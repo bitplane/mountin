@@ -1,0 +1,62 @@
+name: Publish toolbox
+
+on:
+  workflow_call:
+    inputs:
+      toolbox:
+        description: Concrete docker provider to build and publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      TOOLBOX: ${{ inputs.toolbox }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out workflow
+        uses: actions/checkout@v6
+
+      - name: Check out latest Mountin release
+        id: release
+        run: |
+          set -eu
+          release=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          git fetch --depth=1 origin "refs/tags/$release"
+          git checkout --detach FETCH_HEAD
+          echo "tag=$release" >> "$GITHUB_OUTPUT"
+
+      - name: Install build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes podman python3-venv
+          python3 -m venv .venv
+          .venv/bin/pip install --disable-pip-version-check --editable .
+
+      - name: Build toolbox
+        run: .venv/bin/mountin-build build "$TOOLBOX"
+
+      - name: Publish toolbox
+        env:
+          RELEASE: ${{ steps.release.outputs.tag }}
+        run: |
+          set -eu
+          source_image=${TOOLBOX#docker:}
+          package=${source_image#builder/compiler/}
+          package=$(printf '%s' "$package" | tr '/+_' '---' | tr '[:upper:]' '[:lower:]')
+          destination="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mountin-toolbox-$package"
+
+          printf '%s' "$GH_TOKEN" | podman login ghcr.io \
+            --username "$GITHUB_ACTOR" --password-stdin
+          podman tag "$source_image" "$destination:$RELEASE"
+          podman tag "$source_image" "$destination:latest"
+          podman push "$destination:$RELEASE"
+          podman push "$destination:latest"
+
+          echo "Published $destination:$RELEASE"
+          echo "Published $destination:latest"

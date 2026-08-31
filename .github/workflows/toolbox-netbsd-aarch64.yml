@@ -1,0 +1,13 @@
+name: Publish NetBSD 10 AArch64 toolbox
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_toolbox-publish.yml
+    with:
+      toolbox: docker:builder/compiler/netbsd/10.0/aarch64

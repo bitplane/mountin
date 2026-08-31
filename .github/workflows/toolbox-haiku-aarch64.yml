@@ -1,0 +1,13 @@
+name: Publish Haiku AArch64 toolbox
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_toolbox-publish.yml
+    with:
+      toolbox: docker:builder/compiler/haiku/r1-beta6-hrev59919-1/aarch64
