@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build
 
-.PHONY: help all install test dev coverage clean gc build archive cloc
+.PHONY: help all install test dev coverage clean gc build archive release cloc
 
 PROJECT_NAME := mountin
 
@@ -33,6 +33,10 @@ gc: .venv/.installed-dev  ## collect obsolete mountin build state
 
 archive: scripts/archive.sh scripts/Dockerfile.archive scripts/archive-build.sh scripts/registries.archive.conf scripts/TIME_CAPSULE.md  ## build complete archive in container
 	scripts/archive.sh
+
+release:  ## test, version, tag and push a release (VERSION=M.m.p)
+	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=M.m.p" >&2; exit 2; }
+	scripts/release.sh "$(VERSION)"
 
 # Python project infrastructure
 .venv/.installed: pyproject.toml .venv/bin/activate scripts/install.sh $(shell find src -name '*.py')
