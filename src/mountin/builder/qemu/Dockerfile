@@ -20,7 +20,7 @@ RUN apk add --no-cache \
     musl-dev
 
 # Install zig via pip (cross-compiler toolchain)
-RUN pip install --break-system-packages ziglang
+RUN pip install --break-system-packages ziglang==0.16.0
 
 # Host zlib for build tools (cross-compiled deps come from sources)
 RUN apk add --no-cache \

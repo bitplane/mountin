@@ -83,4 +83,13 @@ RUN set -eu; \
 ENV DRAGONFLY_SRC=/usr/src
 ENV DRAGONFLY_OBJ=/usr/obj
 
-WORKDIR /build
+RUN mkdir -p /opt/mountin && \
+    ln -s /usr/src /opt/mountin/source && \
+    ln -s /usr/obj /opt/mountin/build && \
+    destdir=$(find /usr/obj -maxdepth 1 -type d -name 'destdir.*' \
+        -print -quit); \
+    if [ -n "$destdir" ]; then \
+        ln -s "$destdir" /opt/mountin/sysroot; \
+    fi
+
+WORKDIR /work

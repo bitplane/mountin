@@ -1,13 +1,12 @@
 #!/bin/sh
 set -eu
 
-SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-24.tar.gz
 CACHE_DIR=$MOUNTIN_CACHE_DIR
 SOURCE_DIR=$CACHE_DIR/source
 TOOLCHAIN_DIR=/opt/aros-toolchain
-PORTS_DIR=/host/build/sources/aros-ports
+PORTS_DIR=/opt/mountin/sources/aros-ports
 GUEST_BUILD_DIR=$CACHE_DIR/toolchain-build
-OUTPUT_DIR=/host/build/guest/${MOUNTIN_TARGET_ARCH}-aros/2026-08-24
+OUTPUT_DIR=/host/build/guest/${MOUNTIN_TARGET_ARCH}-aros/2026-08-31
 ISO_OUTPUT=$OUTPUT_DIR/aros.iso
 MOUNTIN_BUILD_JOBS=${MOUNTIN_BUILD_JOBS:-1}
 
@@ -78,14 +77,11 @@ export TAR_OPTIONS
 if [ ! -d "$SOURCE_DIR" ]; then
     temporary=$CACHE_DIR/source.tmp.$$
     rm -rf "$temporary"
-    mkdir -p "$temporary"
-    tar --no-same-owner -xzf "$SOURCE_ARCHIVE" \
-        -C "$temporary" --strip-components=1
+    cp -a /opt/mountin/source "$temporary"
+    if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
+        patch -d "$temporary" -p1 < /build/rawio-handler.patch
+    fi
     mv "$temporary" "$SOURCE_DIR"
-fi
-
-if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
-    patch -d "$SOURCE_DIR" -p1 < /build/rawio-handler.patch
 fi
 
 if [ ! -f "$GUEST_BUILD_DIR/.mountin-bootstrap" ]; then
@@ -146,8 +142,7 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
         temporary=$CACHE_DIR/linux-source.tmp.$$
         rm -rf "$temporary"
         mkdir -p "$temporary"
-        tar --no-same-owner -xJf /host/build/sources/linux-6.12.tar.xz \
-            -C "$temporary" --strip-components=1
+        cp -a /opt/mountin/sources/linux/. "$temporary/"
         mv "$temporary" "$LINUX_SOURCE_DIR"
     fi
     make -C "$LINUX_SOURCE_DIR" ARCH=arm64 defconfig

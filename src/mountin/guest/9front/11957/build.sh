@@ -9,17 +9,15 @@ case "$MOUNTIN_TARGET_ARCH" in
         ;;
 esac
 
-bootstrap=/host/build/sources/9front-11957.amd64.qcow2.gz
-source=/host/build/sources/9front-11957.tar.gz
 cache=$MOUNTIN_CACHE_DIR
 mkdir -p "$cache"
 
-bootstrap_image=$cache/bootstrap.qcow2
-if ! qemu-img info "$bootstrap_image" >/dev/null 2>&1; then
-    temporary=$cache/bootstrap.qcow2.tmp
-    gzip -dc "$bootstrap" > "$temporary"
-    qemu-img check -f qcow2 "$temporary"
-    mv "$temporary" "$bootstrap_image"
+bootstrap_image=/opt/9front/bootstrap.qcow2
+source=$cache/9front-11957.tar.gz
+if [ ! -s "$source" ]; then
+    temporary=$source.tmp
+    tar -czf "$temporary" -C /opt/mountin/source .
+    mv "$temporary" "$source"
 fi
 
 source_iso=$cache/source-mountin.iso
@@ -40,7 +38,7 @@ if [ ! -s "$source_iso" ] || [ ! -f "$source_iso.$source_hash" ]; then
     temporary=$cache/source-mountin.iso.tmp
     rm -f "$temporary"
     genisoimage -quiet -R -J -graft-points -o "$temporary" \
-        "$(basename "$source")=$source" \
+        9front-11957.tar.gz="$source" \
         mountin/plan9-amd64.ini=/build/plan9.ini \
         mountin/plan9-arm64.ini=/build/plan9-arm64.ini \
         mountin/mountin.rc=/build/mountin.rc \

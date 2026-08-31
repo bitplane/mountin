@@ -5,7 +5,7 @@ build_platforms:
 output_platforms:
   x86_64-illumos:
     provides:
-      - docker:builder/compiler/illumos/2026-08-13
+      - docker:builder/compiler/illumos/2026-08-13/x86_64
 env:
   MOUNTIN_BUILDER: builder/compiler/illumos
 execution_env:

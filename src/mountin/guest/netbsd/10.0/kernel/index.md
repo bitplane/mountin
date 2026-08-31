@@ -1,7 +1,5 @@
 ---
 title: NetBSD 10.0 Kernel
-requires:
-  - sources/netbsd-10.0-syssrc.tgz
 provides:
   - guest/${MOUNTIN_TARGET_ARCH}-netbsd/10.0/kernel/netbsd.gdb
 ---

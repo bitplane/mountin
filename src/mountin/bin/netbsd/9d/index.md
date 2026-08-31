@@ -1,7 +1,7 @@
 ---
 title: 9d
 requires:
-  - sources/9d-0.7.2.tar.xz
+  - sources/9d-0.7.3.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-netbsd/9d
 ---

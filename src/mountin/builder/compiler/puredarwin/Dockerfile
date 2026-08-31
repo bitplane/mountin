@@ -3,7 +3,11 @@ FROM docker.io/library/ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    autopoint \
     bison \
+    binutils-i686-linux-gnu \
     build-essential \
     ca-certificates \
     clang \
@@ -12,6 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ed \
     flex \
     gawk \
+    gcc-i686-linux-gnu \
+    gettext \
     git \
     libblocksruntime-dev \
     libc++-14-dev \

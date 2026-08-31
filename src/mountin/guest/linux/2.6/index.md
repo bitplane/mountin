@@ -8,7 +8,7 @@ build_platforms:
   x86_64-linux: {}
   aarch64-linux: {}
 env:
-  MOUNTIN_BUILDER: builder/compiler/linux/2
+  MOUNTIN_BUILDER: builder/compiler/linux/2.6/x86_64
 requires:
   - docker:${MOUNTIN_BUILDER}
 ---

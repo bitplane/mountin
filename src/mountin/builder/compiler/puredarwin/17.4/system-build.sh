@@ -192,3 +192,12 @@ mkdir -p "$OUTPUT_DIR"
 tar -czf "$TARGET_ARCHIVE" -C "$ROOT_DIR" .
 rm -rf "$OUTPUT_SYSROOT"
 cp -a "$SYSROOT_DIR" "$OUTPUT_SYSROOT"
+
+rm -rf /opt/mountin/source /opt/mountin/sources
+mkdir -p /opt/mountin/sources
+cp -a "$SOURCE_DIR" /opt/mountin/source
+cp -a "$DARWIN_SOURCE_DIR"/. /opt/mountin/sources/
+cp -a "$COMPILER_RT_DIR" /opt/mountin/sources/compiler-rt
+cp -a "$LIBCXX_DIR" /opt/mountin/sources/libcxx
+cp -a "$LIBCXXABI_DIR" /opt/mountin/sources/libcxxabi
+cp -a "$LIBUNWIND_DIR" /opt/mountin/sources/libunwind

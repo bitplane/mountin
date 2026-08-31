@@ -66,8 +66,16 @@ RUN set -eu; \
     ln -s "${TOOL_PREFIX}strip" /usr/local/bin/haiku-strip; \
     ln -s "${TOOL_PREFIX}readelf" /usr/local/bin/haiku-readelf
 
+RUN mkdir -p /opt/mountin/sources && \
+    ln -s /src/haiku /opt/mountin/source && \
+    ln -s /src/buildtools /opt/mountin/sources/buildtools && \
+    ln -s /src/haiku/generated /opt/mountin/build && \
+    ln -s /opt/haiku-sysroot /opt/mountin/sysroot
+
 ENV HAIKU_SYSROOT=/opt/haiku-sysroot \
     CC=haiku-cc \
     AR=haiku-ar \
     STRIP=haiku-strip \
     READELF=haiku-readelf
+
+WORKDIR /work

@@ -1,7 +1,7 @@
 ---
 title: PureDarwin 17.4 guest system
 env:
-  MOUNTIN_BUILDER: builder/compiler/puredarwin/17.4
+  MOUNTIN_BUILDER: builder/compiler/puredarwin/17.4/x86_64
 requires:
   - docker:${MOUNTIN_BUILDER}
 provides:

@@ -57,3 +57,6 @@ cp "$INSTALL_DIR/lib/grub/i386-pc/efiemu64.o" "$OUTPUT_DIR/efiemu64.o.tmp"
 mv "$OUTPUT_DIR/boot.img.tmp" "$OUTPUT_DIR/boot.img"
 mv "$OUTPUT_DIR/core.img.tmp" "$OUTPUT_DIR/core.img"
 mv "$OUTPUT_DIR/efiemu64.o.tmp" "$OUTPUT_DIR/efiemu64.o"
+
+rm -rf /opt/mountin/sources/grub
+cp -a "$SOURCE_DIR" /opt/mountin/sources/grub

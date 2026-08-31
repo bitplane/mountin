@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-GUEST_DIR=/host/build/guest/aarch64-aros/2026-08-24
-OUTPUT_DIR=/host/build/bin/qemu/aarch64-aros/2026-08-24
+GUEST_DIR=/host/build/guest/aarch64-aros/2026-08-31
+OUTPUT_DIR=/host/build/bin/qemu/aarch64-aros/2026-08-31
 NINED=/host/build/bin/aarch64-aros/9d
 DISK=$OUTPUT_DIR/system.img
 PARTITION_OFFSET=1048576

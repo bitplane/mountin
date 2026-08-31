@@ -5,7 +5,7 @@ output_platforms:
     provides:
       - guest/${MOUNTIN_TARGET_PLATFORM}/2026-08-13/system
 env:
-  MOUNTIN_ILLUMOS_BUILDER: builder/compiler/illumos/2026-08-13
+  MOUNTIN_ILLUMOS_BUILDER: builder/compiler/illumos/2026-08-13/x86_64
 requires:
   - docker:${MOUNTIN_ILLUMOS_BUILDER}
 ---

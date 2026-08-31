@@ -61,7 +61,27 @@ RUN set -eu; \
     fi; \
     make -j"$MOUNTIN_BUILD_JOBS"; \
     rm -rf /opt/cross; \
-    make install
+    make install; \
+    mkdir -p /opt/mountin/source /opt/mountin/sources; \
+    tar -xf /host/build/sources/linux-2.6.39.4.tar.xz \
+        -C /opt/mountin/source --strip-components=1; \
+    for archive in \
+        gcc-5.3.0.tar.bz2 \
+        binutils-2.25.1.tar.bz2 \
+        musl-1.2.6.tar.gz \
+        gmp-6.3.0.tar.xz \
+        mpc-1.3.1.tar.gz \
+        mpfr-4.2.2.tar.xz; \
+    do \
+        name=${archive%.tar.*}; \
+        mkdir -p "/opt/mountin/sources/$name"; \
+        tar -xf "/host/build/sources/$archive" \
+            -C "/opt/mountin/sources/$name" --strip-components=1; \
+    done; \
+    mkdir -p /opt/mountin/sources/musl-cross-make; \
+    tar -xzf /host/build/sources/musl-cross-make-2026-08-20.tar.gz \
+        -C /opt/mountin/sources/musl-cross-make --strip-components=1; \
+    ln -s /opt/cross/x86_64-linux-musl /opt/mountin/sysroot
 
 ENV PATH=/opt/cross/bin:$PATH
 ENV CROSS_COMPILE=x86_64-linux-musl-
@@ -75,4 +95,4 @@ ENV STRIP=x86_64-linux-musl-strip
 ENV OBJCOPY=x86_64-linux-musl-objcopy
 ENV READELF=x86_64-linux-musl-readelf
 
-WORKDIR /build
+WORKDIR /work

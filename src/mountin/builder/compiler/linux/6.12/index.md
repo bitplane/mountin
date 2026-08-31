@@ -1,15 +1,15 @@
 ---
-title: Linux 6.x Compiler
+title: Linux 6.12 Toolbox
 build_platforms:
   x86_64-linux: {}
   aarch64-linux: {}
 output_platforms:
   x86_64-linux-musl:
     provides:
-      - docker:builder/compiler/linux/6/x86_64
+      - docker:builder/compiler/linux/6.12/x86_64
   aarch64-linux-musl:
     provides:
-      - docker:builder/compiler/linux/6/aarch64
+      - docker:builder/compiler/linux/6.12/aarch64
 execution_env:
   MOUNTIN_BUILD_JOBS: ${MOUNTIN_BUILD_JOBS}
 requires:
@@ -25,7 +25,7 @@ build_requires:
   - sources/linux-6.12.tar.xz
 ---
 
-# Linux 6.x Compiler
+# Linux 6.12 Toolbox
 
 Relocatable GCC, binutils and musl cross-toolbox built entirely from declared
 sources. Either supported Linux host can build either target. Native builds use

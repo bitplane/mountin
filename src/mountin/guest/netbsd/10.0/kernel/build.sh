@@ -5,16 +5,7 @@ NBARCH=$(cat /tmp/nbarch)
 NBMACHINEARCH=$(cat /tmp/nbmachinearch)
 NBKERNARCH=$(cat /tmp/nbkernarch)
 OBJ_DIR=$MOUNTIN_CACHE_DIR/obj
-SOURCE_DIR=$MOUNTIN_CACHE_DIR/source
-
-if [ ! -f "$SOURCE_DIR/.extracted" ]; then
-    rm -rf "$SOURCE_DIR"
-    mkdir -p "$SOURCE_DIR"
-    tar -xzf /host/build/sources/netbsd-10.0-syssrc.tgz -C "$SOURCE_DIR"
-    touch "$SOURCE_DIR/.extracted"
-fi
-
-SYS_DIR="$SOURCE_DIR/usr/src/sys"
+SYS_DIR=/usr/src/sys
 
 # The machine configurations are intentionally separate; only the surrounding
 # build pipeline is architecture-independent.
@@ -30,7 +21,7 @@ mkdir -p "$OBJ_DIR"
 /usr/tools/bin/nbconfig -s "$SYS_DIR" -b "$OBJ_DIR" \
     "$MOUNTIN_CACHE_DIR/MOUNTIN"
 /usr/tools/bin/nbmake-"$NBARCH" -C "$OBJ_DIR" -j"${MOUNTIN_BUILD_JOBS}" \
-    NETBSDSRCDIR="$SOURCE_DIR/usr/src" depend all
+    NETBSDSRCDIR=/usr/src depend all
 
 # Copy unstripped kernel (needed for mdsetimage)
 OUTPUT_DIR="/host/build/guest/${MOUNTIN_TARGET_ARCH}-netbsd/10.0/kernel"

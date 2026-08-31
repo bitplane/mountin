@@ -292,6 +292,13 @@ Compiler images follow the same separation:
 - `builder/compiler/<os>/<version>` is the toolbox for one upstream guest
   generation. It owns the matching compiler, SDK/sysroot and runtime closure.
 - Target-specific variants may live beneath that version when required.
+- Versioned toolboxes contain usable source trees and any prepared object state
+  needed to continue the operating-system build. They must run without the
+  Mountin build directory, network access or a provider cache.
+- Versioned toolboxes have no entrypoint, use `/work` for caller source, and
+  expose applicable common views beneath `/opt/mountin`: `source`, `sources`,
+  `build`, and `sysroot`. Upstream-required physical paths may remain in place
+  behind those views.
 - Guest assembly consumes the toolbox; it does not publish build trees,
   sysroots or SDKs as runtime outputs.
 - `guest/<platform>/<version>` contains reusable, inspectable operating-system

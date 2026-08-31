@@ -70,7 +70,27 @@ RUN set -eu; \
     fi; \
     make -j"$MOUNTIN_BUILD_JOBS"; \
     rm -rf /opt/cross; \
-    make install
+    make install; \
+    mkdir -p /opt/mountin/source /opt/mountin/sources; \
+    tar -xf /host/build/sources/linux-6.12.tar.xz \
+        -C /opt/mountin/source --strip-components=1; \
+    for archive in \
+        gcc-9.4.0.tar.xz \
+        binutils-2.44.tar.gz \
+        musl-1.2.6.tar.gz \
+        gmp-6.3.0.tar.xz \
+        mpc-1.3.1.tar.gz \
+        mpfr-4.2.2.tar.xz; \
+    do \
+        name=${archive%.tar.*}; \
+        mkdir -p "/opt/mountin/sources/$name"; \
+        tar -xf "/host/build/sources/$archive" \
+            -C "/opt/mountin/sources/$name" --strip-components=1; \
+    done; \
+    mkdir -p /opt/mountin/sources/musl-cross-make; \
+    tar -xzf /host/build/sources/musl-cross-make-2026-08-20.tar.gz \
+        -C /opt/mountin/sources/musl-cross-make --strip-components=1; \
+    ln -s "/opt/cross/$MOUNTIN_TARGET_PLATFORM" /opt/mountin/sysroot
 
 ENV PATH=/opt/cross/bin:$PATH
 ENV CROSS_COMPILE=${MOUNTIN_TARGET_PLATFORM}-
@@ -85,4 +105,4 @@ ENV OBJCOPY=${MOUNTIN_TARGET_PLATFORM}-objcopy
 ENV READELF=${MOUNTIN_TARGET_PLATFORM}-readelf
 ENV CHOST=${MOUNTIN_TARGET_PLATFORM}
 
-WORKDIR /build
+WORKDIR /work

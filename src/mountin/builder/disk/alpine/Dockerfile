@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     py3-pip
 
 # Amiga filesystem tools
-RUN pip3 install --no-cache-dir --break-system-packages amitools
+RUN pip3 install --no-cache-dir --break-system-packages amitools==0.8.1
 
 # cramfs tools (not in Alpine repos, built from mounted source)
 RUN apk add --no-cache --virtual .cramfs-deps make gcc musl-dev zlib-dev zlib-static \

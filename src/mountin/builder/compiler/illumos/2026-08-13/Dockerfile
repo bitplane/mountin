@@ -20,4 +20,10 @@ ENV CC=x86_64-illumos-cc \
     AR=x86_64-illumos-ar \
     STRIP=x86_64-illumos-strip
 
-WORKDIR /source/usr/src
+RUN mkdir -p /opt/mountin/sources && \
+    mv /build/binutils-source /opt/mountin/sources/binutils && \
+    ln -s /source /opt/mountin/source && \
+    ln -s /source/usr/src /opt/mountin/build && \
+    ln -s /opt/illumos/sysroot /opt/mountin/sysroot
+
+WORKDIR /work

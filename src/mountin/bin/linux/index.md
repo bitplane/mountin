@@ -7,7 +7,7 @@ output_platforms:
   x86_64-linux-musl: {}
   aarch64-linux-musl: {}
 env:
-  MOUNTIN_BUILDER: builder/compiler/linux/6/${MOUNTIN_TARGET_ARCH}
+  MOUNTIN_BUILDER: builder/compiler/linux/6.12/${MOUNTIN_TARGET_ARCH}
   MOUNTIN_LIBC: musl
 ---
 

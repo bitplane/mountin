@@ -1,5 +1,5 @@
 ---
-title: AROS 2026-08-24 PC i386 Cross-Compiler
+title: AROS 2026-08-31 PC i386 Cross-Compiler
 env:
   MOUNTIN_BUILDER: builder/compiler/aros
 execution_env:
@@ -7,7 +7,7 @@ execution_env:
 requires:
   - docker:${MOUNTIN_BUILDER}
 build_requires:
-  - sources/aros-2026-08-24.tar.gz
+  - sources/aros-2026-08-31.tar.gz
   - sources/aros-ports/binutils-2.32.tar.bz2
   - sources/aros-ports/gcc-6.5.0.tar.xz
   - sources/aros-ports/gmp-6.3.0.tar.bz2
@@ -16,11 +16,14 @@ build_requires:
   - sources/aros-ports/mpfr-4.2.2.tar.bz2
   - sources/aros-ports/UnicodeData.txt
   - sources/aros-ports/SpecialCasing.txt
+  - sources/aros-ports/acpica-unix-20260408.tar.gz
+  - sources/aros-ports/grub-2.12.tar.gz
+  - sources/aros-ports/pci.ids
 provides:
-  - docker:builder/compiler/aros/2026-08-24/i386
+  - docker:builder/compiler/aros/2026-08-31/i386
 ---
 
-# AROS 2026-08-24 PC i386 Cross-Compiler
+# AROS 2026-08-31 PC i386 Cross-Compiler
 
 AROS's GCC and binutils cross-toolchain and matching Developer tree for native
 32-bit x86 PC guests. The image is tied to the selected AROS source revision

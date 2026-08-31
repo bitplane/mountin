@@ -1,45 +1,9 @@
-ARG MOUNTIN_TARGET_ARCH
+ARG MOUNTIN_BUILDER
 ARG MOUNTIN_BUILD_PLATFORM
 ARG MOUNTIN_BUILD_JOBS=1
 ARG MOUNTIN_CACHE_DIR
 
-FROM debian:bookworm-slim AS base
-ARG MOUNTIN_TARGET_ARCH
-ARG MOUNTIN_BUILD_PLATFORM
-ARG MOUNTIN_BUILD_JOBS=1
-ARG MOUNTIN_CACHE_DIR
-
-# Install build dependencies for NetBSD build.sh
-# Using Debian because musl libc (Alpine) has conflicts with old texinfo code
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    bash \
-    build-essential \
-    tar \
-    xz-utils \
-    gzip \
-    bzip2 \
-    zlib1g-dev \
-    libncurses-dev \
-    coreutils \
-    findutils \
-    diffutils \
-    patch \
-    gawk \
-    sed \
-    grep \
-    texinfo \
-    groff \
-    flex \
-    bison \
-    perl \
-    python3 \
-    autoconf \
-    automake \
-    libtool \
-    gettext \
-    && rm -rf /var/lib/apt/lists/*
-
-FROM base AS builder
+FROM ${MOUNTIN_BUILDER} AS builder
 ARG MOUNTIN_TARGET_ARCH
 ARG MOUNTIN_BUILD_PLATFORM
 ARG MOUNTIN_BUILD_JOBS=1
@@ -139,7 +103,7 @@ RUN set -eu; \
     fi; \
     rm -rf "$IMAGE_DESTDIR/lib/i386" "$IMAGE_DESTDIR/usr/lib/i386"
 
-FROM base
+FROM ${MOUNTIN_BUILDER}
 ARG MOUNTIN_TARGET_ARCH
 
 COPY --from=builder /tmp/nbarch /tmp/nbarch
@@ -148,7 +112,7 @@ COPY --from=builder /tmp/nbkernarch /tmp/nbkernarch
 COPY --from=builder /tmp/nbgnutriple /tmp/nbgnutriple
 COPY --from=builder /opt/netbsd/tools /usr/tools
 COPY --from=builder /opt/netbsd/obj /usr/obj
-COPY --from=builder /usr/src/share/mk /usr/src/share/mk
+COPY --from=builder /usr/src /usr/src
 COPY --chmod=755 cc.sh /usr/local/bin/netbsd-cc
 
 # Give consumers an architecture-independent compiler interface. The target
@@ -165,6 +129,11 @@ RUN set -eu; \
         /usr/local/bin/netbsd-strip; \
     ln -s "/usr/obj/destdir.${NBARCH}" /opt/netbsd/sysroot
 
+RUN mkdir -p /opt/mountin && \
+    ln -s /usr/src /opt/mountin/source && \
+    ln -s /usr/obj /opt/mountin/build && \
+    ln -s /opt/netbsd/sysroot /opt/mountin/sysroot
+
 ENV NETBSD_OBJ=/usr/obj \
     NETBSD_TOOLS=/usr/tools \
     NETBSD_SYSROOT=/opt/netbsd/sysroot \
@@ -173,5 +142,4 @@ ENV NETBSD_OBJ=/usr/obj \
     STRIP=netbsd-strip
 
 # Create standard directories
-RUN mkdir -p /build /outputs /host/build
-WORKDIR /build
+WORKDIR /work

@@ -185,7 +185,7 @@ def test_fixed_arch_guests_resolve_on_arm_hosts():
     assert providers["bin/i386-aros/9d"] == "bin/aros/9d"
     assert providers["bin/x86_64-darwin/9d"] == "bin/darwin/9d"
 
-    aros = graph_for("bin/qemu/i386-aros/2026-08-24/aros.iso", context)
+    aros = graph_for("bin/qemu/i386-aros/2026-08-31/aros.iso", context)
     darwin = graph_for(
         "bin/qemu/x86_64-darwin/17.4/puredarwin.raw",
         context,
@@ -205,14 +205,14 @@ def test_linux_2_6_cross_builds_x86_64_only():
 
     for context in (CONTEXT, arm_context):
         providers = buildable_providers(context)
-        assert "docker:builder/compiler/linux/2" in providers
+        assert "docker:builder/compiler/linux/2.6/x86_64" in providers
         assert "guest/x86_64-linux/2.6/kernel" in providers
         assert "bin/qemu/x86_64-linux/2.6/boot/kernel" in providers
         assert "guest/aarch64-linux/2.6/kernel" not in providers
         assert "bin/qemu/aarch64-linux/2.6/boot/kernel" not in providers
 
     graph = graph_for("bin/qemu/x86_64-linux/2.6/boot/kernel", arm_context)
-    assert "builder/compiler/linux/2" in graph["nodes"]
+    assert "builder/compiler/linux/2.6@x86_64-linux-musl" in graph["nodes"]
     assert "guest/linux/2.6/kernel@x86_64-linux" in graph["nodes"]
 
 
@@ -227,7 +227,7 @@ def test_linux_6_12_cross_build_matrix():
     for context in (CONTEXT, arm_context):
         providers = buildable_providers(context)
         for arch in ("x86_64", "aarch64"):
-            assert f"docker:builder/compiler/linux/6/{arch}" in providers
+            assert f"docker:builder/compiler/linux/6.12/{arch}" in providers
             assert f"bin/{arch}-linux-musl/9d" in providers
             assert f"guest/{arch}-linux/6.12/kernel" in providers
             assert f"bin/qemu/{arch}-linux/6.12/boot/kernel" in providers
@@ -235,7 +235,7 @@ def test_linux_6_12_cross_build_matrix():
     for arch, context in (("aarch64", CONTEXT), ("x86_64", arm_context)):
         graph = graph_for(f"bin/qemu/{arch}-linux/6.12/boot/kernel", context)
         nodes = graph["nodes"]
-        assert f"builder/compiler/linux/6@{arch}-linux-musl" in nodes
+        assert f"builder/compiler/linux/6.12@{arch}-linux-musl" in nodes
         assert f"bin/linux/9d@{arch}-linux-musl" in nodes
         assert f"guest/linux/6.12/kernel@{arch}-linux" in nodes
         assert f"guest/linux/base@{arch}-linux" in nodes
@@ -315,7 +315,7 @@ def test_9front_cross_build_matrix():
 
     for context in (CONTEXT, arm_context):
         providers = buildable_providers(context)
-        assert "docker:builder/compiler/9front" in providers
+        assert "docker:builder/compiler/9front/11957" in providers
         assert "bin/qemu/x86_64-9front/11957/9front.iso" in providers
         assert "bin/qemu/aarch64-9front/11957/9front.qcow2" in providers
         assert "bin/qemu/aarch64-9front/11957/u-boot.bin" in providers
@@ -331,7 +331,7 @@ def test_fixture_guests_do_not_depend_on_the_transport_server():
     for target in (
         "guest/x86_64-linux/base/rootfs.img",
         "guest/x86_64-netbsd/10.0/boot/boot.img",
-        "guest/i386-aros/2026-08-24/aros.iso",
+        "guest/i386-aros/2026-08-31/aros.iso",
         "guest/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image",
         "guest/x86_64-illumos/2026-08-13/system",
     ):
@@ -343,7 +343,7 @@ def test_qemu_appliances_consume_reusable_guest_outputs():
     pairs = {
         "bin/qemu/x86_64-linux/6.12/boot/rootfs.img": "guest/x86_64-linux/base/rootfs.img",
         "bin/qemu/x86_64-netbsd/10.0/boot/netbsd": "guest/x86_64-netbsd/10.0/kernel/netbsd.gdb",
-        "bin/qemu/i386-aros/2026-08-24/aros.iso": "guest/i386-aros/2026-08-24/aros.iso",
+        "bin/qemu/i386-aros/2026-08-31/aros.iso": "guest/i386-aros/2026-08-31/aros.iso",
         "bin/qemu/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image": "guest/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image",
         "bin/qemu/x86_64-darwin/17.4/puredarwin.raw": "guest/x86_64-darwin/17.4/system",
         "bin/qemu/x86_64-illumos/2026-08-13/rootfs.iso": "guest/x86_64-illumos/2026-08-13/system",

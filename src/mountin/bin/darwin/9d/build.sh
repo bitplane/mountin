@@ -7,7 +7,7 @@ OUTPUT_DIR=/host/build/bin/${MOUNTIN_TARGET_ARCH}-darwin
 
 rm -rf "$SOURCE" "$OBJECTS"
 mkdir -p "$SOURCE" "$OBJECTS" "$OUTPUT_DIR"
-tar -xf /host/build/sources/9d-0.7.2.tar.xz \
+tar -xf /host/build/sources/9d-0.7.3.tar.xz \
     -C "$SOURCE" --strip-components=1
 
 make -C "$SOURCE" release \

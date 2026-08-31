@@ -7,7 +7,7 @@ ARG MOUNTIN_CACHE_DIR
 ENV TAR_OPTIONS=--no-same-owner
 
 RUN set -eu; \
-    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-24.tar.gz; \
+    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-31.tar.gz; \
     CACHE_DIR=$MOUNTIN_CACHE_DIR; \
     SOURCE_DIR=$CACHE_DIR/source; \
     BUILD_DIR=$CACHE_DIR/toolchain-build; \
@@ -41,7 +41,28 @@ RUN set -eu; \
     cp -a "$BUILD_DIR/bin/raspi-aarch64/AROS/Developer" \
         /opt/aros-toolbox/bin/raspi-aarch64/AROS/; \
     cp -a "$BUILD_DIR/$HOST_TOOLS/collect-aros" \
-        "/opt/aros-toolbox/$HOST_TOOLS/"
+        "/opt/aros-toolbox/$HOST_TOOLS/"; \
+    mkdir -p /opt/mountin/sources/aros-ports \
+        /opt/mountin/sources/linux; \
+    cp -a "$SOURCE_DIR" /opt/mountin/source; \
+    cp /host/build/sources/aros-ports/UnicodeData.txt \
+        /host/build/sources/aros-ports/SpecialCasing.txt \
+        /opt/mountin/sources/aros-ports/; \
+    for archive in \
+        binutils-2.47.tar.bz2 gcc-16.2.0.tar.xz \
+        gmp-6.3.0.tar.bz2 isl-0.27.tar.bz2 \
+        mpc-1.4.1.tar.xz mpfr-4.2.2.tar.bz2; \
+    do \
+        name=${archive%.tar.*}; \
+        mkdir -p "/opt/mountin/sources/$name"; \
+        tar -xf "/host/build/sources/aros-ports/$archive" \
+            -C "/opt/mountin/sources/$name" --strip-components=1; \
+    done; \
+    tar -xf /host/build/sources/linux-6.12.tar.xz \
+        -C /opt/mountin/sources/linux --strip-components=1; \
+    ln -s /opt/aros-toolbox /opt/mountin/build; \
+    ln -s /opt/aros-toolbox/bin/raspi-aarch64/AROS/Developer \
+        /opt/mountin/sysroot
 
 COPY --chmod=755 cc.sh /usr/local/bin/aros-cc
 
@@ -52,3 +73,5 @@ ENV AROS_SYSROOT=/opt/aros-toolbox/bin/raspi-aarch64/AROS/Developer \
     CC=aros-cc \
     AR=aros-ar \
     STRIP=aros-strip
+
+WORKDIR /work

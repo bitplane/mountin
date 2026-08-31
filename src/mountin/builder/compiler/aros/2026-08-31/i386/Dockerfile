@@ -7,7 +7,7 @@ ARG MOUNTIN_CACHE_DIR
 ENV TAR_OPTIONS=--no-same-owner
 
 RUN set -eu; \
-    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-24.tar.gz; \
+    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-31.tar.gz; \
     CACHE_DIR=$MOUNTIN_CACHE_DIR; \
     SOURCE_DIR=$CACHE_DIR/source; \
     BUILD_DIR=$CACHE_DIR/toolchain-build; \
@@ -44,7 +44,28 @@ RUN set -eu; \
         /opt/aros-toolbox/bin/pc-i386-tiny/AROS/; \
     cp -a \
         "$BUILD_DIR/$HOST_TOOLS/collect-aros" \
-        "/opt/aros-toolbox/$HOST_TOOLS/"
+        "/opt/aros-toolbox/$HOST_TOOLS/"; \
+    mkdir -p /opt/mountin/sources/aros-ports; \
+    cp -a "$SOURCE_DIR" /opt/mountin/source; \
+    cp /host/build/sources/aros-ports/UnicodeData.txt \
+        /host/build/sources/aros-ports/SpecialCasing.txt \
+        /host/build/sources/aros-ports/acpica-unix-20260408.tar.gz \
+        /host/build/sources/aros-ports/grub-2.12.tar.gz \
+        /host/build/sources/aros-ports/pci.ids \
+        /opt/mountin/sources/aros-ports/; \
+    for archive in \
+        binutils-2.32.tar.bz2 gcc-6.5.0.tar.xz \
+        gmp-6.3.0.tar.bz2 isl-0.25.tar.bz2 \
+        mpc-1.4.1.tar.xz mpfr-4.2.2.tar.bz2; \
+    do \
+        name=${archive%.tar.*}; \
+        mkdir -p "/opt/mountin/sources/$name"; \
+        tar -xf "/host/build/sources/aros-ports/$archive" \
+            -C "/opt/mountin/sources/$name" --strip-components=1; \
+    done; \
+    ln -s /opt/aros-toolbox /opt/mountin/build; \
+    ln -s /opt/aros-toolbox/bin/pc-i386-tiny/AROS/Developer \
+        /opt/mountin/sysroot
 
 COPY --chmod=755 cc.sh /usr/local/bin/aros-cc
 
@@ -55,3 +76,5 @@ ENV AROS_SYSROOT=/opt/aros-toolbox/bin/pc-i386-tiny/AROS/Developer \
     CC=aros-cc \
     AR=aros-ar \
     STRIP=aros-strip
+
+WORKDIR /work

@@ -10,9 +10,6 @@ output_platforms:
       - guest/${MOUNTIN_TARGET_PLATFORM}/11957/9front.qcow2
       - guest/${MOUNTIN_TARGET_PLATFORM}/11957/u-boot.bin
       - bin/${MOUNTIN_TARGET_PLATFORM}/mksacfs
-requires:
-  - sources/9front-11957.amd64.qcow2.gz
-  - sources/9front-11957.tar.gz
 ---
 
 # 9front guest system

@@ -1,18 +1,15 @@
 #!/bin/sh
 set -eu
 
-SOURCE_ARCHIVE=/host/build/sources/linux-2.6.39.4.tar.xz
 CACHE_DIR=$MOUNTIN_CACHE_DIR
 SOURCE_DIR=$CACHE_DIR/source
 
 if [ ! -d "$SOURCE_DIR" ]; then
-    EXTRACT_DIR=$CACHE_DIR/source.tmp.$$
-    rm -rf "$SOURCE_DIR"
-    mkdir -p "$EXTRACT_DIR"
-    trap 'rm -rf "$EXTRACT_DIR"' EXIT HUP INT TERM
-    tar --no-same-owner -xf "$SOURCE_ARCHIVE" \
-        -C "$EXTRACT_DIR" --strip-components=1
-    mv "$EXTRACT_DIR" "$SOURCE_DIR"
+    temporary=$CACHE_DIR/source.tmp.$$
+    rm -rf "$temporary"
+    trap 'rm -rf "$temporary"' EXIT HUP INT TERM
+    cp -a /opt/mountin/source "$temporary"
+    mv "$temporary" "$SOURCE_DIR"
     trap - EXIT HUP INT TERM
 fi
 

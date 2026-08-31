@@ -6,7 +6,7 @@ build_platforms:
 output_platforms:
   x86_64-darwin:
     provides:
-      - docker:builder/compiler/puredarwin/17.4
+      - docker:builder/compiler/puredarwin/17.4/x86_64
 env:
   MOUNTIN_BUILDER: builder/compiler/puredarwin
 execution_env:

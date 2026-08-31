@@ -5,7 +5,7 @@ output_platforms:
   aarch64-linux: {}
 env:
   MOUNTIN_LIBC: musl
-  MOUNTIN_BUILDER: builder/compiler/linux/6/${MOUNTIN_TARGET_ARCH}
+  MOUNTIN_BUILDER: builder/compiler/linux/6.12/${MOUNTIN_TARGET_ARCH}
 ---
 
 # Linux guest components

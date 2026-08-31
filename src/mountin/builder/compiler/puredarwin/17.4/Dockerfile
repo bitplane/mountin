@@ -4,15 +4,6 @@ FROM ${MOUNTIN_BUILDER}
 ARG MOUNTIN_BUILD_JOBS=1
 ARG MOUNTIN_CACHE_DIR
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
-    automake \
-    autopoint \
-    binutils-i686-linux-gnu \
-    gcc-i686-linux-gnu \
-    gettext \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY --chmod=755 system-build.sh boot-build.sh /build/
 
 RUN /build/system-build.sh
@@ -29,3 +20,7 @@ ENV PUREDARWIN_SYSROOT=/opt/puredarwin/sysroot \
     AR=puredarwin-ar \
     STRIP=puredarwin-strip \
     OBJDUMP=puredarwin-objdump
+
+RUN ln -s /opt/puredarwin/sysroot /opt/mountin/sysroot
+
+WORKDIR /work

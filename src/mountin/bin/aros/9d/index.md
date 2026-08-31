@@ -2,7 +2,7 @@
 title: 9d for AROS
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - sources/9d-0.7.2.tar.xz
+  - sources/9d-0.7.3.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-aros/9d
 ---

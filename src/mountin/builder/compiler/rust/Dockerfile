@@ -6,10 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install zig via pip (cross-compiler toolchain)
-RUN pip install --break-system-packages ziglang
+RUN pip install --break-system-packages ziglang==0.16.0
 
 # Install cargo-zigbuild
-RUN cargo install cargo-zigbuild
+RUN cargo install --locked --version 0.23.3 cargo-zigbuild
 
 # Add all cross-compilation targets
 RUN rustup target add \

@@ -6,7 +6,7 @@ output_platforms:
       - bin/${MOUNTIN_TARGET_PLATFORM}/mountin-init
       - bin/${MOUNTIN_TARGET_PLATFORM}/mountin-bootstrap
 env:
-  MOUNTIN_BUILDER: builder/compiler/illumos/2026-08-13
+  MOUNTIN_BUILDER: builder/compiler/illumos/2026-08-13/x86_64
 requires:
   - docker:${MOUNTIN_BUILDER}
 ---

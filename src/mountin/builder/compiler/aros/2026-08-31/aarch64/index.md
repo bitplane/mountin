@@ -1,5 +1,5 @@
 ---
-title: AROS 2026-08-24 Raspberry Pi AArch64 Cross-Compiler
+title: AROS 2026-08-31 Raspberry Pi AArch64 Cross-Compiler
 env:
   MOUNTIN_BUILDER: builder/compiler/aros
 execution_env:
@@ -7,7 +7,7 @@ execution_env:
 requires:
   - docker:${MOUNTIN_BUILDER}
 build_requires:
-  - sources/aros-2026-08-24.tar.gz
+  - sources/aros-2026-08-31.tar.gz
   - sources/aros-ports/binutils-2.47.tar.bz2
   - sources/aros-ports/gcc-16.2.0.tar.xz
   - sources/aros-ports/gmp-6.3.0.tar.bz2
@@ -16,11 +16,12 @@ build_requires:
   - sources/aros-ports/mpfr-4.2.2.tar.bz2
   - sources/aros-ports/UnicodeData.txt
   - sources/aros-ports/SpecialCasing.txt
+  - sources/linux-6.12.tar.xz
 provides:
-  - docker:builder/compiler/aros/2026-08-24/aarch64
+  - docker:builder/compiler/aros/2026-08-31/aarch64
 ---
 
-# AROS 2026-08-24 Raspberry Pi AArch64 Cross-Compiler
+# AROS 2026-08-31 Raspberry Pi AArch64 Cross-Compiler
 
 AROS's AArch64 GCC and binutils cross-toolchain with the Developer tree for
 the Raspberry Pi native target.
