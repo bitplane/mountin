@@ -146,8 +146,10 @@ def test_release_ref_ignores_non_release_tags(tmp_path):
     assert get_release_ref(tmp_path) != "checkpoint"
 
 
-def test_release_ref_uses_package_version_outside_checkout(tmp_path):
-    assert get_release_ref(tmp_path) == "v0.1.0"
+def test_release_ref_uses_package_version_outside_checkout(tmp_path, monkeypatch):
+    monkeypatch.setattr("mountin.main.version", lambda package: "9.8.7")
+
+    assert get_release_ref(tmp_path) == "v9.8.7"
 
 
 def test_compatible_output_arches_include_32_bit_x86():
