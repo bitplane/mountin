@@ -132,7 +132,6 @@ try:
         "mkdir -p /usr/glenda/mountin-build",
         "cd /usr/glenda/mountin-build",
         "tar xzf /n/src/9front-*.tar.gz",
-        "cd 9front-*",
         "source_root=`{pwd}",
         f"cp /n/src/mountin/{plan9_ini} $source_root/sys/lib/dist/cfg/plan9.ini",
         "cp /n/src/mountin/mountin.rc $source_root/rc/bin/mountin",
