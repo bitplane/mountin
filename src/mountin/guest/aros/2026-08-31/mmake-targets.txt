@@ -83,6 +83,8 @@ linklibs-fatbpb
 kernel-partition-quick
 kernel-fs-sfs-quick
 kernel-fs-fat-quick
+kernel-security-catalogs
+kernel-security-quick
 kernel-fs-pfs3-quick
 kernel-package-fs-compress-quick
 
