@@ -10,6 +10,8 @@ output_platforms:
   x86_64-linux-musl:
     provides:
       - docker:builder/compiler/linux/2.6/x86_64
+requires:
+  - docker:builder/compiler/linux
 build_requires:
   - sources/musl-cross-make-2026-08-20.tar.gz
   - sources/gcc-5.3.0.tar.bz2
