@@ -164,7 +164,7 @@ jobs:
       RELEASE: ${{ needs.resolve.outputs.release }}
     steps:
       - name: Download native manifest digests
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: digest-*
           path: digests
