@@ -1,0 +1,57 @@
+diff --git a/c/main.c b/c/main.c
+index e73eb49..283a1fd 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -72,6 +72,7 @@ struct arg_lit *arg_help, *arg_overwrite, *arg_new_boot_dir, *arg_asan_enable,
+     *sixty_fps, *arg_cmd_line, *arg_cmd_line2 = NULL, *arg_fork, *arg_no_debug,
+                                *arg_grab, *arg_fast_fail, *arg_s;
+-struct arg_file *arg_t_dir, *arg_bootstrap_bin, *arg_boot_files, *arg_pidfile;
++struct arg_file *arg_t_dir, *arg_host_dir, *arg_bootstrap_bin,
++    *arg_boot_files, *arg_pidfile;
+ static struct arg_end *_arg_end;
+ #ifdef AIWNIOS_TESTS
+ // Import PrintI first
+@@ -1941,6 +1942,8 @@ static int64_t Boot(int64_t *) {
+   }
+   InstallDbgSignalsForThread();
+   VFsMountDrive('T', t_drive);
++  if (arg_host_dir->count)
++    VFsMountDrive('U', (char *)arg_host_dir->filename[0]);
+ #if defined(__EMSCRIPTEN__)
+   EM_ASM(FS.mkdir('/persist'); FS.mount(IDBFS, {}, '/persist');
+          FS.syncfs(true, function(err){}););
+@@ -2076,6 +2079,9 @@ int main(int argc, char **argv) {
+                    "Overwrite the T directory with the installed T template."),
+       arg_t_dir = arg_file0("t", NULL, "Directory",
+                             "Specify the boot drive(dft is current dir)."),
++      arg_host_dir =
++          arg_file0("U", "host-drive", "Directory",
++                    "Mount a host directory as the U drive."),
+       arg_bootstrap_bin =
+           arg_lit0("b", "bootstrap",
+                    "Build a new binary with the \"slim\" compiler of aiwnios."),
+diff --git a/c/fs.c b/c/fs.c
+index 1256464..890761b 100644
+--- a/c/fs.c
++++ b/c/fs.c
+@@ -402,6 +402,7 @@ int VFsMountDrive(char let, char *path) {
+   int idx = toupper(let) - 'A';
+   char *p = StPCpy(mount_points[idx], path);
+   strcpy(p, "/");
++  return 1;
+ }
+ 
+ int64_t VFsFBlkRead(void *d, int64_t sz, int f) {
+diff --git a/Src/DskAddDev.HC b/Src/DskAddDev.HC
+index ee4bd77..bcb5a19 100644
+--- a/Src/DskAddDev.HC
++++ b/Src/DskAddDev.HC
+@@ -201,6 +201,8 @@ U0 BlkDevsInitAll()
+   }
+   bd=BlkDevNextFreeSlot('T',BDT_VIRT);bd->unit=0;
+   BlkDevAdd(bd,0,0,0);
++  bd=BlkDevNextFreeSlot('U',BDT_VIRT);bd->unit=0;
++  BlkDevAdd(bd,0,0,0);
+   Fs->cur_dv=Let2Drv('T');
+   Fs->cur_dir=StrNew("/");
+   blkdev.boot_drv_let='T';
