@@ -2,6 +2,7 @@
 title: Linux 6.12
 urls:
   - https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.83.tar.xz
+  - https://archive.org/download/linux-6.12.83/linux-6.12.83.tar.xz
 provides:
   - sources/linux-6.12.tar.xz
 ---

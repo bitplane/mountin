@@ -132,15 +132,16 @@ jobs:
         run: |
           set -eu
           source_image=${TOOLBOX#docker:}
-          skopeo inspect "containers-storage:$source_image" | jq -e \
-              --arg arch "$OCI_ARCH" \
-              '.Os == "linux" and .Architecture == $arch' >/dev/null
+          test "$(podman image inspect --format '{{.Os}}/{{.Architecture}}' \
+              "$source_image")" = "linux/$OCI_ARCH"
+          podman save --format oci-archive \
+              --output toolbox.oci.tar "$source_image"
 
           printf '%s' "$GH_TOKEN" | podman login ghcr.io \
               --username "$GITHUB_ACTOR" --password-stdin
           skopeo copy \
               --digestfile "digest-$OCI_ARCH" \
-              "containers-storage:$source_image" \
+              "oci-archive:toolbox.oci.tar" \
               "docker://$DESTINATION@@unknown-digest@@"
 
       - name: Export native manifest digest
