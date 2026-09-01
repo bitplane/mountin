@@ -13,24 +13,108 @@ permissions:
   packages: write
 
 jobs:
-  publish:
+  resolve:
     runs-on: ubuntu-24.04
+    outputs:
+      destination: ${{ steps.resolve.outputs.destination }}
+      documentation: ${{ steps.resolve.outputs.documentation }}
+      matrix: ${{ steps.resolve.outputs.matrix }}
+      release: ${{ steps.resolve.outputs.release }}
     env:
-      TOOLBOX: ${{ inputs.toolbox }}
       GH_TOKEN: ${{ github.token }}
+      TOOLBOX: ${{ inputs.toolbox }}
     steps:
       - name: Check out workflow
         uses: actions/checkout@v6
 
-      - name: Check out latest Mountin release tag
-        id: release
+      - name: Resolve release and native build hosts
+        id: resolve
         run: |
           set -eu
+
           git fetch --force --tags origin
-          release=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1)
+          release=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' \
+              --sort=-version:refname | head -n 1)
           test -n "$release"
           git checkout --detach "$release"
-          echo "tag=$release" >> "$GITHUB_OUTPUT"
+
+          case "$TOOLBOX" in
+              docker:builder/compiler/*) ;;
+              *)
+                  echo "Not a compiler toolbox: $TOOLBOX" >&2
+                  exit 1
+                  ;;
+          esac
+
+          source_image=${TOOLBOX#docker:}
+          destination="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mountin/$source_image"
+
+          sudo apt-get update
+          sudo apt-get install --yes podman python3-venv
+          python3 -m venv .venv
+          .venv/bin/pip install --disable-pip-version-check --editable .
+
+          provider=$(.venv/bin/mountin-build \
+              --build-platform x86_64-linux \
+              outputs --verbose --all-platforms --include-unavailable | \
+              awk -F '\t' -v output="$TOOLBOX" \
+                  '$1 == output { print $2; exit }')
+          test -n "$provider"
+          documentation="https://github.com/$GITHUB_REPOSITORY/blob/$release/src/mountin/$provider/index.md"
+
+          matrix='[]'
+          while IFS='|' read -r build_platform runner oci_arch; do
+              if .venv/bin/mountin-build \
+                  --build-platform "$build_platform" \
+                  outputs --all-platforms | grep -Fxq "$TOOLBOX"; then
+                  matrix=$(jq -c \
+                      --arg build_platform "$build_platform" \
+                      --arg runner "$runner" \
+                      --arg oci_arch "$oci_arch" \
+                      '. + [{
+                          build_platform: $build_platform,
+                          runner: $runner,
+                          oci_arch: $oci_arch
+                      }]' <<<"$matrix")
+              fi
+          done <<'EOF'
+          x86_64-linux|ubuntu-24.04|amd64
+          aarch64-linux|ubuntu-24.04-arm|arm64
+          EOF
+          test "$matrix" != '[]'
+
+          printf '%s' "$GH_TOKEN" | podman login ghcr.io \
+              --username "$GITHUB_ACTOR" --password-stdin
+          if skopeo inspect --raw "docker://$destination:$release" \
+              >/dev/null 2>&1; then
+              echo "Refusing to replace published toolbox: $destination:$release" >&2
+              exit 1
+          fi
+
+          {
+              echo "destination=$destination"
+              echo "documentation=$documentation"
+              echo "matrix=$matrix"
+              echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    env:
+      DESTINATION: ${{ needs.resolve.outputs.destination }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE: ${{ needs.resolve.outputs.release }}
+      TOOLBOX: ${{ inputs.toolbox }}
+    steps:
+      - name: Check out Mountin release
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE }}
 
       - name: Install build environment
         run: |
@@ -42,22 +126,88 @@ jobs:
       - name: Build toolbox
         run: .venv/bin/mountin-build build "$TOOLBOX"
 
-      - name: Publish toolbox
+      - name: Publish native manifest by digest
         env:
-          RELEASE: ${{ steps.release.outputs.tag }}
+          OCI_ARCH: ${{ matrix.oci_arch }}
         run: |
           set -eu
           source_image=${TOOLBOX#docker:}
-          package=${source_image#builder/compiler/}
-          package=$(printf '%s' "$package" | tr '/+_' '---' | tr '[:upper:]' '[:lower:]')
-          destination="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mountin-toolbox-$package"
+          skopeo inspect "containers-storage:$source_image" | jq -e \
+              --arg arch "$OCI_ARCH" \
+              '.Os == "linux" and .Architecture == $arch' >/dev/null
 
           printf '%s' "$GH_TOKEN" | podman login ghcr.io \
-            --username "$GITHUB_ACTOR" --password-stdin
-          podman tag "$source_image" "$destination:$RELEASE"
-          podman tag "$source_image" "$destination:latest"
-          podman push "$destination:$RELEASE"
-          podman push "$destination:latest"
+              --username "$GITHUB_ACTOR" --password-stdin
+          skopeo copy \
+              --digestfile "digest-$OCI_ARCH" \
+              "containers-storage:$source_image" \
+              "docker://$DESTINATION@@unknown-digest@@"
 
-          echo "Published $destination:$RELEASE"
-          echo "Published $destination:latest"
+      - name: Export native manifest digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ matrix.oci_arch }}
+          path: digest-${{ matrix.oci_arch }}
+          archive: false
+          retention-days: 1
+
+  publish:
+    needs:
+      - resolve
+      - build
+    runs-on: ubuntu-24.04
+    env:
+      DESTINATION: ${{ needs.resolve.outputs.destination }}
+      DOCUMENTATION: ${{ needs.resolve.outputs.documentation }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE: ${{ needs.resolve.outputs.release }}
+    steps:
+      - name: Download native manifest digests
+        uses: actions/download-artifact@v7
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+
+      - name: Publish multi-architecture index
+        run: |
+          set -eu
+          printf '%s' "$GH_TOKEN" | podman login ghcr.io \
+              --username "$GITHUB_ACTOR" --password-stdin
+
+          manifest="$DESTINATION:$RELEASE"
+          podman manifest create \
+              --annotation "org.opencontainers.image.documentation=$DOCUMENTATION" \
+              "$manifest"
+          for digest_file in digests/digest-*; do
+              digest=$(cat "$digest_file")
+              podman manifest add "$manifest" \
+                  "docker://$DESTINATION@$digest"
+          done
+          podman manifest push --all "$manifest" "docker://$manifest"
+
+      - name: Verify public index
+        run: |
+          set -eu
+          podman logout ghcr.io
+
+          expected=$(find digests -type f -name 'digest-*' | wc -l)
+          manifest=$(skopeo inspect --raw "docker://$DESTINATION:$RELEASE")
+          jq -e --argjson expected "$expected" '
+              .mediaType == "application/vnd.oci.image.index.v1+json" and
+              (.manifests | length) == $expected
+          ' <<<"$manifest" >/dev/null
+          jq -e --arg documentation "$DOCUMENTATION" '
+              .annotations["org.opencontainers.image.documentation"] ==
+                  $documentation
+          ' <<<"$manifest" >/dev/null
+
+          for digest_file in digests/digest-*; do
+              arch=${digest_file##*digest-}
+              jq -e --arg arch "$arch" '
+                  any(.manifests[]; .platform.os == "linux" and
+                      .platform.architecture == $arch)
+              ' <<<"$manifest" >/dev/null
+          done
+
+          echo "Published $DESTINATION:$RELEASE"
