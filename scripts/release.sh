@@ -4,13 +4,20 @@ set -euo pipefail
 ROOT_DIR=$(git rev-parse --show-toplevel)
 cd "$ROOT_DIR"
 
-if [ "$#" -ne 1 ] || ! [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo "Usage: $0 M.m.p" >&2
+if [ "$#" -gt 1 ]; then
+    echo "Usage: $0 [patch|minor|major]" >&2
     exit 2
 fi
 
-VERSION=$1
-TAG="v$VERSION"
+LEVEL=${1:-patch}
+case "$LEVEL" in
+    patch|minor|major) ;;
+    *)
+        echo "Usage: $0 [patch|minor|major]" >&2
+        exit 2
+        ;;
+esac
+
 PYPROJECT=pyproject.toml
 CARGO_MANIFEST=src/mountin/lib/mountin/Cargo.toml
 CARGO_LOCK=src/mountin/lib/mountin/Cargo.lock
@@ -26,27 +33,47 @@ if [ "$BRANCH" != master ]; then
     exit 1
 fi
 
-CURRENT=$(sed -n 's/^version = "\([0-9][0-9.]*\)"$/\1/p' "$PYPROJECT")
-if [ -z "$CURRENT" ]; then
-    echo "Could not read the current Python package version." >&2
-    exit 1
-fi
-CARGO_CURRENT=$(sed -n 's/^version = "\([0-9][0-9.]*\)"$/\1/p' "$CARGO_MANIFEST")
-LOCK_CURRENT=$(sed -n '/^name = "mountin"$/{n;s/^version = "\([0-9][0-9.]*\)"$/\1/p;q;}' "$CARGO_LOCK")
-if [ "$CARGO_CURRENT" != "$CURRENT" ] || [ "$LOCK_CURRENT" != "$CURRENT" ]; then
-    echo "Python, Rust and Cargo.lock versions do not agree." >&2
-    exit 1
-fi
-if [ "$VERSION" = "$CURRENT" ] || [ "$(printf '%s\n' "$CURRENT" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
-    echo "Version must increase from $CURRENT to a newer M.m.p release." >&2
-    exit 1
-fi
-
 git fetch origin master:refs/remotes/origin/master --tags
 if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
     echo "Local master must exactly match origin/master before release." >&2
     exit 1
 fi
+
+CURRENT_TAG=$(git tag --merged HEAD --list 'v*' | sed -n '/^v[0-9]\+\.[0-9]\+\.[0-9]\+$/p' | sort -V | tail -n 1)
+if ! [[ "$CURRENT_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "Could not find a current vM.m.p release tag." >&2
+    exit 1
+fi
+MAJOR=${BASH_REMATCH[1]}
+MINOR=${BASH_REMATCH[2]}
+PATCH=${BASH_REMATCH[3]}
+CURRENT="$MAJOR.$MINOR.$PATCH"
+
+PYTHON_CURRENT=$(sed -n 's/^version = "\([0-9][0-9.]*\)"$/\1/p' "$PYPROJECT")
+CARGO_CURRENT=$(sed -n 's/^version = "\([0-9][0-9.]*\)"$/\1/p' "$CARGO_MANIFEST")
+LOCK_CURRENT=$(sed -n '/^name = "mountin"$/{n;s/^version = "\([0-9][0-9.]*\)"$/\1/p;q;}' "$CARGO_LOCK")
+if [ "$PYTHON_CURRENT" != "$CURRENT" ] || [ "$CARGO_CURRENT" != "$CURRENT" ] || [ "$LOCK_CURRENT" != "$CURRENT" ]; then
+    echo "Python, Rust and Cargo.lock versions must match $CURRENT_TAG." >&2
+    exit 1
+fi
+
+case "$LEVEL" in
+    major)
+        MAJOR=$((MAJOR + 1))
+        MINOR=0
+        PATCH=0
+        ;;
+    minor)
+        MINOR=$((MINOR + 1))
+        PATCH=0
+        ;;
+    patch)
+        PATCH=$((PATCH + 1))
+        ;;
+esac
+VERSION="$MAJOR.$MINOR.$PATCH"
+TAG="v$VERSION"
+
 if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
     echo "Tag already exists: $TAG" >&2
     exit 1

@@ -6,6 +6,7 @@ PROJECT_NAME := mountin
 
 MOUNTIN_BUILD_PLATFORM ?= $(shell ./scripts/canonical_arch.sh)-linux
 REGISTRY ?= localhost
+LEVEL ?= patch
 export MOUNTIN_BUILD_PLATFORM
 export REGISTRY
 
@@ -34,9 +35,8 @@ gc: .venv/.installed-dev  ## collect obsolete mountin build state
 archive: scripts/archive.sh scripts/Dockerfile.archive scripts/archive-build.sh scripts/registries.archive.conf scripts/TIME_CAPSULE.md  ## build complete archive in container
 	scripts/archive.sh
 
-release:  ## test, version, tag and push a release (VERSION=M.m.p)
-	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=M.m.p" >&2; exit 2; }
-	scripts/release.sh "$(VERSION)"
+release:  ## test, bump, tag and push a release (LEVEL=patch|minor|major)
+	scripts/release.sh "$(LEVEL)"
 
 # Python project infrastructure
 .venv/.installed: pyproject.toml .venv/bin/activate scripts/install.sh $(shell find src -name '*.py')
