@@ -1,0 +1,18 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -822,3 +822,15 @@
+   I64 rex=0,rel_sz=0; //Upper 4 bits will be 0x4 if needed
+   if(!to) to=dummy;
++  if (opc->_0f==0x0f && opc->po==0x22 && opc->so==0xe0) {
++    //AIWNIOS emits XMM instructions, so its target runtime requires
++    //CR4.OSFXSR and CR4.OSXMMEXCPT before CR4 is installed.
++    to[len++]=0x0f;
++    to[len++]=0xba;
++    to[len++]=0xe8;
++    to[len++]=9;
++    to[len++]=0x0f;
++    to[len++]=0xba;
++    to[len++]=0xe8;
++    to[len++]=10;
++  }
+   for(i=0;i!=4;i++)

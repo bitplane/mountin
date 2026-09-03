@@ -1,0 +1,168 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -98,2 +98,6 @@
+ import U8 *__HC_ICAdd_GetRFlags(U8*);
++import U8 *__HC_ICAdd_SetRFlags(U8*);
++import U8 *__HC_ICAdd_SetRAX(U8*);
++import U8 *__HC_ICAdd_SetRBP(U8*);
++import U8 *__HC_ICAdd_SetRSP(U8*);
+ import U8 *__HC_ICAdd_InU8(U8*);
+@@ -218,2 +222,6 @@
+ extern U8 *__HC_ICAdd_GetRFlags(U8*);
++extern U8 *__HC_ICAdd_SetRFlags(U8*);
++extern U8 *__HC_ICAdd_SetRAX(U8*);
++extern U8 *__HC_ICAdd_SetRBP(U8*);
++extern U8 *__HC_ICAdd_SetRSP(U8*);
+ extern U8 *__HC_ICAdd_InU8(U8*);
+@@ -2024,2 +2032,10 @@
+     new=__HC_ICAdd_GetRFlags(cc2);
++    break;case IC_SET_RFLAGS:
++    new=__HC_ICAdd_SetRFlags(cc2);
++    break;case IC_SET_RAX:
++    new=__HC_ICAdd_SetRAX(cc2);
++    break;case IC_SET_RBP:
++    new=__HC_ICAdd_SetRBP(cc2);
++    break;case IC_SET_RSP:
++    new=__HC_ICAdd_SetRSP(cc2);
+     break;case IC_IN_U8:
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -244,2 +244,6 @@
+   IC_GET_RFLAGS,
++  IC_SET_RFLAGS,
++  IC_SET_RAX,
++  IC_SET_RBP,
++  IC_SET_RSP,
+   IC_IN_U8,
+@@ -703,2 +707,6 @@
+ HC_IC_BINDINGH(HC_ICAdd_GetRFlags)
++HC_IC_BINDINGH(HC_ICAdd_SetRFlags)
++HC_IC_BINDINGH(HC_ICAdd_SetRAX)
++HC_IC_BINDINGH(HC_ICAdd_SetRBP)
++HC_IC_BINDINGH(HC_ICAdd_SetRSP)
+ HC_IC_BINDINGH(HC_ICAdd_InU8)
+--- a/c/main.c
++++ b/c/main.c
+@@ -1215,2 +1215,6 @@
+ }
++static int64_t STK___HC_ICAdd_SetRFlags(int64_t *stk) { return __HC_ICAdd_SetRFlags(stk[0]); }
++static int64_t STK___HC_ICAdd_SetRAX(int64_t *stk) { return __HC_ICAdd_SetRAX(stk[0]); }
++static int64_t STK___HC_ICAdd_SetRBP(int64_t *stk) { return __HC_ICAdd_SetRBP(stk[0]); }
++static int64_t STK___HC_ICAdd_SetRSP(int64_t *stk) { return __HC_ICAdd_SetRSP(stk[0]); }
+ static int64_t STK___HC_ICAdd_InU8(int64_t *stk) { return __HC_ICAdd_InU8(stk[0]); }
+@@ -1859,2 +1863,6 @@
+     PrsAddSymbol("__HC_ICAdd_GetRFlags", STK___HC_ICAdd_GetRFlags, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRFlags", STK___HC_ICAdd_SetRFlags, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRAX", STK___HC_ICAdd_SetRAX, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRBP", STK___HC_ICAdd_SetRBP, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRSP", STK___HC_ICAdd_SetRSP, 1);
+     PrsAddSymbol("__HC_ICAdd_InU8", STK___HC_ICAdd_InU8, 1);
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -251,2 +251,6 @@
+   case IC_IN_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
+     goto unop;
+@@ -841,2 +845,8 @@
+     goto unop;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    printf("SET_REG\n");
++    goto unop;
+   case IC_OUT_U8:
+@@ -3573,2 +3583,9 @@
+     break;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
+   case IC_IN_U8:
+@@ -4764,2 +4781,6 @@
+ HC_IC_BINDING(HC_ICAdd_GetRFlags, IC_GET_RFLAGS);
++HC_IC_BINDING(HC_ICAdd_SetRFlags, IC_SET_RFLAGS);
++HC_IC_BINDING(HC_ICAdd_SetRAX, IC_SET_RAX);
++HC_IC_BINDING(HC_ICAdd_SetRBP, IC_SET_RBP);
++HC_IC_BINDING(HC_ICAdd_SetRSP, IC_SET_RSP);
+ HC_IC_BINDING(HC_ICAdd_InU8, IC_IN_U8);
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -1390,3 +1390,12 @@
+ }
++static int64_t X86PopFQ(char *to, int64_t unused) {
++  int64_t len = 0;
++  char buf[16];
++  (void)unused;
++  if (!to)
++    to = buf;
++  ADD_U8(0x9d);
++  return len;
++}
+ 
+ static int64_t X86InPort(char *to, int64_t width) {
+@@ -2261,2 +2271,6 @@
+   case IC_OUT_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
+     goto pass;
+@@ -3038,2 +3052,10 @@
+     goto fin;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    arg = ICArgN(r, 0);
++    PushTmpDepthFirst(cctrl, arg, 0);
++    PopTmp(cctrl, arg);
++    goto fin;
+     break;
+@@ -6264,2 +6286,6 @@
+   case IC_OUT_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
+   case IC_AND_AND:
+@@ -6468,2 +6494,6 @@
+       [IC_GET_RFLAGS] = &&ic_get_rflags,
++      [IC_SET_RFLAGS] = &&ic_set_rflags,
++      [IC_SET_RAX] = &&ic_set_rax,
++      [IC_SET_RBP] = &&ic_set_rbp,
++      [IC_SET_RSP] = &&ic_set_rsp,
+       [IC_IN_U8] = &&ic_in_u8,
+@@ -6627,2 +6657,26 @@
+     break;
++  ic_set_rflags:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PushToStack(cctrl, &next->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PopFQ, 0);
++    break;
++  ic_set_rax:
++    i = RAX;
++    goto ic_set_register;
++  ic_set_rbp:
++    i = RBP;
++    goto ic_set_register;
++  ic_set_rsp:
++    i = RSP;
++  ic_set_register:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = i;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    break;
+   ic_rdtsc:

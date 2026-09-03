@@ -1,0 +1,13 @@
+--- a/Src/UAsmX64.HC
++++ b/Src/UAsmX64.HC
+@@ -1377,8 +1377,8 @@ U0 UAsmInit() {
+   AO("ICEBP",-1,-1,0xf1,-1,0,X86_OPERAND_IMM8);
+   AO("INTO",-1,-1,0xf1,-1,0);
+   AO("INVD",-1,0xf,0x8,-1,0);
+-  AO("IRETD,IRET",-1,-1,0xcf,-1,0);
+-  AO("IRETQ",-1,-1,0xcf,-1,X86_OPCF_REXW);
++  AO("IRETD",-1,-1,0xcf,-1,0);
++  AO("IRETQ,IRET",-1,-1,0xcf,-1,X86_OPCF_REXW);
+ 
+ 
+   AO("JB,JNAE,JC",-1,-1,0x72,-1,0,X86_OPERAND_REL8);

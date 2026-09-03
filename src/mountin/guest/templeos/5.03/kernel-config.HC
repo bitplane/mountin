@@ -26,7 +26,11 @@ class CKCfg
 CKCfg *KCfgNew()
 {
   CKCfg *c=CAlloc(sizeof(CKCfg));
+  c->add_dev=DocNew;
   c->boot_drv_let='T';
+  c->mount_ide_auto_hd_let='C';
+  c->mount_ide_auto_cd_let='T';
+  c->opts[CFG_MOUNT_IDE_AUTO]=TRUE;
   c->home_dir=StrNew("::/Home");
   c->dsk_cache_size_exp=StrNew("Scale2Mem(2048,0x40000)");
   return c;
@@ -34,6 +38,7 @@ CKCfg *KCfgNew()
 
 U0 KCfgDel(CKCfg *c)
 {
+  DocDel(c->add_dev);
   Free(c->dbg_distro_file);
   Free(c->home_dir);
   Free(c->dsk_cache_size_exp);

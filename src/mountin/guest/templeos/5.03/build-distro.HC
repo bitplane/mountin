@@ -19,6 +19,7 @@ CopyTree("U:/Doc", "/Doc");
 CopyTree("U:/Downloads", "/Downloads");
 CopyTree("U:/Kernel", "/Kernel");
 CopyTree("U:/Misc", "/Misc");
+Copy("/MountinKernelConfig.HC", "/Kernel/KCfg.HC");
 I64 mountin_kernel_header_size;
 U8 *mountin_kernel_header = FileRead("/Kernel/KernelA.HH",
       &mountin_kernel_header_size);
