@@ -1,26 +1,12 @@
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -32,8 +32,21 @@
+@@ -32,8 +32,7 @@
  {
    CAOTImportExport *tmpie;
    CAsmUndefHash *tmpauh;
 -  I64 (*machine_code)()=tmpu->machine_code;
 -  I64 res=(*machine_code)();
 +  I64 res=Call(tmpu->machine_code);
-+  if (label && (!StrCmp(label,"SYS_RUN_LEVEL") ||
-+        !StrCmp(label,"SYS_BOOT_PATCH_TABLE_BASE") ||
-+        !StrCmp(label,"MEM_BOOT_BASE") ||
-+        !StrCmp(label,"CORE0_32BIT_INIT"))) {
-+    Print("MOUNTIN RESOLVE %s res=%X rip=%X rel=%X type=%d\n",
-+          label,res,tmpu->rip,tmpu->rel_rip,tmpu->type);
-+    for (tmpauh=tmpu->asm_undef_hash;tmpauh;tmpauh=tmpauh->next)
-+      Print("MOUNTIN RESOLVE HASH %s val=%X type=%X\n",
-+            tmpauh->hash->str,tmpauh->hash->val,tmpauh->hash->type);
-+    Print("MOUNTIN RESOLVE CODE");
-+    for (res=0;res<32;res++) Print(" %02X",tmpu->machine_code[res]);
-+    Print("\n");
-+    res=Call(tmpu->machine_code);
-+  }
    if (undefined) {
      tmpauh=tmpu->asm_undef_hash;
      while (tmpauh) {

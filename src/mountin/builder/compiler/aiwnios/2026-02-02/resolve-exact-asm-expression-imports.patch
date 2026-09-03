@@ -1,6 +1,6 @@
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -75,6 +75,33 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+@@ -75,6 +75,30 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
    }
  }
  
@@ -10,7 +10,6 @@
 +  CHashImport *entry;
 +  I64 i,rel_off,resolved;
 +
-+  Print("MOUNTIN EXACT name=%s requested-base=%X\n",name,module_base);
 +  for (i=0;i<=table->mask;i++) {
 +    entry=table->body[i];
 +    while (entry) {
@@ -21,8 +20,6 @@
 +        if (rel_off&0x80000000)
 +          rel_off-=0x100000000;
 +        resolved=value+entry->module_header_entry[5](I32);
-+        Print("MOUNTIN EXACT entry=%X offset=%X dst=%X value=%X\\n",
-+              entry,rel_off,entry->module_base+rel_off,resolved);
 +        WriteProtectMemCpy(entry->module_base+rel_off,&resolved,8);
 +        entry->type=HTT_INVALID;
 +      }

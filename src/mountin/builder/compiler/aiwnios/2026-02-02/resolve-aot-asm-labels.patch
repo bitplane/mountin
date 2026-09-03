@@ -1,6 +1,6 @@
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1316,6 +1316,70 @@
+@@ -1316,6 +1316,63 @@
      patch=patch->next;
    }
  }
@@ -53,13 +53,6 @@
 +    HashRemDel(exp,Fs->hash_table);
 +  }
 +
-+  Print("MOUNTIN PATCH EVAL code=%X",patch->imm->machine_code);
-+  for (cur=tab;cur;cur=cur->next)
-+    Print(" %s=%X",cur->hash->str,cur->hash->val);
-+  Print(" bytes=");
-+  for (fun_name_len=0;fun_name_len<256;fun_name_len++)
-+    Print("%02X",patch->imm->machine_code(U8*)[fun_name_len]);
-+  Print("\n");
 +  patch->imm->off=Call(patch->imm->machine_code);
 +  Free(patch->imm->machine_code);
 +  patch->imm->machine_code=NULL;
@@ -71,7 +64,7 @@
  U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
    CToFill *to_fill=blob->to_fill,*tmp_to_fill;
    CAsmPatch *patch,*next_patch;
-@@ -1324,7 +1368,16 @@
+@@ -1324,7 +1368,10 @@
    while(tmp_to_fill!=to_fill) {
      tmp_to_fill->h->type&=~HTF_UNRESOLVED;
      tmp_to_fill->h->type|=HTF_RESOLVE;
@@ -80,16 +73,10 @@
 +      tmp_to_fill->h->val+=blob->final_start_rip;
 +    else
 +      tmp_to_fill->h->val+=buf;
-+    if (!StrCmp(tmp_to_fill->h->str,"SYS_RUN_LEVEL") ||
-+          !StrCmp(tmp_to_fill->h->str,"SYS_BOOT_PATCH_TABLE_BASE") ||
-+          !StrCmp(tmp_to_fill->h->str,"MEM_BOOT_BASE") ||
-+          !StrCmp(tmp_to_fill->h->str,"CORE0_32BIT_INIT"))
-+      Print("MOUNTIN LABEL %s start=%X val=%X\n",tmp_to_fill->h->str,
-+            blob->final_start_rip,tmp_to_fill->h->val);
      tmp_to_fill=tmp_to_fill->next;
    }
    patch=blob->asm_patches->next;
-@@ -1333,22 +1384,41 @@
+@@ -1333,22 +1384,35 @@
        next_patch=patch->next;
        if(patch->imm&&(patch->imm->local_asm_undef_hash||
              patch->imm->glbl_asm_undef_hash)) {
@@ -108,10 +95,7 @@
 +            break;case 2: buf[patch->rip](U16)=tmp;
 +            break;case 4: buf[patch->rip](U32)=tmp;
 +            break;case 8: buf[patch->rip](U64)=tmp;
-+            default:
-+              Print("MOUNTIN invalid resolved AOT patch sz=%d rip=%X rel=%d\n",
-+                    patch->sz,patch->rip,patch->is_rel);
-+              LexExcept(cc,"Invalid AOT assembler relocation size");
++            default: LexExcept(cc,"Invalid AOT assembler relocation size");
 +          }
 +        } else {
 +          switch(patch->sz) {
@@ -119,10 +103,7 @@
 +            break;case 2: sz=IET_REL_I16;
 +            break;case 4: sz=IET_REL_I32;
 +            break;case 8: sz=IET_REL_I64;
-+            default:
-+              Print("MOUNTIN invalid unresolved AOT patch sz=%d rip=%X rel=%d\n",
-+                    patch->sz,patch->rip,patch->is_rel);
-+              LexExcept(cc,"Invalid AOT assembler relocation size");
++            default: LexExcept(cc,"Invalid AOT assembler relocation size");
 +          }
 +          AsmUnresolvedAdd(cc,patch->imm->machine_code,
 +                sz+!patch->is_rel,blob->final_start_rip+patch->rip,

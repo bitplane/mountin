@@ -154,16 +154,6 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
  	      } else {
  		  rpn=RPNAddNew(
  		      cc,
-@@ -1791,5 +1818,9 @@
-   COCInit(cc);
-   if (PrsExpression(cc,NULL,PEF_NO_COMMA)) {
-+    if (cc->flags&CCF_ASM_EXPRESSIONS) {
-+      DbgPrint("MOUNTIN RPN\n");
-+      DumpRPN(cc->coc.coc_head.next);
-+    }
-     RPNAddNew(cc,IC_RET,0,AssignRawTypeToNode(cc->coc.coc_head.next),FALSE);
-     old_fun=cc->htc.fun; //Changed by nroot
-     cc->htc.fun=NULL;
 diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=aiwnios' '--exclude=*.orig' '--exclude=STAGE1.HC' '--exclude=*.BIN' '--exclude=*.BIN.Z' '--exclude=*.DBG.Z' '--exclude=Registry.HC.Z' a/Src/AsmResolve.HC b/Src/AsmResolve.HC
 --- a/Src/AsmResolve.HC	2026-02-02 11:57:50.000000000 +0000
 +++ b/Src/AsmResolve.HC	2026-09-02 00:02:45.000000000 +0100
@@ -244,32 +234,12 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
  U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
  {
    CAOTCtrl *aotc=cc->aotc;
-@@ -11,12 +84,16 @@
-   Bool undefined;
-   CExternUsage *tmpeu,*tmpeu8;
- 
-   while (tmpu) {
-+    Print("MOUNTIN AOT ref=%X next=%X code=%X hash=%X type=%d rip=%X rel=%X\\n",
-+          tmpu,tmpu->next,tmpu->machine_code,tmpu->asm_undef_hash,
-+          tmpu->type,tmpu->rip,tmpu->rel_rip);
-     label=NULL;
-     undefined=FALSE;
-     tmpu1=tmpu->next;
-     tmpauh=tmpu->asm_undef_hash;
-     while (tmpauh) {
-+      Print("MOUNTIN AOT hash-node=%X hash=%X\\n",tmpauh,tmpauh->hash);
-       if (tmpauh->hash->type & HTF_UNRESOLVED) {
- 	tmpex=tmpauh->hash;
- 	if (tmpex->type & HTT_EXPORT_SYS_SYM&& tmpex->type & HTF_UNRESOLVED &&
-@@ -48,7 +125,10 @@
+@@ -48,7 +125,7 @@
  	label=tmpauh->hash->str;
        tmpauh=tmpauh->next;
      }
 -    //AsmResolve(cc,tmpu,label,undefined); TODO restore ???
-+    Print("MOUNTIN AOT resolving ref=%X label=%s undefined=%d\\n",
-+          tmpu,label,undefined);
 +    AsmResolve(cc,tmpu,label,undefined);
-+    Print("MOUNTIN AOT resolved ref=%X\\n",tmpu);
      Free(tmpu->machine_code);
      LinkedLstDel(tmpu->asm_undef_hash);
      Free(tmpu);
@@ -286,32 +256,21 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
  };
  U0 AiwniosAOTBlobDel(CAiwniosAOTBlob *b) {
    QueDel(b->asm_patches);
-@@ -62,6 +63,8 @@
+@@ -62,6 +63,7 @@
  Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
  {
    I64 old_flags=cc->flags;
 +  I64 (*machine_code)();
-+  I64 i,start_token=cc->token,start_i64=cc->cur_i64;
    arg->local_asm_undef_hash=NULL;
    arg->glbl_asm_undef_hash=NULL;
    cc->asm_undef_hash=NULL;
-@@ -82,7 +85,18 @@
+@@ -82,7 +84,8 @@
  	cc->asm_undef_hash=NULL;
        }
      } else {
 -      arg->imm=(*arg->machine_code)();
 +      machine_code=arg->machine_code;
-+      Print("MOUNTIN EVAL token=%d cur_i64=%X flags=%X abs=%d code=%X bytes=",
-+            start_token,start_i64,cc->flags,cc->abs_cnts.abs_addres,machine_code);
-+      for (i=0;i<24;i++) Print("%02X",machine_code(U8*)[i]);
-+      "\n";
 +      arg->imm=(*machine_code)();
-+      if (arg->imm>I32_MAX||arg->imm<I32_MIN) {
-+        Print("MOUNTIN IMM token=%d cur_i64=%X result=%X i64class=%X code=%X bytes=",
-+              start_token,start_i64,arg->imm,cmp.internal_types[RT_I64],machine_code);
-+        for (i=0;i<24;i++) Print("%02X",machine_code(U8*)[i]);
-+        "\n";
-+      }
        arg->glbl_asm_undef_hash=cc->asm_undef_hash;
        cc->asm_undef_hash=NULL;
        Free(arg->machine_code);
@@ -327,7 +286,7 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
    I64 (*machine_code)(),cur_i64;
    mode->scale=-1;
    mode->type=-1;
-@@ -108,13 +112,58 @@
+@@ -108,13 +111,57 @@
    mode->imm=0;
    mode->label=NULL;
 +prefix:
@@ -360,7 +319,6 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
 +      do {
 +        if(Lex(cc)!=TK_IDENT || !(tmpm=MemberFind(cc->cur_str,tmpc)))
 +          LexExcept(cc,"Invalid class member at");
-+        Print("MOUNTIN MEMBER %s.%s offset=%d\\n",tmpc->str,tmpm->str,tmpm->offset);
 +        mode->off+=tmpm->offset;
 +        tmpc=tmpm->member_class;
 +      } while(Lex(cc)=='.');
@@ -731,22 +689,12 @@ diff -ruN '--exclude=.git' '--exclude=build' '--exclude=cmake-build' '--exclude=
  	  if(sz<best_sz) {
  	    best_sz=sz;
  	    best=opc;
-@@ -1318,14 +1441,28 @@
-         }
-     }
-     if(!best) {
-+      Print("MOUNTIN ASM DEBUG %s argc=%d\\n",first_opc->str,arg_cnt);
-+      for(tmp=0;tmp<arg_cnt;tmp++)
-+        Print("  arg%d type=%d reg_type=%d operand_sz=%d imm=%X machine=%X\\n",
-+              tmp,modes[tmp]->type,modes[tmp]->reg_type,
-+              modes[tmp]->operand_sz,modes[tmp]->imm,modes[tmp]->machine_code);
-       LexExcept(cc,"Invalid usage of opcode:");
-       Free(buf);
-       throw('Asm');
+@@ -1324,3 +1446,3 @@
      }
 -    sz=X86EncodeOpcode(len,best,modes,dummy,asm_patches);
 +    sz=X86EncodeOpcode(len,seg_size,best,modes,dummy,asm_patches);
      AddBytesToBuf(&buf,&len,sz,dummy);
+@@ -1327,5 +1449,14 @@
    } else if(cc->token==TK_IDENT&&cc->hash_entry&&cc->hash_entry->type&(HTT_ASM_KEYWORD|HTT_KEYWORD)) {
 -    if(!StrCmp(cc->hash_entry->str,"IMPORT")) {
 +    if(!StrCmp(cc->hash_entry->str,"USE16")) {

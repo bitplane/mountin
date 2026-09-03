@@ -16,12 +16,11 @@
  extern U8 *__HC_ICAdd_Ret(U8*);
  extern U8 *__HC_ICAdd_Arg(U8*,I64);
  extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -1968,6 +1970,9 @@
+@@ -1968,6 +1970,8 @@
      new=__HC_ICAdd_Bsf(cc2);
      break;case IC_BSR:
      new=__HC_ICAdd_Bsr(cc2);
 +    break;case IC_RDTSC:
-+    "MOUNTIN: translating RDTSC intrinsic\n";
 +    new=__HC_ICAdd_Rdtsc(cc2);
      break;case IC_SQRT:
      new=__HC_ICAdd_Sqrt(cc2);

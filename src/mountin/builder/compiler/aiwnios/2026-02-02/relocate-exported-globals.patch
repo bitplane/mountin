@@ -7,14 +7,9 @@
    CMemberLst *mlst,*mlst2;
    COptMemberVar *mv=NULL;
    CHashImport *h;
-@@ -2230,2 +2231,23 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
+@@ -2230,2 +2231,18 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
 -	    if(!Globalify(misc->addr,&fill_user_data))
 -		  goto norm_reloc;
-+            if (!StrCmp(misc->h->str,"dev") &&
-+                  !StrCmp(cc->htc.fun->str,"Mem32DevIns"))
-+              Print("MOUNTIN DEV type=%X flags=%X data-rip=%X offset=%X\\n",
-+                    misc->h->type,misc->h(CHashGlblVar*)->flags,
-+                    misc->h(CHashGlblVar*)->data_addr_rip,misc->offset);
 +            if (!Globalify(misc->addr,&fill_user_data)) {
 +              relocate_glbl=FALSE;
 +              if (!(misc->h(CHashGlblVar*)->flags&GVF_EXTERN))
