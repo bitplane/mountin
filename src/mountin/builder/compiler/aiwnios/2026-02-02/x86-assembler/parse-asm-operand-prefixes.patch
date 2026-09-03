@@ -1,0 +1,64 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index a7ac7c8..dcff72d 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -114,6 +114,20 @@ CX86AddrMode *PrsX86AddrMode(CCmpCtrl *cc) {
+   mode->imm=0;
+   mode->label=NULL;
+ prefix:
++  if(cc->token==TK_IDENT&&cc->hash_entry&&
++        cc->hash_entry->type&HTT_CLASS&&
++        !StrCmp(cc->cur_str,cc->hash_entry->str)) {
++    lookahead=cc->cur_buf_ptr;
++    while(*lookahead&&*lookahead<=' ') lookahead++;
++    tmpc=cc->hash_entry;
++    if(!(tmpc->member_lst_and_root&&
++          (cc->flags&CCF_USE_LAST_U16&&cc->last_U16=='.'||*lookahead=='.'))) {
++      mode->operand_sz=tmpc->size;
++      Lex(cc);
++      if(cc->token!='[')
++        goto size_prefix_consumed;
++    }
++  }
+   if(cc->token==TK_IDENT) {
+     tmpc=HashFind(cc->cur_str,cmp.asm_hash,HTT_INTERNAL_TYPE);
+     if(tmpc) {
+@@ -122,8 +135,7 @@ prefix:
+       goto size_prefix_consumed;
+     }
+   }
+-  if(cc->token==TK_IDENT||cc->hash_entry&&
+-        cc->hash_entry->type&HTT_INTERNAL_TYPE) {
++  if(cc->token==TK_IDENT) {
+     lookahead=cc->cur_buf_ptr;
+     while(*lookahead&&*lookahead<=' ') lookahead++;
+     rg=HashFind(cc->cur_str,cmp.asm_hash,HTT_REG);
+@@ -161,6 +173,7 @@ prefix:
+       mode->operand_sz=tmpc->size;
+       Lex(cc);
+     }
++  }
+ size_prefix_consumed:
+     if(!rg&&cc->token==TK_IDENT)
+       rg=HashFind(cc->cur_str,cmp.asm_hash,HTT_REG);
+@@ -181,7 +194,6 @@ size_prefix_consumed:
+       mode->type=X86MT_REG;
+       goto ret;
+     }
+-  }
+ indir:
+   if(cc->token=='[') {
+     Lex(cc);
+@@ -1393,10 +1405,8 @@ enter:
+   cc->flags|=CCF_CLASS_DOL_OFFSET;
+   cc->class_dol_offset=len;
+   if(cc->token==TK_IDENT) {
+-    asm_entry=cc->hash_entry;
+-    if(!asm_entry||!(asm_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD)))
+-      asm_entry=HashFind(cc->cur_str,cmp.asm_hash,
+-            HTT_OPCODE|HTT_ASM_KEYWORD);
++    asm_entry=HashFind(cc->cur_str,cmp.asm_hash,
++          HTT_OPCODE|HTT_ASM_KEYWORD);
+     if(asm_entry) cc->hash_entry=asm_entry;
+   }
+   MemSetU64(modes,NULL,4);
