@@ -1,0 +1,14 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 608a20b..47fd03c 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1404,7 +1404,8 @@ enter:
+   cc->class_dol_offset=len;
+   if(cc->token==TK_IDENT) {
+     asm_entry=cc->hash_entry;
+-    if(!asm_entry||!(asm_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD)))
++    if(!asm_entry||!(asm_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD))||
++          StrCmp(cc->cur_str,asm_entry->str))
+       asm_entry=HashFind(cc->cur_str,cmp.asm_hash,
+             HTT_OPCODE|HTT_ASM_KEYWORD);
+     if(asm_entry) cc->hash_entry=asm_entry;

@@ -1,0 +1,84 @@
+--- a/Kernel/KStart64.HC
++++ b/Kernel/KStart64.HC
+@@ -40,2 +40,27 @@
+ 	JMP	I32 &KMain
+ 
++SET_GS_BASE::
++	PUSH	RAX
++	PUSH	RCX
++	PUSH	RDX
++	MOV	RDX,RAX
++	SHR	RDX,32
++	MOV	ECX,IA32_GS_BASE
++	WRMSR
++	POP	RDX
++	POP	RCX
++	POP	RAX
++	RET
++SET_FS_BASE::
++	PUSH	RAX
++	PUSH	RCX
++	PUSH	RDX
++	MOV	RDX,RAX
++	SHR	RDX,32
++	MOV	ECX,IA32_FS_BASE
++	WRMSR
++	POP	RDX
++	POP	RCX
++	POP	RAX
++	RET
++
+--- a/Kernel/KUtils.HC
++++ b/Kernel/KUtils.HC
+@@ -430,30 +430,7 @@
+ 	POP	RBP
+ 	RET
+-SET_GS_BASE::
+-	PUSH	RAX
+-	PUSH	RCX
+-	PUSH	RDX
+-	MOV	RDX,RAX
+-	SHR	RDX,32
+-	MOV	ECX,IA32_GS_BASE
+-	WRMSR
+-	POP	RDX
+-	POP	RCX
+-	POP	RAX
+-	RET
+-SET_FS_BASE::
+-	PUSH	RAX
+-	PUSH	RCX
+-	PUSH	RDX
+-	MOV	RDX,RAX
+-	SHR	RDX,32
+-	MOV	ECX,IA32_FS_BASE
+-	WRMSR
+-	POP	RDX
+-	POP	RCX
+-	POP	RAX
+ _RET::
+ 	RET
+ _SET_MSR::
+ 	PUSH	RBP
+ 	MOV	RBP,RSP
+--- a/Kernel/PCIBIOS.HC
++++ b/Kernel/PCIBIOS.HC
+@@ -1,5 +1,7 @@
+ asm {
+ USE32
++	IMPORT	SET_GS_BASE,SET_FS_BASE;
++
+ 
+ SYS_PCIBIOS_SERVICE_DIR:: DU32	0;
+ SYS_PCI_SERVICES::	 DU32	0;
+--- a/Kernel/MultiProc.HC
++++ b/Kernel/MultiProc.HC
+@@ -1,5 +1,7 @@
+ asm {
+ 	ALIGN	16,OC_NOP
+ USE16
++	IMPORT	SET_GS_BASE,SET_FS_BASE;
++
+ //See $LK,"TempleOS MultiCore",A="FI:::/Doc/MultiCore.DD"$.
+ 
+ //This code gets copied to $LK,"MP_VECT_ADDR",A="MN:MP_VECT_ADDR"$.

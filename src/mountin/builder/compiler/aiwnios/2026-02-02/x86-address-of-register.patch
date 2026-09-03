@@ -1,0 +1,14 @@
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -7466,6 +7466,11 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
+       break;
++    case IC_IREG:
++      code_off = __OptPassFinal(cctrl, next, bin, code_off);
++      next->res.raw_type = RT_PTR;
++      code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
++      break;
+     case IC_BASE_PTR:
+       if (rpn->res.mode == MD_REG)
+         into_reg = rpn->res.reg;

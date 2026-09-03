@@ -1,0 +1,330 @@
+diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+--- a/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:38:48.987459833 +0100
++++ b/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:39:24.259158592 +0100
+@@ -104,6 +104,9 @@
+ import U8 *__HC_ICAdd_OutU16(U8*);
+ import U8 *__HC_ICAdd_OutU32(U8*);
+ import U8 *__HC_ICAdd_QueInit(U8*);
++import U8 *__HC_ICAdd_QueIns(U8*);
++import U8 *__HC_ICAdd_QueInsRev(U8*);
++import U8 *__HC_ICAdd_QueRem(U8*);
+ import U8 *__HC_ICAdd_InvlPg(U8*);
+ import U8 *__HC_ICAdd_StrLen(U8*);
+ import U8 *__HC_ICAdd_Ret(U8*);
+@@ -220,6 +223,9 @@
+ extern U8 *__HC_ICAdd_OutU16(U8*);
+ extern U8 *__HC_ICAdd_OutU32(U8*);
+ extern U8 *__HC_ICAdd_QueInit(U8*);
++extern U8 *__HC_ICAdd_QueIns(U8*);
++extern U8 *__HC_ICAdd_QueInsRev(U8*);
++extern U8 *__HC_ICAdd_QueRem(U8*);
+ extern U8 *__HC_ICAdd_InvlPg(U8*);
+ extern U8 *__HC_ICAdd_StrLen(U8*);
+ extern U8 *__HC_ICAdd_Ret(U8*);
+@@ -2028,6 +2034,12 @@
+     new=__HC_ICAdd_OutU32(cc2);
+     break;case IC_QUE_INIT:
+     new=__HC_ICAdd_QueInit(cc2);
++    break;case IC_QUE_INS:
++    new=__HC_ICAdd_QueIns(cc2);
++    break;case IC_QUE_INS_REV:
++    new=__HC_ICAdd_QueInsRev(cc2);
++    break;case IC_QUE_REM:
++    new=__HC_ICAdd_QueRem(cc2);
+     break;case IC_INVLPG:
+     new=__HC_ICAdd_InvlPg(cc2);
+     break;case IC_STRLEN:
+diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+--- a/c/aiwn_lexparser.h	2026-09-03 18:38:48.989070959 +0100
++++ b/c/aiwn_lexparser.h	2026-09-03 18:39:24.418157237 +0100
+@@ -250,6 +250,9 @@
+   IC_OUT_U16,
+   IC_OUT_U32,
+   IC_QUE_INIT,
++  IC_QUE_INS,
++  IC_QUE_INS_REV,
++  IC_QUE_REM,
+   IC_INVLPG,
+   IC_STRLEN,
+   IC_POS,
+@@ -705,6 +708,9 @@
+ HC_IC_BINDINGH(HC_ICAdd_OutU16)
+ HC_IC_BINDINGH(HC_ICAdd_OutU32)
+ HC_IC_BINDINGH(HC_ICAdd_QueInit)
++HC_IC_BINDINGH(HC_ICAdd_QueIns)
++HC_IC_BINDINGH(HC_ICAdd_QueInsRev)
++HC_IC_BINDINGH(HC_ICAdd_QueRem)
+ HC_IC_BINDINGH(HC_ICAdd_InvlPg)
+ HC_IC_BINDINGH(HC_ICAdd_StrLen)
+ HC_IC_BINDINGH(HC_ICAdd_And)
+diff -ruN a/c/main.c b/c/main.c
+--- a/c/main.c	2026-09-03 18:38:48.989383302 +0100
++++ b/c/main.c	2026-09-03 18:41:11.040254450 +0100
+@@ -1221,6 +1221,15 @@
+ static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
+   return __HC_ICAdd_QueInit(stk[0]);
+ }
++static int64_t STK___HC_ICAdd_QueIns(int64_t *stk) {
++  return __HC_ICAdd_QueIns(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueInsRev(int64_t *stk) {
++  return __HC_ICAdd_QueInsRev(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueRem(int64_t *stk) {
++  return __HC_ICAdd_QueRem(stk[0]);
++}
+ static int64_t STK___HC_ICAdd_InvlPg(int64_t *stk) {
+   return __HC_ICAdd_InvlPg(stk[0]);
+ }
+@@ -1853,6 +1862,9 @@
+     PrsAddSymbol("__HC_ICAdd_OutU16", STK___HC_ICAdd_OutU16, 1);
+     PrsAddSymbol("__HC_ICAdd_OutU32", STK___HC_ICAdd_OutU32, 1);
+     PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
++    PrsAddSymbol("__HC_ICAdd_QueIns", STK___HC_ICAdd_QueIns, 1);
++    PrsAddSymbol("__HC_ICAdd_QueInsRev", STK___HC_ICAdd_QueInsRev, 1);
++    PrsAddSymbol("__HC_ICAdd_QueRem", STK___HC_ICAdd_QueRem, 1);
+     PrsAddSymbol("__HC_ICAdd_InvlPg", STK___HC_ICAdd_InvlPg, 1);
+     PrsAddSymbol("__HC_ICAdd_StrLen", STK___HC_ICAdd_StrLen, 1);
+     PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
+diff -ruN a/c/optpass.c b/c/optpass.c
+--- a/c/optpass.c	2026-09-03 18:38:48.967899440 +0100
++++ b/c/optpass.c	2026-09-03 18:43:09.546262689 +0100
+@@ -704,6 +704,7 @@
+       break;
+     case IC_DEREF:
+     case IC_QUE_INIT:
++    case IC_QUE_REM:
+     case IC_INVLPG:
+     case IC_STRLEN:
+     case IC_IN_U8:
+@@ -714,6 +715,10 @@
+     case IC_OUT_U32:
+       goto next1;
+       break;
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
++      goto next1;
++      break;
+     case IC_AND:
+       if (IsConst(next = rpn->base.next) && IsConst(ICFwd(rpn->base.next))) {
+         if (rpn->raw_type == RT_F64) {
+@@ -1140,6 +1145,9 @@
+       break;
+     case IC_DEREF:
+     case IC_QUE_INIT:
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
++    case IC_QUE_REM:
+     case IC_INVLPG:
+     case IC_STRLEN:
+     case IC_IN_U8:
+diff -ruN a/c/parser.c b/c/parser.c
+--- a/c/parser.c	2026-09-03 18:38:48.990045117 +0100
++++ b/c/parser.c	2026-09-03 18:41:11.218159416 +0100
+@@ -244,6 +244,7 @@
+     break;
+   case IC_TYPECAST:
+   case IC_QUE_INIT:
++  case IC_QUE_REM:
+   case IC_INVLPG:
+   case IC_STRLEN:
+   case IC_IN_U8:
+@@ -251,6 +252,10 @@
+   case IC_IN_U32:
+     goto unop;
+     break;
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    goto binop;
++    break;
+   case IC_COMMA:
+   case IC_MAX_F64:
+   case IC_MAX_U64:
+@@ -341,7 +346,6 @@
+   case IC_SQR:
+   case IC_POS:
+     goto unop;
+-    break;
+   case IC_NAME:
+     return rpn->base.next;
+     break;
+@@ -815,6 +819,15 @@
+     printf("QUE_INIT\n");
+     goto unop;
+     break;
++  case IC_QUE_INS:
++    printf("QUE_INS\n");
++    goto binop;
++  case IC_QUE_INS_REV:
++    printf("QUE_INS_REV\n");
++    goto binop;
++  case IC_QUE_REM:
++    printf("QUE_REM\n");
++    goto unop;
+   case IC_INVLPG:
+     printf("INVLPG\n");
+     goto unop;
+@@ -1361,6 +1374,15 @@
+     len = AddBytes(to, len, "$PURPLE$QUE_INIT$FD$\n");
+     goto unop;
+     break;
++  case IC_QUE_INS:
++    len = AddBytes(to, len, "$PURPLE$QUE_INS$FD$\n");
++    goto binop;
++  case IC_QUE_INS_REV:
++    len = AddBytes(to, len, "$PURPLE$QUE_INS_REV$FD$\n");
++    goto binop;
++  case IC_QUE_REM:
++    len = AddBytes(to, len, "$PURPLE$QUE_REM$FD$\n");
++    goto unop;
+   case IC_INVLPG:
+     len = AddBytes(to, len, "$PURPLE$INVLPG$FD$\n");
+     goto unop;
+@@ -3527,6 +3549,13 @@
+     return rpn->raw_type = RT_U0; // dummy
+     break;
+   case IC_QUE_INIT:
++  case IC_QUE_REM:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     return rpn->raw_type = RT_U0;
+     break;
+@@ -3689,7 +3718,6 @@
+     break;
+   case IC_POS:
+     goto unop;
+-    break;
+   case IC_NAME:
+     abort();
+     break;
+@@ -4732,6 +4760,9 @@
+ HC_IC_BINDING(HC_ICAdd_OutU16, IC_OUT_U16);
+ HC_IC_BINDING(HC_ICAdd_OutU32, IC_OUT_U32);
+ HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
++HC_IC_BINDING(HC_ICAdd_QueIns, IC_QUE_INS);
++HC_IC_BINDING(HC_ICAdd_QueInsRev, IC_QUE_INS_REV);
++HC_IC_BINDING(HC_ICAdd_QueRem, IC_QUE_REM);
+ HC_IC_BINDING(HC_ICAdd_InvlPg, IC_INVLPG);
+ HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c	2026-09-03 18:38:48.990459808 +0100
++++ b/c/x86_64_backend.c	2026-09-03 18:40:41.824500741 +0100
+@@ -2269,6 +2269,7 @@
+   case IC_BSF:
+   case IC_BSR:
+   case IC_QUE_INIT:
++  case IC_QUE_REM:
+   case IC_INVLPG:
+   case IC_STRLEN:
+   case IC_SQRT:
+@@ -2284,6 +2285,9 @@
+     break;
+   case IC_POW:
+     goto pass; // calls pow
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    goto binop;
+   binop:
+     if (SpillsTmpRegs(rpn->base.next))
+       goto pass;
+@@ -2951,6 +2955,7 @@
+   case IC_BSF:
+   case IC_BSR:
+   case IC_QUE_INIT:
++  case IC_QUE_REM:
+   case IC_INVLPG:
+   case IC_STRLEN:
+   case IC_IN_U8:
+@@ -2965,6 +2970,8 @@
+   case IC_GT:
+   case IC_GE:
+   case IC_LE:
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
+   cmp_binop:
+     arg = ICArgN(r, 1);
+     arg2 = ICArgN(r, 0);
+@@ -6208,6 +6215,7 @@
+   case IC_BSF:
+   case IC_BSR:
+   case IC_QUE_INIT:
++  case IC_QUE_REM:
+   case IC_INVLPG:
+   case IC_STRLEN:
+   case IC_IN_U8:
+@@ -6238,6 +6246,8 @@
+   case IC_LBTR:
+   case IC_LBTC:
+   case IC_STORE:
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
+   case IC_OUT_U8:
+   case IC_OUT_U16:
+   case IC_OUT_U32:
+@@ -6451,6 +6461,9 @@
+       [IC_OUT_U16] = &&ic_out_u16,
+       [IC_OUT_U32] = &&ic_out_u32,
+       [IC_QUE_INIT] = &&ic_que_init,
++      [IC_QUE_INS] = &&ic_que_ins,
++      [IC_QUE_INS_REV] = &&ic_que_ins_rev,
++      [IC_QUE_REM] = &&ic_que_rem,
+       [IC_INVLPG] = &&ic_invlpg,
+       [IC_STRLEN] = &&ic_strlen,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+@@ -6548,6 +6561,50 @@
+     AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
+                      MIR(cctrl, into_reg), 8);
+     break;
++  ic_que_ins:
++  ic_que_ins_rev:
++    next = ICArgN(rpn, 1);
++    next2 = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    next2->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    a_reg = next->res.reg;
++    code_off = PutICArgIntoReg(cctrl, &next2->res, RT_PTR, RDX, bin, code_off);
++    b_reg = next2->res.reg;
++    if (rpn->type == IC_QUE_INS_REV) {
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
++                       MIR(cctrl, b_reg), 8);
++    } else {
++      AIWNIOS_ADD_CODE(X86MovRegReg, MIR(cctrl, RCX), MIR(cctrl, b_reg));
++    }
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, R8), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, a_reg), 8);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, R8), -1, -1,
++                     MIR(cctrl, a_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, a_reg), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, a_reg), -1, -1,
++                     MIR(cctrl, R8), 8);
++    break;
++  ic_que_rem:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    into_reg = next->res.reg;
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RDX), -1, -1,
++                     MIR(cctrl, into_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, into_reg), 8);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RDX), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, RDX), 8);
++    break;
+   ic_rdtsc:
+     AIWNIOS_ADD_CODE(X86Rdtsc, 0);
+     AIWNIOS_ADD_CODE(X86ShlImm, RDX, 32);

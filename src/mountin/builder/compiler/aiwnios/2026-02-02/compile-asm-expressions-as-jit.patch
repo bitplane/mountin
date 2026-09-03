@@ -1,0 +1,10 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -70,7 +70,7 @@ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+   cc->asm_undef_hash=NULL;
+   cc->abs_cnts=0;
+-  cc->flags&=~(CCF_UNRESOLVED+CCF_LOCAL);
++  cc->flags&=~(CCF_UNRESOLVED+CCF_LOCAL+CCF_AOT_COMPILE);
+   cc->flags|=CCF_ASM_EXPRESSIONS;
+   if (!IsLexExpression2Bin(cc,&arg->machine_code))
+     LexSkipEol(cc);

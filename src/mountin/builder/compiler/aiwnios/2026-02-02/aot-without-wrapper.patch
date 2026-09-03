@@ -1,0 +1,117 @@
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -184,6 +184,7 @@
+ #define CCF_STRINGS_ON_HEAP          0x2
+ #define CCF_AOT_COMPILE              0x4
+ #define CCF_ICMOV_NO_USE_RAX         0x8
++#define CCF_RAW_AOT                  0x10
+   int64_t flags;
+   CHashFun *cur_fun;
+   CCodeCtrl *code_ctrl;
+@@ -762,6 +763,7 @@
+ extern void PrsBindCSymbolNaked(char *name, void *ptr, int64_t arity);
+ extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
++void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc);
+ 
+ CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
+ 
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -5069,6 +5069,10 @@
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc) {
+   cc->flags |= CCF_AOT_COMPILE;
+ }
++
++void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc) {
++  cc->flags |= CCF_RAW_AOT;
++}
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+--- a/c/main.c
++++ b/c/main.c
+@@ -917,6 +917,11 @@
+   __HC_CmpCtrl_SetAOT((CCmpCtrl *)stk[0]);
+ }
+ 
++static int64_t STK___HC_CmpCtrl_SetRawAOT(int64_t *stk) {
++  __HC_CmpCtrl_SetRawAOT((CCmpCtrl *)stk[0]);
++  return 0;
++}
++
+ static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
+                                       stk[2]);
+@@ -1721,6 +1726,7 @@
+     PrsAddSymbol("__HC_ICAdd_GetVargsPtr", STK___HC_ICAdd_GetVargsPtr, 1);
+     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
++    PrsAddSymbol("__HC_CmpCtrl_SetRawAOT", STK___HC_CmpCtrl_SetRawAOT, 1);
+     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
+     PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
+     PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -1530,6 +1530,8 @@
+ #define OPTf_KEEP_RELOCATIONS 0x26 //Added by nroot,will keep the CHashImport's
+ #define OPTf_BOUNDS_CHECK 0x27 //Added by nroot,Bounds checker
+ #define OPTf_BYTE_CODE 0x28 //Added by nroot
++#define OPTf_RAW_AOT 0x29
++#define OPTf_NATIVE_BIN_SIGNATURE 0x2A
+ 
+ #define OPTF_ECHO		(1<<OPTf_ECHO)
+ #define OPTF_TRACE		(1<<OPTf_TRACE)
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -6,3 +6,4 @@
+ #ifdef IMPORT_AIWNIOS_SYMS
++import U0 __HC_CmpCtrl_SetRawAOT(U8 *);
+ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
+ import U8 *__HC_CmpCtrlDel(U8 *);
+@@ -1405,6 +1406,13 @@
+   #endif
+   if(cc->flags&CCF_AOT_COMPILE)
+     __HC_CmpCtrl_SetAOT(acc);
++  if(cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
++        Bt(&cc->opts,OPTf_RAW_AOT) && !cc->htc.fun)
++    for(cur=head->next;cur!=head;cur=cur->next)
++      if(cur->type==IC_ASM) {
++        __HC_CmpCtrl_SetRawAOT(acc);
++        break;
++      }
+   if(info) {
+     idx=cc->max_line-cc->min_line;
+     *info=MAlloc((idx+2)*8+sizeof(CDbgInfo));
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -233,6 +233,8 @@
+   CCmpCtrl *cc;
+   CAOT *res=NULL;
+   cc=CmpCtrlNew(buf,CCF_DONT_FREE_BUF);
++  if (GetOption(OPTf_RAW_AOT))
++    Bts(&cc->opts,OPTf_RAW_AOT);
+   cc->flags|=CCF_AOT_COMPILE;
+   #ifdef TARGET_AARCH64
+   //For MacOS RWX protections. 
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -8639,7 +8639,8 @@
+       bin = MemGetWritePtr(xbin);
+       code_off = 0;
+     }
+-    code_off = FuncProlog(cctrl, bin, code_off);
++    if (!(cctrl->flags & CCF_RAW_AOT))
++      code_off = FuncProlog(cctrl, bin, code_off);
+     for (cnt = 0; cnt < cnt2; cnt++) {
+     enter:
+       cctrl->backend_user_data1 = 0;
+@@ -8677,6 +8678,7 @@
+       }
+     }
+     cctrl->epilog_label->addr = bin + code_off;
+-    code_off = FuncEpilog(cctrl, bin, code_off);
++    if (!(cctrl->flags & CCF_RAW_AOT))
++      code_off = FuncEpilog(cctrl, bin, code_off);
+     for (misc = cctrl->code_ctrl->code_misc->next;
+          misc != cctrl->code_ctrl->code_misc; misc = misc->base.next) {

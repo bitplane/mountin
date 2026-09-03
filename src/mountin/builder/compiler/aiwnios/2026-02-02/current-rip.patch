@@ -1,0 +1,129 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -8,6 +8,7 @@
+ import U8 *__HC_CmpCtrlDel(U8 *);
+ import U8 *__HC_ICAdd_Sqr(U8 *);
+ import U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
++import U8 *__HC_ICAdd_CurrentRIP(U8*);
+ import U8 *__HC_ICAdd_GetVargsPtr(U8*);
+ import U8 *__HC_ICAdd_ToF64(U8 *);
+ import U8 *__HC_ICAdd_ToI64(U8 *);
+@@ -118,6 +119,7 @@
+ extern U8 *__HC_ICAdd_Min_F64(U8 *);
+ extern U8 *__HC_ICAdd_GetVargsPtr(U8*);
+ extern U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
++extern U8 *__HC_ICAdd_CurrentRIP(U8*);
+ extern U0 __HC_CodeMiscInterateThroughRefs(U8 *,U0(*fptr)(U8*addr,U8*ud),U8*user_data);
+ extern U8 * __HC_ICAdd_ToF64(U8 *);
+ extern U8 * __HC_ICAdd_ToI64(U8 *);
+@@ -1824,5 +1826,7 @@
+ break;case IC_GET_RSP:
+   new=__HC_ICAdd_IReg(cc2,REG_RSP,RT_U8,1);
++break;case IC_RIP:
++  new=__HC_ICAdd_CurrentRIP(cc2);
+ //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
+     //break;case IC_CALL_END:
+     //break;case IC_CALL_END2:
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -337,6 +337,7 @@
+   IC_COS,
+   IC_TAN,
+   IC_ATAN,
++  IC_CURRENT_RIP,
+   IC_RAW_BYTES,
+   IC_GET_VARGS_PTR, // Doing this sets the function as a VARGS function
+   IC_LOCK, // Lock means "lock EXPRESSION;",it operates on expressions as a
+@@ -634,6 +635,7 @@
+ CRPN *__HC_ICAdd_PostDec(CCodeCtrl *cc, int64_t amt);
+ CRPN *__HC_ICAdd_PostInc(CCodeCtrl *cc, int64_t amt);
+ CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt);
++CRPN *__HC_ICAdd_CurrentRIP(CCodeCtrl *cc);
+ void __HC_ICSetLock(CRPN *l);
+ CRPN *__HC_ICAdd_RelocUnqiue(CCmpCtrl *, CCodeCtrl *, int64_t *, char *,
+                              int64_t, int64_t);
+--- a/c/main.c
++++ b/c/main.c
+@@ -1200,6 +1200,9 @@
+ static int64_t STK___HC_ICAdd_RelocUnique(int64_t *stk) {
+   return __HC_ICAdd_RelocUnqiue(stk[0], stk[1], stk[2], stk[3], stk[4], stk[5]);
+ }
++static int64_t STK___HC_ICAdd_CurrentRIP(int64_t *stk) {
++  return __HC_ICAdd_CurrentRIP(stk[0]);
++}
+ 
+ static int64_t STK___HC_ICSetLine(int64_t *stk) {
+   __HC_ICSetLine(stk[0], stk[1]);
+@@ -1588,6 +1591,7 @@
+     PrsAddSymbol("MakeContext", STK_AIWNIOS_makecontext, 3);
+ #endif
+     PrsAddSymbol("__HC_ICAdd_RawBytes", STK__HC_ICAdd_RawBytes, 3);
++    PrsAddSymbol("__HC_ICAdd_CurrentRIP", STK___HC_ICAdd_CurrentRIP, 1);
+     PrsAddSymbol("__HC_SetAOTRelocBeforeRIP", STK___HC_SetAOTRelocBeforeRIP, 2);
+     PrsAddSymbol("__HC_CodeMiscIsUsed", STK___HC_CodeMiscIsUsed, 1);
+     PrsAddSymbol("AiwniosSetClipboard", STK_AiwniosSetClipboard, 1);
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -218,6 +218,7 @@
+   case IC_FS:
+     goto unop;
+   case IC_LOCK:
++  case IC_CURRENT_RIP:
+   case IC_RAW_BYTES:
+   case __IC_STATICS_SIZE:
+   case __IC_SET_STATIC_DATA:
+@@ -4953,6 +4954,17 @@
+   QueIns(rpn, cc->ir_code);
+   return rpn;
+ }
++
++CRPN *__HC_ICAdd_CurrentRIP(CCodeCtrl *cc) {
++  CRPN *rpn;
++  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
++      .type = IC_CURRENT_RIP,
++      .raw_type = RT_I64i,
++      .ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1),
++  };
++  QueIns(rpn, cc->ir_code);
++  return rpn;
++}
+ 
+ CRPN *__HC_ICAdd_Vargs(CCodeCtrl *cc, int64_t arity) {
+   CRPN *rpn;
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -2818,6 +2818,7 @@
+   case IC_IREG:
+   case IC_FREG:
+   case IC_BASE_PTR:
++  case IC_CURRENT_RIP:
+   case IC_STR:
+   case IC_CHR:
+   case IC_FS:
+@@ -6331,12 +6332,26 @@
+       [IC_COS] = &&ic_cos,
+       [IC_TAN] = &&ic_tan,
+       [IC_ATAN] = &&ic_atan,
++      [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
+   do {
++  ic_current_rip:
++    if (rpn->res.mode == MD_REG)
++      into_reg = rpn->res.reg;
++    else
++      into_reg = 0;
++    AIWNIOS_ADD_CODE(X86LeaSIB, MIR(cctrl, into_reg), -1, -1, RIP, 0);
++    if (rpn->res.mode != MD_REG) {
++      tmp.mode = MD_REG;
++      tmp.raw_type = RT_I64i;
++      tmp.reg = 0;
++      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    }
++    break;
+   ic_max_u64:
+ #define IC_MXX_X64(OP)                                                         \
+   {                                                                            \

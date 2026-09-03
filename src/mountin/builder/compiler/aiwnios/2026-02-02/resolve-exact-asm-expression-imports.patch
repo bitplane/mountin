@@ -1,0 +1,63 @@
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -75,6 +75,33 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+   }
+ }
+ 
++U0 AsmExpressionImportsResolve(U8 *name,U8 *module_base,I64 value)
++{
++  CHashTable *table=Fs->hash_table;
++  CHashImport *entry;
++  I64 i,rel_off,resolved;
++
++  Print("MOUNTIN EXACT name=%s requested-base=%X\n",name,module_base);
++  for (i=0;i<=table->mask;i++) {
++    entry=table->body[i];
++    while (entry) {
++      if (entry->type&HTT_IMPORT_SYS_SYM &&
++            entry->module_base==module_base &&
++            !StrCmp(entry->str,name)) {
++        rel_off=entry->module_header_entry[1](U32);
++        if (rel_off&0x80000000)
++          rel_off-=0x100000000;
++        resolved=value+entry->module_header_entry[5](I32);
++        Print("MOUNTIN EXACT entry=%X offset=%X dst=%X value=%X\\n",
++              entry,rel_off,entry->module_base+rel_off,resolved);
++        WriteProtectMemCpy(entry->module_base+rel_off,&resolved,8);
++        entry->type=HTT_INVALID;
++      }
++      entry=entry->next;
++    }
++  }
++}
++
+ CHashExport *AOTResolvedAsmExportFind(CCmpCtrl *cc,U8 *name)
+ {
+   CHashTable *table;
+@@ -132,7 +155,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+           binding->str=StrNew(tmpex->str);
+           binding->val=resolved_export->val;
+           HashAdd(binding,Fs->hash_table);
+-          SysSymImportsResolve(tmpex->str,0);
++          AsmExpressionImportsResolve(tmpex->str,tmpu->machine_code,
++                resolved_export->val);
+           HashRemDel(binding,Fs->hash_table);
+ 	  label=tmpauh->hash->str;
+ 	} else {
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1350,7 +1350,8 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+       exp->val=-member->offset;
+     }
+     HashAdd(exp,Fs->hash_table);
+-    SysSymImportsResolve(cur->hash->str,0);
++    AsmExpressionImportsResolve(cur->hash->str,patch->imm->machine_code,
++          exp->val);
+     HashRemDel(exp,Fs->hash_table);
+   }
+ 
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2252 +2252 @@
+-          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1);
++          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1+1);

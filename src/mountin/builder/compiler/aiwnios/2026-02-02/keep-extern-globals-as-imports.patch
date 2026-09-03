@@ -1,0 +1,11 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2210,6 +2210,8 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
+             tmpaie->offset=misc->offset;
+             QueIns(tmpaie,cc->aot->last_ie);
+           } else if(misc->h->type&HTT_GLBL_VAR){
++            if (misc->h(CHashGlblVar*)->flags&GVF_EXTERN)
++              goto norm_reloc;
+             fill_user_data.cc=cc;
+ 	    fill_user_data.cm=misc;
+ 	    fill_user_data.machine_code=machine_code;

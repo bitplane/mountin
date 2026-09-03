@@ -1,0 +1,22 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1403,7 +1403,8 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *_code_size=NULL,CDbgInfo **info=NULL)
+   #else
+   acc=__HC_CmpCtrlNew(NULL);
+   #endif
+-  if(cc->flags&CCF_AOT_COMPILE)
++  if (cc->flags&CCF_AOT_COMPILE &&
++        !(cc->flags&CCF_ASM_EXPRESSIONS))
+     __HC_CmpCtrl_SetAOT(acc);
+   if(info) {
+     idx=cc->max_line-cc->min_line;
+@@ -2186,7 +2186,8 @@
+       // So if we have relocations that aren't used (have an ->addr of INVALID_PTR)
+       // dont add a "fill-in-later" for it
+       //
+-      if(cc->flags&CCF_AOT_COMPILE) {
++      if (cc->flags&CCF_AOT_COMPILE &&
++            !(cc->flags&CCF_ASM_EXPRESSIONS)) {
+ 		if(misc->addr!=INVALID_PTR) {
+          //All non-imported functions are short calls
+          if(misc->flags&CMF_SHORT_ADDR) {

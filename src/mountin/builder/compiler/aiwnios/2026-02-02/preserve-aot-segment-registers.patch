@@ -1,0 +1,132 @@
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -185,6 +185,7 @@
+ #define CCF_AOT_COMPILE              0x4
+ #define CCF_ICMOV_NO_USE_RAX         0x8
+ #define CCF_RAW_AOT                  0x10
++#define CCF_PRESERVE_SEGMENTS        0x20
+   int64_t flags;
+   CHashFun *cur_fun;
+   CCodeCtrl *code_ctrl;
+@@ -772,6 +773,7 @@
+ extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc);
++void __HC_CmpCtrl_PreserveSegments(CCmpCtrl *cc);
+ 
+ CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
+ 
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -5115,6 +5115,10 @@
+ void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc) {
+   cc->flags |= CCF_RAW_AOT;
+ }
++
++void __HC_CmpCtrl_PreserveSegments(CCmpCtrl *cc) {
++  cc->flags |= CCF_PRESERVE_SEGMENTS;
++}
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+--- a/c/main.c
++++ b/c/main.c
+@@ -922,6 +922,11 @@
+   __HC_CmpCtrl_SetRawAOT((CCmpCtrl *)stk[0]);
+   return 0;
+ }
++
++static int64_t STK___HC_CmpCtrl_PreserveSegments(int64_t *stk) {
++  __HC_CmpCtrl_PreserveSegments((CCmpCtrl *)stk[0]);
++  return 0;
++}
+ 
+ static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
+@@ -1740,6 +1745,8 @@
+     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetRawAOT", STK___HC_CmpCtrl_SetRawAOT, 1);
++    PrsAddSymbol("__HC_CmpCtrl_PreserveSegments",
++                 STK___HC_CmpCtrl_PreserveSegments, 1);
+     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
+     PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
+     PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -5,6 +5,7 @@
+ //
+ #ifdef IMPORT_AIWNIOS_SYMS
+ import U0 __HC_CmpCtrl_SetRawAOT(U8 *);
++import U0 __HC_CmpCtrl_PreserveSegments(U8 *);
+ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
+ import U8 *__HC_CmpCtrlDel(U8 *);
+ import U8 *__HC_ICAdd_Sqr(U8 *);
+@@ -1412,6 +1413,9 @@
+   if (cc->flags&CCF_AOT_COMPILE &&
+         !(cc->flags&CCF_ASM_EXPRESSIONS))
+     __HC_CmpCtrl_SetAOT(acc);
++  if (cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
++        Bt(&cc->opts,OPTf_RAW_AOT))
++    __HC_CmpCtrl_PreserveSegments(acc);
+   if(cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
+         Bt(&cc->opts,OPTf_RAW_AOT) && !cc->htc.fun)
+     for(cur=head->next;cur!=head;cur=cur->next)
+@@ -1706,10 +1710,14 @@
+     #else
+     force_segment=FALSE;
+     #endif
+     if(force_segment) {
+       //Bypass import and use raw one on X86,they are predictable
+-      misc->h=HashFind("__Fs",Fs->hash_table,HTT_FUN);
+-      new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);      
++      if(Bt(&cc->opts,OPTf_RAW_AOT))
++        new=__HC_ICAdd_I64(cc2,0);
++      else {
++        misc->h=HashFind("__Fs",Fs->hash_table,HTT_FUN);
++        new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
++      }
+     } else if(!(misc->h->type&HTF_IMPORT)) {
+       new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
+     } else
+@@ -1737,10 +1744,14 @@
+     #else
+     force_segment=FALSE;
+     #endif
+     if(force_segment) {
+       //Bypass import and use raw one on X86,they are predictable
+-      misc->h=HashFind("__Gs",Fs->hash_table,HTT_FUN);
+-      new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);      
++      if(Bt(&cc->opts,OPTf_RAW_AOT))
++        new=__HC_ICAdd_I64(cc2,0);
++      else {
++        misc->h=HashFind("__Gs",Fs->hash_table,HTT_FUN);
++        new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
++      }
+     } else if(!(misc->h->type&HTF_IMPORT)) {
+       new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
+     } else
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -6439,11 +6439,18 @@
+     }
+   segment:
+-    // %gs is used as a TLS reg for all OS'es
+     into_reg = 0;
++    if (cctrl->flags & CCF_PRESERVE_SEGMENTS) {
++      if (rpn->type == IC_FS) {
++        AIWNIOS_ADD_CODE(SEG_FS, 0);
++      } else {
++        AIWNIOS_ADD_CODE(SEG_GS, 0);
++      }
++    } else {
+ #if __OpenBSD__ + __NetBSD__ > 0
+-    AIWNIOS_ADD_CODE(SEG_FS, 0);
++      AIWNIOS_ADD_CODE(SEG_FS, 0);
+ #else
+-    AIWNIOS_ADD_CODE(SEG_GS, 0);
++      AIWNIOS_ADD_CODE(SEG_GS, 0);
+ #endif
++    }
+     if (rpn->res.mode == MD_REG && next->type == IC_I64 &&
+         Is32Bit(next->integer)) {

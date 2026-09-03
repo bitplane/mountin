@@ -1,0 +1,41 @@
+--- a/Src/AIWNIOS_PrsExp.HC
++++ b/Src/AIWNIOS_PrsExp.HC
+@@ -1744,11 +1744,20 @@
+ 	      }
+ 	      Lex(cc);
+ 	    } else if(cc->hash_entry->type&HTT_EXPORT_SYS_SYM) {
+-	        rpn=RPNAddNew(
+-		      cc,
+-		      IC_IMM_I64,
+-		      cc->hash_entry(CHashExport*)->val,
+-		      cmp.internal_types[RT_I64],
+-		      );
++              if (cc->flags&CCF_AOT_COMPILE &&
++                    !(cc->hash_entry->type&HTF_IMM))
++                rpn=RPNAddNew(
++                      cc,
++                      IC_ADDR_IMPORT,
++                      CodeMiscHashNew(cc,cc->hash_entry),
++                      cmp.internal_types[RT_I64],
++                      );
++              else
++                rpn=RPNAddNew(
++                      cc,
++                      IC_IMM_I64,
++                      cc->hash_entry(CHashExport*)->val,
++                      cmp.internal_types[RT_I64],
++                      );
+ 	      Lex(cc);
+ 	    } else if(cc->hash_entry->type&HTT_KEYWORD) {
+ 	      switch(cc->hash_entry(CHashGeneric *)->user_data0) {
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1943,7 +1943,7 @@
+           h(CHashFun*)->exe_addr
+         );
+       }
+-    } else if (!(h->type&HTF_RESOLVE) ||
++    } else if (cc->flags&CCF_AOT_COMPILE || !(h->type&HTF_RESOLVE) ||
+           h->type&HTF_UNRESOLVED) {
+         new=__HC_ICAdd_Reloc(
+             acc,

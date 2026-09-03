@@ -1,0 +1,65 @@
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -558,6 +558,28 @@
++CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
++{
++  CHash *h=HashFind(name,cc->htc.glbl_hash_table,HTT_FUN);
++  if (h) {
++    if (h->type&HTF_RESOLVE && 0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
++      return h;
++    return NULL;
++    }
++  h=HashFind(name,cc->htc.glbl_hash_table,HTT_GLBL_VAR);
++  if (h) {
++    if (!(h(CHashGlblVar*)->flags&GVF_EXTERN))
++      return h;
++    return NULL;
++  }
++  h=HashFind(name,cc->htc.glbl_hash_table,HTT_EXPORT_SYS_SYM);
++  if (h && h->type&HTF_RESOLVE)
++    return h;
++  return NULL;
++}
++
+ //Added by nroot
+ U0 FillInShortCalls(CCmpCtrl *cc) {
+   CAOTImportExport *tmpaotie,*tmpaotie1;
++  CAOTAbsAddr *tmpabs;
+   CHashFun *fun;
++  Bool value_resolved;
+   I64 i,ptr,low12;
+   for(tmpaotie=cc->aot->next_ie;tmpaotie!=&cc->aot->next_ie;tmpaotie=tmpaotie1) {
+@@ -631,6 +653,33 @@
+         Free(tmpaotie);
+ #endif
+       }
++    } else if (tmpaotie->type==IET_IMM_I64 && tmpaotie->str) {
++      value_resolved=TRUE;
++      fun=AOTResolvedHashFind(cc,tmpaotie->str);
++      if (fun && fun->type&HTT_FUN && fun->type&HTF_RESOLVE)
++        i=fun->exe_addr+tmpaotie->offset;
++      else if (fun && fun->type&HTT_GLBL_VAR && fun->type&HTF_EXPORT &&
++            !(fun(CHashGlblVar*)->flags&(GVF_EXTERN|GVF_DATA_HEAP)))
++        i=fun(CHashGlblVar*)->data_addr_rip+tmpaotie->offset;
++      else if (fun && fun->type&HTT_EXPORT_SYS_SYM &&
++            fun->type&HTF_RESOLVE)
++        i=fun(CHashExport*)->val+tmpaotie->offset;
++      else
++        value_resolved=FALSE;
++      if (value_resolved) {
++        AOTStoreCodeU8At(cc,tmpaotie->rip,
++              i,i>>8,i>>16,i>>24);
++        AOTStoreCodeU8At(cc,tmpaotie->rip+4,
++              i>>32,i>>40,i>>48,i>>56);
++        tmpabs=CAlloc(sizeof(CAOTAbsAddr));
++        tmpabs->next=cc->aotc->abss;
++        tmpabs->type=AAT_ADD_U64;
++        tmpabs->rip=tmpaotie->rip;
++        cc->aotc->abss=tmpabs;
++        QueRem(tmpaotie);
++        Free(tmpaotie->str);
++        Free(tmpaotie);
++      }
+     }
+   }
+ }

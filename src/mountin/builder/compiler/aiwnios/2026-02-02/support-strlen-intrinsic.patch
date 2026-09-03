@@ -1,0 +1,206 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 97b91dd3..11789625 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -97,6 +97,7 @@ import U8 *__HC_ICAdd_Bsr(U8*);
+ import U8 *__HC_ICAdd_Rdtsc(U8*);
+ import U8 *__HC_ICAdd_QueInit(U8*);
+ import U8 *__HC_ICAdd_InvlPg(U8*);
++import U8 *__HC_ICAdd_StrLen(U8*);
+ import U8 *__HC_ICAdd_Ret(U8*);
+ import U8 *__HC_ICAdd_Arg(U8*,I64);
+ import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -204,6 +205,7 @@ extern U8 *__HC_ICAdd_Bsr(U8*);
+ extern U8 *__HC_ICAdd_Rdtsc(U8*);
+ extern U8 *__HC_ICAdd_QueInit(U8*);
+ extern U8 *__HC_ICAdd_InvlPg(U8*);
++extern U8 *__HC_ICAdd_StrLen(U8*);
+ extern U8 *__HC_ICAdd_Ret(U8*);
+ extern U8 *__HC_ICAdd_Arg(U8*,I64);
+ extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -1992,6 +1994,8 @@ break;case IC_RIP:
+     new=__HC_ICAdd_QueInit(cc2);
+     break;case IC_INVLPG:
+     new=__HC_ICAdd_InvlPg(cc2);
++    break;case IC_STRLEN:
++    new=__HC_ICAdd_StrLen(cc2);
+     break;case IC_SQRT:
+     new=__HC_ICAdd_Sqrt(cc2);
+     break;case IC_DEREF:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 55e56894..0e50ef31 100644
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -244,6 +244,7 @@ enum {
+   IC_RDTSC,
+   IC_QUE_INIT,
+   IC_INVLPG,
++  IC_STRLEN,
+   IC_POS,
+   IC_NAME,
+   IC_STR, //->code_misc
+@@ -692,6 +693,7 @@ HC_IC_BINDINGH(HC_ICAdd_Bsr)
+ HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
+ HC_IC_BINDINGH(HC_ICAdd_QueInit)
+ HC_IC_BINDINGH(HC_ICAdd_InvlPg)
++HC_IC_BINDINGH(HC_ICAdd_StrLen)
+ HC_IC_BINDINGH(HC_ICAdd_And)
+ HC_IC_BINDINGH(HC_ICAdd_EqEq)
+ HC_IC_BINDINGH(HC_ICAdd_Ret)
+diff --git a/c/main.c b/c/main.c
+index f854a8b0..74b652e6 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -1210,6 +1210,9 @@ static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
+ static int64_t STK___HC_ICAdd_InvlPg(int64_t *stk) {
+   return __HC_ICAdd_InvlPg(stk[0]);
+ }
++static int64_t STK___HC_ICAdd_StrLen(int64_t *stk) {
++  return __HC_ICAdd_StrLen(stk[0]);
++}
+ static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
+   return __HC_ICAdd_Ret(stk[0]);
+ }
+@@ -1828,6 +1831,7 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
+     PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
+     PrsAddSymbol("__HC_ICAdd_InvlPg", STK___HC_ICAdd_InvlPg, 1);
++    PrsAddSymbol("__HC_ICAdd_StrLen", STK___HC_ICAdd_StrLen, 1);
+     PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
+     PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
+     PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff --git a/c/optpass.c b/c/optpass.c
+index f9dcda78..e8d4e2b6 100644
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -703,6 +703,7 @@ loop:
+     case IC_DEREF:
+     case IC_QUE_INIT:
+     case IC_INVLPG:
++    case IC_STRLEN:
+       goto next1;
+       break;
+     case IC_AND:
+@@ -1132,6 +1133,7 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
+     case IC_DEREF:
+     case IC_QUE_INIT:
+     case IC_INVLPG:
++    case IC_STRLEN:
+       continue;
+       break;
+     case IC_AND:
+diff --git a/c/parser.c b/c/parser.c
+index 7ec7d482..a8d7706d 100644
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -245,6 +245,7 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_TYPECAST:
+   case IC_QUE_INIT:
+   case IC_INVLPG:
++  case IC_STRLEN:
+     goto unop;
+     break;
+   case IC_COMMA:
+@@ -810,6 +811,9 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+   case IC_INVLPG:
+     printf("INVLPG\n");
+     goto unop;
++  case IC_STRLEN:
++    printf("STRLEN\n");
++    goto unop;
+   case IC_NAME:
+     printf("NAME:%s\n", rpn->string);
+     goto ret;
+@@ -1342,6 +1346,9 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+   case IC_INVLPG:
+     len = AddBytes(to, len, "$PURPLE$INVLPG$FD$\n");
+     goto unop;
++  case IC_STRLEN:
++    len = AddBytes(to, len, "$PURPLE$STRLEN$FD$\n");
++    goto unop;
+   case IC_NAME:
+     goto ret;
+     break;
+@@ -3499,6 +3506,11 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     return rpn->raw_type = RT_U0;
+     break;
++  case IC_STRLEN:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_I64i;
++    break;
+   case IC_BT:
+   case IC_BTR:
+   case IC_BTS:
+@@ -4669,6 +4681,7 @@ HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
+ HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
+ HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
+ HC_IC_BINDING(HC_ICAdd_InvlPg, IC_INVLPG);
++HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+ HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
+ 
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 38b01a31..6eb61529 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -2232,6 +2232,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   case IC_BSR:
+   case IC_QUE_INIT:
+   case IC_INVLPG:
++  case IC_STRLEN:
+   case IC_SQRT:
+   case IC_TO_BOOL:
+   unop:
+@@ -2913,6 +2914,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   case IC_BSR:
+   case IC_QUE_INIT:
+   case IC_INVLPG:
++  case IC_STRLEN:
+     goto unop;
+     break;
+   case IC_POS:
+@@ -6161,6 +6163,7 @@ static void SetKeepTmps(CRPN *rpn) {
+   case IC_BSR:
+   case IC_QUE_INIT:
+   case IC_INVLPG:
++  case IC_STRLEN:
+   case IC_LNOT:
+   case IC_BNOT:
+   case IC_POS:
+@@ -6391,12 +6394,34 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_RDTSC] = &&ic_rdtsc,
+       [IC_QUE_INIT] = &&ic_que_init,
+       [IC_INVLPG] = &&ic_invlpg,
++      [IC_STRLEN] = &&ic_strlen,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
+   do {
++  ic_strlen:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86XorReg, RDX, RDX);
++    misc = CodeMiscNew(cctrl, CMT_LABEL);
++    misc->addr = bin + code_off;
++    AIWNIOS_ADD_CODE(X86CmpSIB8Imm, 0, 1, RDX, next->res.reg, 0);
++    misc2 = CodeMiscNew(cctrl, CMT_LABEL);
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_Z, 0);
++    CodeMiscAddRef(misc2, bin + code_off - 4);
++    AIWNIOS_ADD_CODE(X86IncReg, RDX);
++    AIWNIOS_ADD_CODE(X86Jmp, (char *)misc->addr - (bin + code_off));
++    misc2->addr = bin + code_off;
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = RDX;
++    rpn->tmp_res = tmp;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
+   ic_invlpg:
+     next = ICArgN(rpn, 0);
+     next->res.keep_in_tmp = 1;

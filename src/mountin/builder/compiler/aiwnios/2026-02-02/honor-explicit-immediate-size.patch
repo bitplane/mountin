@@ -1,0 +1,26 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -417,6 +417,11 @@ Bool ModeMatch(U16 md,CX86AddrMode *mode,I64 mem_sz,Bool mem_only=FALSE) {
+       goto r64;
+     case X86_OPERAND_IMM8:
+       if(mem_only) return FALSE;
++      if(mode->operand_sz!=-1&&mode->operand_sz!=1)
++        return FALSE;
++      //An unresolved expression cannot be proven to fit a signed byte.
++      if(mode->machine_code)
++        return FALSE;
+       if(mode->type==X86MT_IMM)
+         if(I8_MIN<=mode->imm<=U8_MAX)
+ 	  goto pass;
+@@ -1156,7 +1161,10 @@ I64 X86EncodeOpcode(I64 rip,I64 seg_size,CX86Opcode *opc,CX86AddrMode **modes,U
+ 		    sz=2;
+ 		    break;
+ 		  case X86_OPERAND_IMM32:
+-		    sz=4;
++		    if(modes[a]->operand_sz==2)
++		      sz=2;
++		    else
++		      sz=4;
+ 		    break;
+ 		  case X86_OPERAND_IMM64:
+ 		    sz=8;

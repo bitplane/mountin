@@ -1,0 +1,26 @@
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -40,5 +40,6 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+ {
+   CAOTImportExport *tmpie;
++  CAOTAbsAddr *tmpabs;
+   CAsmUndefHash *tmpauh;
+   I64 res=Call(tmpu->machine_code);
+   if (label && (!StrCmp(label,"SYS_RUN_LEVEL") ||
+@@ -71,6 +72,16 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+     if (tmpu->U8_avail && tmpu->type>IET_IMM_U8 && -124<=res<=123)
+       PrintWarn("could use I8 displacement at line:%04d %s %s\n",
+             tmpu->line_num,cc->aotc->last_label,label);
++  } else if (tmpu->type==IET_IMM_U32) {
++    for (tmpauh=tmpu->asm_undef_hash;tmpauh;tmpauh=tmpauh->next)
++      if (!(tmpauh->hash->type&HTF_IMM)) {
++        tmpabs=CAlloc(sizeof(CAOTAbsAddr));
++        tmpabs->next=cc->aotc->abss;
++        tmpabs->type=AAT_ADD_U32;
++        tmpabs->rip=tmpu->rip;
++        cc->aotc->abss=tmpabs;
++        break;
++      }
+   }
+   AOTStoreCodeU8At(cc,tmpu->rip,res.u8[0]);
+   if (tmpu->type>=IET_REL_I16) {

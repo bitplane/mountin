@@ -1,0 +1,58 @@
+--- a/Kernel/KLoad.HC
++++ b/Kernel/KLoad.HC
+@@ -1,17 +1,21 @@
+ U0 LoadOneImport(U8 **_src,U8 *module_base,I64 ld_flags)
+ {
+   U8 *src=*_src,*ptr2,*st_ptr;
+-  I64 i,etype;
++  I64 i,etype,offset;
+   CHashExport *tmpex=NULL;
+   CHashImport *tmpiss;
+   Bool first=TRUE;
+ 
+   while (etype=*src++) {
+     i=*src(U32 *)++;
++    if (IET_REL_I0<=etype<=IET_IMM_I64)
++      offset=*src(I32 *)++;
++    else
++      offset=0;
+     st_ptr=src;
+     src+=StrLen(st_ptr)+1;
+     if (*st_ptr) {
+       if (!first) {
+-	*_src=st_ptr-5;
++	*_src=st_ptr-9;
+ 	return;
+       } else {
+@@ -35,4 +39,5 @@ U0 LoadOneImport(U8 **_src,U8 *module_base,I64 ld_flags)
+       else
+ 	i=tmpex->val;
++      i+=offset;
+       switch (etype) {
+ 	case IET_REL_I8:  *ptr2(U8 *) =i-ptr2-1; break;
+@@ -73,4 +78,6 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+   while (etype=*src++) {
+     i=*src(U32 *)++;
++    if (IET_REL_I0<=etype<=IET_IMM_I64)
++      src+=4;
+     st_ptr=src;
+     src+=StrLen(st_ptr)+1;
+@@ -158,4 +165,6 @@ U0 LoadPass2(U8 *src,U8 *module_base,I64)
+   while (etype=*src++) {
+     i=*src(U32 *)++;
++    if (IET_REL_I0<=etype<=IET_IMM_I64)
++      src+=4;
+     st_ptr=src;
+     src+=StrLen(st_ptr)+1;
+--- a/Compiler/CMain.HC
++++ b/Compiler/CMain.HC
+@@ -518,4 +518,8 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
+       if (tmpie->aot)
+ 	tmpie->rip+=tmpie->aot->rip2;
+       *ptr(U32 *)++=tmpie->rip;
++      switch (tmpie->type) {
++	case IET_REL_I0...IET_IMM_I64:
++	  *ptr(I32 *)++=0;
++      }
+       if (tmpie->str) {
+ 	i=StrLen(tmpie->str);

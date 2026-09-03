@@ -1,0 +1,14 @@
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -9083,7 +9083,10 @@ static int64_t CompileCodeMisc(CCodeCtrl *cctrl, char *bin, int64_t code_off,
+           code_off += 8 - code_off % 8;
+         misc->addr = bin + code_off;
+         if (bin)
+-          *(void **)((char *)MemGetWritePtr(bin) + code_off) = &DoNothing;
++          *(void **)((char *)MemGetWritePtr(bin) + code_off) =
++              cctrl->flags & CCF_AOT_COMPILE
++                  ? NULL
++                  : &DoNothing;
+         code_off += 8;
+         if (run == 2) {
+           *(import = A_CALLOC(sizeof(CHashImport), NULL)) = (CHashImport){

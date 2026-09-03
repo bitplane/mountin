@@ -1,0 +1,193 @@
+diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+--- a/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:34:29.294958397 +0100
++++ b/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:36:32.841637055 +0100
+@@ -94,6 +94,7 @@
+ import U8 *__HC_ICAdd_Bsf(U8*);
+ import U8 *__HC_ICAdd_Bsr(U8*);
+ import U8 *__HC_ICAdd_Rdtsc(U8*);
++import U8 *__HC_ICAdd_QueInit(U8*);
+ import U8 *__HC_ICAdd_Ret(U8*);
+ import U8 *__HC_ICAdd_Arg(U8*,I64);
+ import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -199,6 +200,7 @@
+ extern U8 *__HC_ICAdd_Bsf(U8*);
+ extern U8 *__HC_ICAdd_Bsr(U8*);
+ extern U8 *__HC_ICAdd_Rdtsc(U8*);
++extern U8 *__HC_ICAdd_QueInit(U8*);
+ extern U8 *__HC_ICAdd_Ret(U8*);
+ extern U8 *__HC_ICAdd_Arg(U8*,I64);
+ extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -1972,8 +1974,9 @@
+     break;case IC_BSR:
+     new=__HC_ICAdd_Bsr(cc2);
+     break;case IC_RDTSC:
+-    "MOUNTIN: translating RDTSC intrinsic\n";
+     new=__HC_ICAdd_Rdtsc(cc2);
++    break;case IC_QUE_INIT:
++    new=__HC_ICAdd_QueInit(cc2);
+     break;case IC_SQRT:
+     new=__HC_ICAdd_Sqrt(cc2);
+     break;case IC_DEREF:
+diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+--- a/c/aiwn_lexparser.h	2026-09-03 18:34:29.295539561 +0100
++++ b/c/aiwn_lexparser.h	2026-09-03 18:35:23.931243155 +0100
+@@ -241,6 +241,7 @@
+   IC_BSF,
+   IC_BSR,
+   IC_RDTSC,
++  IC_QUE_INIT,
+   IC_POS,
+   IC_NAME,
+   IC_STR, //->code_misc
+@@ -687,6 +688,7 @@
+ HC_IC_BINDINGH(HC_ICAdd_Bsf)
+ HC_IC_BINDINGH(HC_ICAdd_Bsr)
+ HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
++HC_IC_BINDINGH(HC_ICAdd_QueInit)
+ HC_IC_BINDINGH(HC_ICAdd_And)
+ HC_IC_BINDINGH(HC_ICAdd_EqEq)
+ HC_IC_BINDINGH(HC_ICAdd_Ret)
+diff -ruN a/c/main.c b/c/main.c
+--- a/c/main.c	2026-09-03 18:34:29.295801370 +0100
++++ b/c/main.c	2026-09-03 18:35:24.090241748 +0100
+@@ -1199,6 +1199,9 @@
+ static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
+   return __HC_ICAdd_Rdtsc(stk[0]);
+ }
++static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
++  return __HC_ICAdd_QueInit(stk[0]);
++}
+ static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
+   return __HC_ICAdd_Ret(stk[0]);
+ }
+@@ -1813,6 +1816,7 @@
+     PrsAddSymbol("__HC_ICAdd_Bsf", STK___HC_ICAdd_Bsf, 1);
+     PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
+     PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
++    PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
+     PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
+     PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
+     PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff -ruN a/c/optpass.c b/c/optpass.c
+--- a/c/optpass.c	2026-09-03 18:34:29.188101288 +0100
++++ b/c/optpass.c	2026-09-03 18:35:41.076091633 +0100
+@@ -700,6 +700,7 @@
+       goto binop_next;
+       break;
+     case IC_DEREF:
++    case IC_QUE_INIT:
+       goto next1;
+       break;
+     case IC_AND:
+@@ -1127,6 +1128,7 @@
+       continue;
+       break;
+     case IC_DEREF:
++    case IC_QUE_INIT:
+       continue;
+       break;
+     case IC_AND:
+diff -ruN a/c/parser.c b/c/parser.c
+--- a/c/parser.c	2026-09-03 18:34:29.296415365 +0100
++++ b/c/parser.c	2026-09-03 18:38:35.860572307 +0100
+@@ -243,6 +243,7 @@
+     return rpn->base.next;
+     break;
+   case IC_TYPECAST:
++  case IC_QUE_INIT:
+     goto unop;
+     break;
+   case IC_COMMA:
+@@ -802,6 +803,10 @@
+     printf("RDTSC\n");
+     goto ret;
+     break;
++  case IC_QUE_INIT:
++    printf("QUE_INIT\n");
++    goto unop;
++    break;
+   case IC_NAME:
+     printf("NAME:%s\n", rpn->string);
+     goto ret;
+@@ -1328,6 +1333,10 @@
+     len = AddBytes(to, len, "$PURPLE$RDTSC$FD$\n");
+     goto ret;
+     break;
++  case IC_QUE_INIT:
++    len = AddBytes(to, len, "$PURPLE$QUE_INIT$FD$\n");
++    goto unop;
++    break;
+   case IC_NAME:
+     goto ret;
+     break;
+@@ -3477,6 +3486,10 @@
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     return rpn->raw_type = RT_U0; // dummy
+     break;
++  case IC_QUE_INIT:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
+   case IC_BT:
+   case IC_BTR:
+   case IC_BTS:
+@@ -4645,6 +4658,7 @@
+ HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
+ HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
+ HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
++HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+ HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
+ 
+diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c	2026-09-03 18:34:29.297339330 +0100
++++ b/c/x86_64_backend.c	2026-09-03 18:36:03.038898245 +0100
+@@ -2217,6 +2217,7 @@
+   case IC_NEG:
+   case IC_BSF:
+   case IC_BSR:
++  case IC_QUE_INIT:
+   case IC_SQRT:
+   case IC_TO_BOOL:
+   unop:
+@@ -2896,6 +2897,7 @@
+   case IC_NEG:
+   case IC_BSF:
+   case IC_BSR:
++  case IC_QUE_INIT:
+     goto unop;
+     break;
+   case IC_POS:
+@@ -6142,6 +6144,7 @@
+   case IC_NEG:
+   case IC_BSF:
+   case IC_BSR:
++  case IC_QUE_INIT:
+   case IC_LNOT:
+   case IC_BNOT:
+   case IC_POS:
+@@ -6370,12 +6373,24 @@
+       [IC_ATAN] = &&ic_atan,
+       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_RDTSC] = &&ic_rdtsc,
++      [IC_QUE_INIT] = &&ic_que_init,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
+   do {
++  ic_que_init:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    into_reg = next->res.reg;
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
++                     MIR(cctrl, into_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
++                     MIR(cctrl, into_reg), 8);
++    break;
+   ic_rdtsc:
+     AIWNIOS_ADD_CODE(X86Rdtsc, 0);
+     AIWNIOS_ADD_CODE(X86ShlImm, RDX, 32);

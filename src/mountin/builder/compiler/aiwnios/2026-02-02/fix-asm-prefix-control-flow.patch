@@ -1,0 +1,30 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index bff58ce..608a20b 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -155,8 +155,7 @@ prefix:
+       goto size_prefix_consumed;
+     }
+   }
+-  if(cc->token==TK_IDENT||cc->hash_entry&&
+-        cc->hash_entry->type&HTT_INTERNAL_TYPE) {
++  if(cc->token==TK_IDENT) {
+     lookahead=cc->cur_buf_ptr;
+     while(*lookahead&&*lookahead<=' ') lookahead++;
+     rg=HashFind(cc->cur_str,cmp.asm_hash,HTT_REG);
+@@ -195,6 +195,7 @@ size_prefix_consumed:
+       mode->operand_sz=tmpc->size;
+       Lex(cc);
+     }
++  }
+ size_prefix_consumed:
+     if(!rg&&cc->token==TK_IDENT)
+       rg=HashFind(cc->cur_str,cmp.asm_hash,HTT_REG);
+@@ -216,7 +217,6 @@ size_prefix_consumed:
+       mode->type=X86MT_REG;
+       goto ret;
+     }
+-  }
+ indir:
+   if(cc->token=='[') {
+     Lex(cc);

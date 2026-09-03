@@ -19,28 +19,34 @@ CopyTree("U:/Doc", "/Doc");
 CopyTree("U:/Downloads", "/Downloads");
 CopyTree("U:/Kernel", "/Kernel");
 CopyTree("U:/Misc", "/Misc");
+I64 mountin_kernel_header_size;
+U8 *mountin_kernel_header = FileRead("/Kernel/KernelA.HH",
+      &mountin_kernel_header_size);
+U8 *mountin_compatible_header = MStrPrint(
+      "%s\nextern I64 AIWNIOS_SetJmp(I64 *);\nextern U0 EndCatch();\n",
+      mountin_kernel_header);
+FileWrite("/Kernel/KernelA.HH", mountin_compatible_header,
+      StrLen(mountin_compatible_header));
+Free(mountin_compatible_header);
+Free(mountin_kernel_header);
 Del("/0000Boot/0000Kernel.BIN.C");
 Del("/Compiler/Compiler.BIN");
 "MOUNTIN: TempleOS source staged\n";
 
-#include "/Kernel/KernelA.HH"
-#include "/Compiler/CompilerA.HH"
-#include "/Kernel/KernelB.HH"
-#include "/Kernel/KernelC.HH"
-#include "/Compiler/CompilerB.HH"
-"MOUNTIN: TempleOS headers loaded\n";
-
 Option(OPTf_WARN_PAREN, ON);
 Option(OPTf_WARN_DUP_TYPES, ON);
-HashTablePurge(adam_task->hash_table);
-
-#include "/Adam/MakeAdam"
-"MOUNTIN: Adam built\n";
-
-DocTermNew;
-WinVert(2, 10);
 DirMk("/Tmp");
 DirMk("/Home");
 
-#include "/Adam/Opt/Boot/MakeBoot"
-#include "/Misc/DoDistro"
+#include "/Adam/Opt/Boot/BootDVDIns"
+"MOUNTIN: DVD boot tools loaded\n";
+
+#include "/MountinBuildKernel.HC"
+
+if (Cmp("/Compiler/Compiler", "Compiler",, ':'))
+  throw('Compiler');
+if (!FileFind("/Compiler/Compiler.BIN"))
+  throw('Compiler');
+"MOUNTIN: TempleOS compiler built\n";
+
+#include "/MountinPackageDistro.HC"

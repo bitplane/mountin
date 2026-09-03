@@ -1,0 +1,24 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1431,6 +1431,7 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+   CToFill *to_fill=blob->to_fill,*tmp_to_fill;
+   CAsmPatch *patch,*next_patch;
++  CAOTAbsAddr *tmpabs;
+   I64 tmp,sz;
+   tmp_to_fill=to_fill->next;
+   while(tmp_to_fill!=to_fill) {
+@@ -1471,6 +1472,13 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+                     patch->sz,patch->rip,patch->is_rel);
+               LexExcept(cc,"Invalid AOT assembler relocation size");
+           }
++          if(!patch->is_rel&&patch->sz==4) {
++            tmpabs=CAlloc(sizeof(CAOTAbsAddr));
++            tmpabs->next=cc->aotc->abss;
++            tmpabs->type=AAT_ADD_U32;
++            tmpabs->rip=blob->final_start_rip+patch->rip;
++            cc->aotc->abss=tmpabs;
++          }
+         } else {
+           switch(patch->sz) {
+             break;case 1: sz=IET_REL_I8;

@@ -1,0 +1,12 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1907,7 +1907,8 @@
+           h(CHashFun*)->exe_addr
+         );
+       }
+-    } else if(!(h->type&HTF_RESOLVE)) {
++    } else if (!(h->type&HTF_RESOLVE) ||
++          h->type&HTF_UNRESOLVED) {
+         new=__HC_ICAdd_Reloc(
+             acc,
+             cc2,

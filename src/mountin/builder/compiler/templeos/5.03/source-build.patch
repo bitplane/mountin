@@ -1,0 +1,60 @@
+--- a/Kernel/KernelB.HH
++++ b/Kernel/KernelB.HH
+@@ -251,7 +251,7 @@
+ public _intern IC_CARRY I64 Carry(); //See $LK,"::/Demo/Carry.HC"$
+ public _intern IC_GET_RAX I64 GetRAX(); //Get RAX register value.
+ public _intern IC_GET_RBP U8 *GetRBP(); //Get RBP register value.
+-public _intern IC_GET_RFLAGS I64 GetRFlags(); //Get RFlags register value.
++public extern I64 GetRFlags(); //Get RFlags register value.
+ public _intern IC_GET_RSP U8 *GetRSP(); //Get RSP register value.
+ public _intern IC_POP I64 Pop(); //Pop value from stk.
+ public _intern IC_PUSH U0 Push(I64 d); //Push value on stk.
+@@ -289,6 +289,12 @@
+ 
+ #help_index "Time/CPU Cycles"
+ #help_file "::/Doc/TimeCycles"
++asm {
++GetRFlags::
++  PUSHFD
++  POP RAX
++  RET
++}
+ public _intern IC_RDTSC I64 GetTSC(); //Get time stamp counter.
+ 
+ #help_index ""
+--- a/Kernel/KInts.HC
++++ b/Kernel/KInts.HC
+@@ -6,7 +6,7 @@
+ 	PUSH	RDX
+ 	PUSH	RAX
+ 	MOV	EAX,&dev
+-	MOV	EDX,U32 LAPIC_EOI
++	MOV	EDX,-18874192
+ 	MOV	RAX,U64 CDevGlbls.uncached_alias[RAX]
+ 	MOV	U32 [RAX+RDX],0
+ 	POP	RAX
+@@ -47,7 +47,7 @@
+ 	PUSH	RDX
+ 	PUSH	RAX
+ 	MOV	EAX,&dev
+-	MOV	EDX,U32 LAPIC_EOI
++	MOV	EDX,-18874192
+ 	MOV	RAX,U64 CDevGlbls.uncached_alias[RAX]
+ 	MOV	U32 [RAX+RDX],0
+ 	POP	RAX
+--- a/Kernel/Kernel.PRJ
++++ b/Kernel/Kernel.PRJ
+@@ -5,9 +5,6 @@
+   Cd(__DIR__);;
+   Option(OPTf_WARN_PAREN,ON);
+   Option(OPTf_WARN_DUP_TYPES,ON);
+-  #include "KCfg"
+-  CKCfg *kernel_cfg;
+-  kernel_cfg=KCfgNew;
+ };
+ 
+ #include "KernelA.HH"
+@@ -59,3 +56,2 @@
+ #include "KMain"
+ 
+-#exe {KCfgDel(kernel_cfg);};

@@ -1,0 +1,28 @@
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -565,7 +565,7 @@
+     if(tmpaotie->short_jmp) {		  
+-      fun=HashSingleTableFind(tmpaotie->str,cc->htc.glbl_hash_table,HTT_FUN|HTT_GLBL_VAR);
++      fun=AOTResolvedHashFind(cc,tmpaotie->str);
+       if(fun&&fun->type&HTT_FUN) {
+-		if(fun->type&HTF_RESOLVE) {
++		if (fun->type&HTF_RESOLVE) {
+ 		  #ifdef TARGET_RISCV
+ 		  ptr=fun->exe_addr+tmpaotie->offset;
+ riscv_patch:
+@@ -609,5 +610,15 @@
+ 			Free(tmpaotie);
+ skip:;
++      } else if (fun && fun->type&HTT_EXPORT_SYS_SYM &&
++            fun->type&HTF_RESOLVE) {
++#ifdef TARGET_X86
++        i=fun(CHashExport*)->val-(tmpaotie->rip+4)+tmpaotie->offset;
++        AOTStoreCodeU8At(cc,tmpaotie->rip,
++              i.u8[0],i.u8[1],i.u8[2],i.u8[3]);
++        QueRem(tmpaotie);
++        Free(tmpaotie->str);
++        Free(tmpaotie);
++#endif
+       }
+     }
+   }

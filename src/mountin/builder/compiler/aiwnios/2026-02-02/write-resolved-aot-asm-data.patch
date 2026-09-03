@@ -1,0 +1,24 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1465,6 +1465,21 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+           patch->imm->local_asm_undef_hash=NULL;
+           patch->imm->glbl_asm_undef_hash=NULL;
+         }
++      } else if(patch->imm&&(patch->sz==1||patch->sz==2||
++            patch->sz==4||patch->sz==8)) {
++        tmp=patch->imm->off;
++        if(patch->is_rel)
++          tmp-=blob->final_start_rip+patch->rip+patch->sz;
++        if(patch->sz==1)
++          buf[patch->rip]=tmp;
++        else if(patch->sz==2)
++          buf[patch->rip](U16)=tmp;
++        else if(patch->sz==4)
++          buf[patch->rip](U32)=tmp;
++        else
++          buf[patch->rip](U64)=tmp;
++        X86AddrModeDel(patch->imm);
++        patch->imm=NULL;
+       }
+       patch=next_patch;
+     }

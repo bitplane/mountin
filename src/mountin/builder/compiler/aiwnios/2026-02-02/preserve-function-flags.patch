@@ -1,0 +1,15 @@
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -103,10 +103,10 @@
+       tmpf->exe_addr=aotc->rip;
+     else
+       tmpf->exe_addr=&UndefinedExtern;
+     LBts(&tmpf->flags,Cf_EXTERN);
+-    tmpf->flags|=fsp_flags&FSG_FUN_FLAGS1;
+     if (name) //if not fun_ptr
+       HashAdd(tmpf,cc->htc.glbl_hash_table);
+   }
++  tmpf->flags|=fsp_flags&FSG_FUN_FLAGS1;
+   if(fsp_flags&FSF_PUBLIC)
+     LBts(&tmpf->type,HTf_PUBLIC);
+   else

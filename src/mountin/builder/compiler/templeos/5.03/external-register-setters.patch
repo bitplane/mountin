@@ -1,0 +1,115 @@
+diff --git a/Kernel/Job.HC b/Kernel/Job.HC
+--- a/Kernel/Job.HC
++++ b/Kernel/Job.HC
+@@ -294 +294 @@
+-      SetRFlags(run_flags);
++      MountinSetRFlags(run_flags);
+@@ -300 +300 @@
+-      SetRFlags(old_flags);
++      MountinSetRFlags(old_flags);
+@@ -306 +306 @@
+-      SetRFlags(run_flags);
++      MountinSetRFlags(run_flags);
+@@ -312 +312 @@
+-      SetRFlags(old_flags);
++      MountinSetRFlags(old_flags);
+@@ -326 +326 @@
+-	SetRFlags(old_flags);
++	MountinSetRFlags(old_flags);
+@@ -343 +343 @@
+-      SetRFlags(old_flags);
++      MountinSetRFlags(old_flags);
+@@ -372 +372 @@
+-  SetRFlags(old_flags);
++  MountinSetRFlags(old_flags);
+diff --git a/Kernel/KEnd.HC b/Kernel/KEnd.HC
+--- a/Kernel/KEnd.HC
++++ b/Kernel/KEnd.HC
+@@ -168 +168 @@
+-  SetRFlags(RFLAGG_NORMAL);
++  MountinSetRFlags(RFLAGG_NORMAL);
+diff --git a/Kernel/KInts.HC b/Kernel/KInts.HC
+--- a/Kernel/KInts.HC
++++ b/Kernel/KInts.HC
+@@ -191,2 +191 @@
+-  SetRAX(&tmp_ptr);
+-  LIDT U64 [RAX]
++  MountinLoadIDT(&tmp_ptr);
+diff --git a/Kernel/KMain.HC b/Kernel/KMain.HC
+--- a/Kernel/KMain.HC
++++ b/Kernel/KMain.HC
+@@ -169 +169 @@
+-  SetRFlags(RFLAGG_NORMAL);
++  MountinSetRFlags(RFLAGG_NORMAL);
+diff --git a/Kernel/KTask.HC b/Kernel/KTask.HC
+--- a/Kernel/KTask.HC
++++ b/Kernel/KTask.HC
+@@ -380 +380 @@
+-    SetRFlags(old_flags);
++    MountinSetRFlags(old_flags);
+diff --git a/Kernel/KernelB.HH b/Kernel/KernelB.HH
+--- a/Kernel/KernelB.HH
++++ b/Kernel/KernelB.HH
+@@ -298 +298,25 @@
++
++public U0 MountinSetRFlags(I64 flags)
++{
++  asm {
++    PUSH U64 SF_ARG1[RBP]
++    POPF
++  }
++}
++
++public U0 MountinLoadIDT(CSysLimitBase *ptr)
++{
++  asm {
++    MOV RAX,U64 SF_ARG1[RBP]
++    LIDT U64 [RAX]
++  }
++}
++
++public U0 MountinLoadTR(U16 tr)
++{
++  asm {
++    MOV AX,U16 SF_ARG1[RBP]
++    LTR AX
++  }
++}
+ public _intern IC_RDTSC I64 GetTSC(); //Get time stamp counter.
+diff --git a/Kernel/MultiProc.HC b/Kernel/MultiProc.HC
+--- a/Kernel/MultiProc.HC
++++ b/Kernel/MultiProc.HC
+@@ -181,10 +181,9 @@
+   //  MemSet(dev.uncached_alias+LAPIC_ISR,0,0x20);
+   //  MemSet(dev.uncached_alias+LAPIC_TMR,0,0x20);
+ 
+-  SetRAX(Gs->tss->tr);
+-  LTR	AX
++  MountinLoadTR(Gs->tss->tr);
+   if (Gs->num) {
+     IntInit1;
+-    SetRFlags(RFLAGG_NORMAL);
++    MountinSetRFlags(RFLAGG_NORMAL);
+   }
+ }
+diff --git a/Kernel/SerialDev/Message.HC b/Kernel/SerialDev/Message.HC
+--- a/Kernel/SerialDev/Message.HC
++++ b/Kernel/SerialDev/Message.HC
+@@ -20 +20 @@
+-	SetRFlags(old_flags);
++	MountinSetRFlags(old_flags);
+@@ -34 +34 @@
+-  SetRFlags(old_flags);
++  MountinSetRFlags(old_flags);
+@@ -59 +59 @@
+-	SetRFlags(old_flags);
++	MountinSetRFlags(old_flags);
+@@ -71 +71 @@
+-    SetRFlags(old_flags);
++    MountinSetRFlags(old_flags);
+@@ -79 +79 @@
+-    SetRFlags(old_flags);
++    MountinSetRFlags(old_flags);
+@@ -83 +83 @@
+-  SetRFlags(old_flags);
++  MountinSetRFlags(old_flags);

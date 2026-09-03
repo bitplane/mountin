@@ -1,0 +1,14 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1818,6 +1818,12 @@
+    new=__HC_ICAdd_RawBytes(cc2,cur->ic_data(CAiwniosAOTBlob*)->data,cur->ic_data(CAiwniosAOTBlob*)->len);
+             
++break;case IC_GET_RAX:
++  new=__HC_ICAdd_IReg(cc2,REG_RAX,RT_I64,0);
++break;case IC_GET_RBP:
++  new=__HC_ICAdd_IReg(cc2,REG_RBP,RT_U8,1);
++break;case IC_GET_RSP:
++  new=__HC_ICAdd_IReg(cc2,REG_RSP,RT_U8,1);
+ //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
+     //break;case IC_CALL_END:
+     //break;case IC_CALL_END2:

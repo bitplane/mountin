@@ -1,0 +1,35 @@
+--- a/Kernel/KernelB.HH
++++ b/Kernel/KernelB.HH
+@@ -35,6 +35,8 @@ public _extern SYS_RUN_LEVEL U32 sys_run_level;
+ 
+ #help_index "Boot"
+ _extern MEM_BOOT_BASE U32 mem_boot_base;
++_extern MEM_E801 U16 mem_E801[2];
++_extern MEM_E820 CMemE820 mem_E820[MEM_E820_ENTRIES_NUM];
+ _extern SYS_BOOT_BLK U32 sys_boot_blk;
+ _extern SYS_BOOT_PATCH_TABLE_BASE U32 sys_boot_patch_table_base;
+ _extern SYS_BOOT_SRC U32 sys_boot_src;
+--- a/Kernel/Mem/MemPhysical.HC
++++ b/Kernel/Mem/MemPhysical.HC
+@@ -26,6 +26,6 @@
+ U0 Mem32DevInit()
+ {//Init device mem area.
+   CMemRange *tmpmr;
+-  CMemE820 *m20=MEM_E820;
++  CMemE820 *m20=mem_E820;
+ 
+   QueInit(&dev.mem32_head);
+@@ -151,10 +151,10 @@ U0 UncachedAliasAlloc() //Make uncached alias for 4 lowest Gig.
+ I64 BIOSTotalMem()
+ {
+   I64 r01,r20;
+-  U16		*m01=MEM_E801;
+-  CMemE820	*m20=MEM_E820;
++  U16		*m01=mem_E801;
++  CMemE820	*m20=mem_E820;
+ 
+-  r01=0x100000+m01[0]<<10+m01[1]<<16;
++  r01=0x100000+(m01[0]<<10)+(m01[1]<<16);
+   r20=0;
+   if (m20->type) {
+     while (m20->type) {

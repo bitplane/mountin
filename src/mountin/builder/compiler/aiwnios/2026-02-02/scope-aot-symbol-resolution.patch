@@ -1,0 +1,26 @@
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -127,11 +127,10 @@ CHashExport *AOTResolvedAsmExportFind(CCmpCtrl *cc,U8 *name)
+   CHash *entry;
+   I64 i;
+ 
+-  for (table=cc->htc.hash_table_lst;table;table=table->next)
+-    for (i=0;i<=table->mask;i++)
+-      for (entry=table->body[i];entry;entry=entry->next)
+-        if (entry->type&HTT_EXPORT_SYS_SYM &&
+-              entry->type&HTF_EXPORT &&
++  table=cc->htc.glbl_hash_table;
++  for (i=0;i<=table->mask;i++)
++    for (entry=table->body[i];entry;entry=entry->next)
++      if (entry->type&HTT_EXPORT_SYS_SYM && entry->type&HTF_EXPORT &&
+               !(entry->type&HTF_UNRESOLVED) &&
+               !StrCmp(entry->str,name))
+           return entry;
+@@ -165,7 +164,7 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+ 	tmpex=tmpauh->hash;
+ 	if (tmpex->type & HTT_EXPORT_SYS_SYM&& tmpex->type & HTF_UNRESOLVED &&
+ 	      !(tmpex->type & HTF_IMPORT) &&
+-	      (tmpf=HashFind(tmpex->str,cc->htc.hash_table_lst,HTT_FUN)) &&
++	      (tmpf=HashFind(tmpex->str,cc->htc.glbl_hash_table,HTT_FUN)) &&
+ 	      !Bt(&tmpf->flags,Cf_EXTERN)) {
