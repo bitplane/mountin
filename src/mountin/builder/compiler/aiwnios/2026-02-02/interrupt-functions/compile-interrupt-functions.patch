@@ -1,0 +1,158 @@
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -6,6 +6,7 @@
+ #ifdef IMPORT_AIWNIOS_SYMS
+ import U0 __HC_CmpCtrl_SetRawAOTAsm(U8 *);
+ import U0 __HC_CmpCtrl_UseNativeSegments(U8 *);
++import U0 __HC_CmpCtrl_SetInterrupt(U8 *,Bool);
+ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
+ import U8 *__HC_CmpCtrlDel(U8 *);
+ import U8 *__HC_ICAdd_Sqr(U8 *);
+@@ -188,6 +189,7 @@
+ extern U8 * __HC_ICAdd_OrEq(U8*);
+ extern U8 * __HC_ICAdd_XorEq(U8*);
+ extern U8 * __HC_ICAdd_ModEq(U8*);
++extern U0 __HC_CmpCtrl_SetInterrupt(U8 *,Bool);
+ extern U8 * __HC_ICAdd_FReg(U8*,I64);
+ extern U8 * __HC_ICAdd_Ds(U8 *,I64);
+ extern U8 * __HC_ICAdd_IReg(U8*,I64 r,I64 rt,I64 ptrs);
+@@ -1369,6 +1371,8 @@
+   Bool force_segment=FALSE;
+   I64 statics_sz=0;
+   static I64 static_cnt=0;
++  if (cc->htc.fun && cc->htc.fun->flags&FSF_INTERRUPT)
++    __HC_CmpCtrl_SetInterrupt(acc,cc->htc.fun->flags&FSF_HASERRCODE);
+   stat_nam=MStrPrint(".STATIC_%d",static_cnt++);
+ //Turn all IC_IMM_I64s that are used as F64's to IC_IMM_I64
+   for(cur=head->next;cur!=head;cur=cur->next) {
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -187,6 +187,8 @@
+ #define CCF_ICMOV_NO_USE_RAX         0x8
+ #define CCF_RAW_AOT_ASM              0x10
+ #define CCF_NATIVE_SEGMENTS          0x20
++#define CCF_INTERRUPT                0x40
++#define CCF_INTERRUPT_ERROR_CODE     0x80
+   int64_t flags;
+   CHashFun *cur_fun;
+   CCodeCtrl *code_ctrl;
+@@ -793,6 +795,7 @@
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
+ void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
++void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code);
+ 
+ CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
+ 
+--- a/c/main.c
++++ b/c/main.c
+@@ -928,6 +928,11 @@
+   return 0;
+ }
+ 
++static int64_t STK___HC_CmpCtrl_SetInterrupt(int64_t *stk) {
++  __HC_CmpCtrl_SetInterrupt((CCmpCtrl *)stk[0], stk[1]);
++  return 0;
++}
++
+ static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
+                                       stk[2]);
+@@ -1765,6 +1770,8 @@
+     PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
+     PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
+                  STK___HC_CmpCtrl_UseNativeSegments, 1);
++    PrsAddSymbol("__HC_CmpCtrl_SetInterrupt", STK___HC_CmpCtrl_SetInterrupt,
++                 2);
+     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
+     PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
+     PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -5222,6 +5222,12 @@
+ void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc) {
+   cc->flags |= CCF_NATIVE_SEGMENTS;
+ }
++
++void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code) {
++  cc->flags |= CCF_INTERRUPT;
++  if (has_error_code)
++    cc->flags |= CCF_INTERRUPT_ERROR_CODE;
++}
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -387,6 +387,16 @@
+   return len;
+ }
+ 
++static int64_t X86Iretq(char *to, int64_t unused) {
++  int64_t len = 0;
++  char buf[16];
++  if (!to)
++    to = buf;
++  ADD_U8(0x48);
++  ADD_U8(0xcf);
++  return len;
++}
++
+ int64_t X86MovImm(char *to, int64_t a, int64_t off) {
+   int64_t len = 0;
+   char buf[16];
+@@ -5388,6 +5398,15 @@
+   int64_t cnt = 0;
+   int64_t idx = 0;
+   memset(to_push, 0, 16);
++  if (cctrl->flags & CCF_INTERRUPT) {
++    for (idx = 0; idx != 16; idx++) {
++      if (idx != RSP && idx != RBP) {
++        to_push[idx] = 1;
++        cnt++;
++      }
++    }
++    return cnt;
++  }
+   if (!cctrl->cur_fun) {
+     if (!cctrl->found_used_iregs) {
+       // Perhaps we are being called from HolyC and we aren't using a "cur_fun"
+@@ -5838,7 +5857,11 @@
+ 
+   off = -old_regs_start;
+   AIWNIOS_ADD_CODE(X86Leave, 0);
+-  if (is_vargs) {
++  if (cctrl->flags & CCF_INTERRUPT) {
++    if (cctrl->flags & CCF_INTERRUPT_ERROR_CODE)
++      AIWNIOS_ADD_CODE(X86AddImm32, RSP, 8);
++    AIWNIOS_ADD_CODE(X86Iretq, 0);
++  } else if (is_vargs) {
+     AIWNIOS_ADD_CODE(X86Ret, 0);
+   } else {
+     AIWNIOS_ADD_CODE(X86Ret, 8 * arg_cnt);
+--- a/c/arm_backend.c
++++ b/c/arm_backend.c
+@@ -2537,6 +2537,10 @@
+   CMemberLst *lst;
+   CICArg fun_arg = {0}, write_to = {0};
+   CRPN *rpn, *arg;
++  if (cctrl->flags & CCF_INTERRUPT) {
++    fprintf(stderr, "interrupt functions are unsupported on AArch64\n");
++    abort();
++  }
+   /* Old SP
+    * saved regs
+    * wiggle room
+--- a/c/riscv_backend.c
++++ b/c/riscv_backend.c
+@@ -2363,6 +2363,10 @@
+   CMemberLst *lst;
+   CICArg fun_arg = {0}, write_to = {0}, stack = {0}, tmp = {0};
+   CRPN *rpn, *arg;
++  if (cctrl->flags & CCF_INTERRUPT) {
++    fprintf(stderr, "interrupt functions are unsupported on RISC-V\n");
++    abort();
++  }
+   if (cctrl->cur_fun) {
+     fsz = cctrl->cur_fun->base.sz + 16; //+16 for RBP/return address
+     arg_cnt = cctrl->cur_fun->argc;

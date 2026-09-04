@@ -1,0 +1,11 @@
+--- a/Src/PrsVar.HC
++++ b/Src/PrsVar.HC
+@@ -605,2 +605,0 @@
+-	  if (cc->flags&CCF_AOT_COMPILE)
+-	    Free(tmpm->static_data);
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2223,1 +2223,3 @@
+ 					MemCpy(tmpgh->data+mlst->offset,mlst->static_data,mlst->member_class->size*mlst->dim.total_cnt);
++					Free(mlst->static_data);
++					mlst->static_data=NULL;

@@ -68,7 +68,7 @@
 @@ -219,6 +219,7 @@
      goto unop;
    case IC_LOCK:
-   case IC_CURRENT_RIP:
+   case IC_CURRENT_PC:
 +  case IC_RDTSC:
    case IC_RAW_BYTES:
    case __IC_STATICS_SIZE:
@@ -143,7 +143,7 @@
 @@ -2834,6 +2846,7 @@
    case IC_FREG:
    case IC_BASE_PTR:
-   case IC_CURRENT_RIP:
+   case IC_CURRENT_PC:
 +  case IC_RDTSC:
    case IC_STR:
    case IC_CHR:
@@ -159,7 +159,7 @@
 @@ -6354,12 +6368,22 @@
        [IC_TAN] = &&ic_tan,
        [IC_ATAN] = &&ic_atan,
-       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_CURRENT_PC] = &&ic_current_pc,
 +      [IC_RDTSC] = &&ic_rdtsc,
        [IC_RAW_BYTES] = &&ic_raw_bytes,
    };
@@ -176,6 +176,6 @@
 +    tmp.reg = RAX;
 +    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
 +    break;
-   ic_current_rip:
+   ic_current_pc:
      if (rpn->res.mode == MD_REG)
        into_reg = rpn->res.reg;

@@ -1,6 +1,6 @@
 diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
---- a/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:34:29.294958397 +0100
-+++ b/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:36:32.841637055 +0100
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
 @@ -94,6 +94,7 @@
  import U8 *__HC_ICAdd_Bsf(U8*);
  import U8 *__HC_ICAdd_Bsr(U8*);
@@ -28,8 +28,8 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
      new=__HC_ICAdd_Sqrt(cc2);
      break;case IC_DEREF:
 diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
---- a/c/aiwn_lexparser.h	2026-09-03 18:34:29.295539561 +0100
-+++ b/c/aiwn_lexparser.h	2026-09-03 18:35:23.931243155 +0100
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
 @@ -241,6 +241,7 @@
    IC_BSF,
    IC_BSR,
@@ -47,8 +47,8 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
  HC_IC_BINDINGH(HC_ICAdd_EqEq)
  HC_IC_BINDINGH(HC_ICAdd_Ret)
 diff -ruN a/c/main.c b/c/main.c
---- a/c/main.c	2026-09-03 18:34:29.295801370 +0100
-+++ b/c/main.c	2026-09-03 18:35:24.090241748 +0100
+--- a/c/main.c
++++ b/c/main.c
 @@ -1199,6 +1199,9 @@
  static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
    return __HC_ICAdd_Rdtsc(stk[0]);
@@ -68,8 +68,8 @@ diff -ruN a/c/main.c b/c/main.c
      PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
      PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
 diff -ruN a/c/optpass.c b/c/optpass.c
---- a/c/optpass.c	2026-09-03 18:34:29.188101288 +0100
-+++ b/c/optpass.c	2026-09-03 18:35:41.076091633 +0100
+--- a/c/optpass.c
++++ b/c/optpass.c
 @@ -700,6 +700,7 @@
        goto binop_next;
        break;
@@ -87,8 +87,8 @@ diff -ruN a/c/optpass.c b/c/optpass.c
        break;
      case IC_AND:
 diff -ruN a/c/parser.c b/c/parser.c
---- a/c/parser.c	2026-09-03 18:34:29.296415365 +0100
-+++ b/c/parser.c	2026-09-03 18:38:35.860572307 +0100
+--- a/c/parser.c
++++ b/c/parser.c
 @@ -243,6 +243,7 @@
      return rpn->base.next;
      break;
@@ -139,8 +139,8 @@ diff -ruN a/c/parser.c b/c/parser.c
  HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
  
 diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
---- a/c/x86_64_backend.c	2026-09-03 18:34:29.297339330 +0100
-+++ b/c/x86_64_backend.c	2026-09-03 18:36:03.038898245 +0100
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
 @@ -2217,6 +2217,7 @@
    case IC_NEG:
    case IC_BSF:
@@ -167,7 +167,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_POS:
 @@ -6370,12 +6373,24 @@
        [IC_ATAN] = &&ic_atan,
-       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,
 +      [IC_QUE_INIT] = &&ic_que_init,
        [IC_RAW_BYTES] = &&ic_raw_bytes,

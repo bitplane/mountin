@@ -1,6 +1,6 @@
 diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
---- a/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:38:48.987459833 +0100
-+++ b/Src/AIWNIOS_CodeGen.HC	2026-09-03 18:39:24.259158592 +0100
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
 @@ -104,6 +104,9 @@
  import U8 *__HC_ICAdd_OutU16(U8*);
  import U8 *__HC_ICAdd_OutU32(U8*);
@@ -35,8 +35,8 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
      new=__HC_ICAdd_InvlPg(cc2);
      break;case IC_STRLEN:
 diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
---- a/c/aiwn_lexparser.h	2026-09-03 18:38:48.989070959 +0100
-+++ b/c/aiwn_lexparser.h	2026-09-03 18:39:24.418157237 +0100
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
 @@ -250,6 +250,9 @@
    IC_OUT_U16,
    IC_OUT_U32,
@@ -58,8 +58,8 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
  HC_IC_BINDINGH(HC_ICAdd_StrLen)
  HC_IC_BINDINGH(HC_ICAdd_And)
 diff -ruN a/c/main.c b/c/main.c
---- a/c/main.c	2026-09-03 18:38:48.989383302 +0100
-+++ b/c/main.c	2026-09-03 18:41:11.040254450 +0100
+--- a/c/main.c
++++ b/c/main.c
 @@ -1221,6 +1221,15 @@
  static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
    return __HC_ICAdd_QueInit(stk[0]);
@@ -87,8 +87,8 @@ diff -ruN a/c/main.c b/c/main.c
      PrsAddSymbol("__HC_ICAdd_StrLen", STK___HC_ICAdd_StrLen, 1);
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
 diff -ruN a/c/optpass.c b/c/optpass.c
---- a/c/optpass.c	2026-09-03 18:38:48.967899440 +0100
-+++ b/c/optpass.c	2026-09-03 18:43:09.546262689 +0100
+--- a/c/optpass.c
++++ b/c/optpass.c
 @@ -704,6 +704,7 @@
        break;
      case IC_DEREF:
@@ -119,8 +119,8 @@ diff -ruN a/c/optpass.c b/c/optpass.c
      case IC_STRLEN:
      case IC_IN_U8:
 diff -ruN a/c/parser.c b/c/parser.c
---- a/c/parser.c	2026-09-03 18:38:48.990045117 +0100
-+++ b/c/parser.c	2026-09-03 18:41:11.218159416 +0100
+--- a/c/parser.c
++++ b/c/parser.c
 @@ -244,6 +244,7 @@
      break;
    case IC_TYPECAST:
@@ -213,8 +213,8 @@ diff -ruN a/c/parser.c b/c/parser.c
  HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
 diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
---- a/c/x86_64_backend.c	2026-09-03 18:38:48.990459808 +0100
-+++ b/c/x86_64_backend.c	2026-09-03 18:40:41.824500741 +0100
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
 @@ -2269,6 +2269,7 @@
    case IC_BSF:
    case IC_BSR:

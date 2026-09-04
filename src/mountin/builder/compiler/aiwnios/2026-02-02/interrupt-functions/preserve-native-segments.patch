@@ -3,28 +3,28 @@
 @@ -185,6 +185,7 @@
  #define CCF_AOT_COMPILE              0x4
  #define CCF_ICMOV_NO_USE_RAX         0x8
- #define CCF_RAW_AOT                  0x10
-+#define CCF_PRESERVE_SEGMENTS        0x20
+ #define CCF_RAW_AOT_ASM              0x10
++#define CCF_NATIVE_SEGMENTS          0x20
    int64_t flags;
    CHashFun *cur_fun;
    CCodeCtrl *code_ctrl;
 @@ -772,6 +773,7 @@
  extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
  void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
- void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc);
-+void __HC_CmpCtrl_PreserveSegments(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
++void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
  
  CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
  
 --- a/c/parser.c
 +++ b/c/parser.c
 @@ -5115,6 +5115,10 @@
- void __HC_CmpCtrl_SetRawAOT(CCmpCtrl *cc) {
-   cc->flags |= CCF_RAW_AOT;
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc) {
+   cc->flags |= CCF_RAW_AOT_ASM;
  }
 +
-+void __HC_CmpCtrl_PreserveSegments(CCmpCtrl *cc) {
-+  cc->flags |= CCF_PRESERVE_SEGMENTS;
++void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc) {
++  cc->flags |= CCF_NATIVE_SEGMENTS;
 +}
  HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
  HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
@@ -32,12 +32,12 @@
 --- a/c/main.c
 +++ b/c/main.c
 @@ -922,6 +922,11 @@
-   __HC_CmpCtrl_SetRawAOT((CCmpCtrl *)stk[0]);
+   __HC_CmpCtrl_SetRawAOTAsm((CCmpCtrl *)stk[0]);
    return 0;
  }
 +
-+static int64_t STK___HC_CmpCtrl_PreserveSegments(int64_t *stk) {
-+  __HC_CmpCtrl_PreserveSegments((CCmpCtrl *)stk[0]);
++static int64_t STK___HC_CmpCtrl_UseNativeSegments(int64_t *stk) {
++  __HC_CmpCtrl_UseNativeSegments((CCmpCtrl *)stk[0]);
 +  return 0;
 +}
  
@@ -46,9 +46,9 @@
 @@ -1740,6 +1745,8 @@
      PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
      PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
-     PrsAddSymbol("__HC_CmpCtrl_SetRawAOT", STK___HC_CmpCtrl_SetRawAOT, 1);
-+    PrsAddSymbol("__HC_CmpCtrl_PreserveSegments",
-+                 STK___HC_CmpCtrl_PreserveSegments, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
++    PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
++                 STK___HC_CmpCtrl_UseNativeSegments, 1);
      PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
      PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
      PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
@@ -57,21 +57,20 @@
 @@ -5,6 +5,7 @@
  //
  #ifdef IMPORT_AIWNIOS_SYMS
- import U0 __HC_CmpCtrl_SetRawAOT(U8 *);
-+import U0 __HC_CmpCtrl_PreserveSegments(U8 *);
+ import U0 __HC_CmpCtrl_SetRawAOTAsm(U8 *);
++import U0 __HC_CmpCtrl_UseNativeSegments(U8 *);
  import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
-@@ -1412,6 +1413,9 @@
+@@ -1408,5 +1409,8 @@
    if (cc->flags&CCF_AOT_COMPILE &&
          !(cc->flags&CCF_ASM_EXPRESSIONS))
      __HC_CmpCtrl_SetAOT(acc);
 +  if (cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
 +        Bt(&cc->opts,OPTf_RAW_AOT))
-+    __HC_CmpCtrl_PreserveSegments(acc);
-   if(cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
-         Bt(&cc->opts,OPTf_RAW_AOT) && !cc->htc.fun)
-     for(cur=head->next;cur!=head;cur=cur->next)
++    __HC_CmpCtrl_UseNativeSegments(acc);
+   if(cc->flags&CCF_RAW_AOT_ASM)
+     __HC_CmpCtrl_SetRawAOTAsm(acc);
 @@ -1706,10 +1710,14 @@
      #else
      force_segment=FALSE;
@@ -113,7 +112,7 @@
    segment:
 -    // %gs is used as a TLS reg for all OS'es
      into_reg = 0;
-+    if (cctrl->flags & CCF_PRESERVE_SEGMENTS) {
++    if (cctrl->flags & CCF_NATIVE_SEGMENTS) {
 +      if (rpn->type == IC_FS) {
 +        AIWNIOS_ADD_CODE(SEG_FS, 0);
 +      } else {

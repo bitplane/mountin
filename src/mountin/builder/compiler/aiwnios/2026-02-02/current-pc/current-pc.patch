@@ -4,7 +4,7 @@
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
  import U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
-+import U8 *__HC_ICAdd_CurrentRIP(U8*);
++import U8 *__HC_ICAdd_CurrentPC(U8*);
  import U8 *__HC_ICAdd_GetVargsPtr(U8*);
  import U8 *__HC_ICAdd_ToF64(U8 *);
  import U8 *__HC_ICAdd_ToI64(U8 *);
@@ -12,15 +12,14 @@
  extern U8 *__HC_ICAdd_Min_F64(U8 *);
  extern U8 *__HC_ICAdd_GetVargsPtr(U8*);
  extern U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
-+extern U8 *__HC_ICAdd_CurrentRIP(U8*);
++extern U8 *__HC_ICAdd_CurrentPC(U8*);
  extern U0 __HC_CodeMiscInterateThroughRefs(U8 *,U0(*fptr)(U8*addr,U8*ud),U8*user_data);
  extern U8 * __HC_ICAdd_ToF64(U8 *);
  extern U8 * __HC_ICAdd_ToI64(U8 *);
-@@ -1824,5 +1826,7 @@
- break;case IC_GET_RSP:
-   new=__HC_ICAdd_IReg(cc2,REG_RSP,RT_U8,1);
+@@ -1826,4 +1828,6 @@
+ #endif
 +break;case IC_RIP:
-+  new=__HC_ICAdd_CurrentRIP(cc2);
++  new=__HC_ICAdd_CurrentPC(cc2);
  //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
      //break;case IC_CALL_END:
      //break;case IC_CALL_END2:
@@ -30,7 +29,7 @@
    IC_COS,
    IC_TAN,
    IC_ATAN,
-+  IC_CURRENT_RIP,
++  IC_CURRENT_PC,
    IC_RAW_BYTES,
    IC_GET_VARGS_PTR, // Doing this sets the function as a VARGS function
    IC_LOCK, // Lock means "lock EXPRESSION;",it operates on expressions as a
@@ -38,7 +37,7 @@
  CRPN *__HC_ICAdd_PostDec(CCodeCtrl *cc, int64_t amt);
  CRPN *__HC_ICAdd_PostInc(CCodeCtrl *cc, int64_t amt);
  CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt);
-+CRPN *__HC_ICAdd_CurrentRIP(CCodeCtrl *cc);
++CRPN *__HC_ICAdd_CurrentPC(CCodeCtrl *cc);
  void __HC_ICSetLock(CRPN *l);
  CRPN *__HC_ICAdd_RelocUnqiue(CCmpCtrl *, CCodeCtrl *, int64_t *, char *,
                               int64_t, int64_t);
@@ -48,8 +47,8 @@
  static int64_t STK___HC_ICAdd_RelocUnique(int64_t *stk) {
    return __HC_ICAdd_RelocUnqiue(stk[0], stk[1], stk[2], stk[3], stk[4], stk[5]);
  }
-+static int64_t STK___HC_ICAdd_CurrentRIP(int64_t *stk) {
-+  return __HC_ICAdd_CurrentRIP(stk[0]);
++static int64_t STK___HC_ICAdd_CurrentPC(int64_t *stk) {
++  return __HC_ICAdd_CurrentPC(stk[0]);
 +}
  
  static int64_t STK___HC_ICSetLine(int64_t *stk) {
@@ -58,7 +57,7 @@
      PrsAddSymbol("MakeContext", STK_AIWNIOS_makecontext, 3);
  #endif
      PrsAddSymbol("__HC_ICAdd_RawBytes", STK__HC_ICAdd_RawBytes, 3);
-+    PrsAddSymbol("__HC_ICAdd_CurrentRIP", STK___HC_ICAdd_CurrentRIP, 1);
++    PrsAddSymbol("__HC_ICAdd_CurrentPC", STK___HC_ICAdd_CurrentPC, 1);
      PrsAddSymbol("__HC_SetAOTRelocBeforeRIP", STK___HC_SetAOTRelocBeforeRIP, 2);
      PrsAddSymbol("__HC_CodeMiscIsUsed", STK___HC_CodeMiscIsUsed, 1);
      PrsAddSymbol("AiwniosSetClipboard", STK_AiwniosSetClipboard, 1);
@@ -68,7 +67,7 @@
    case IC_FS:
      goto unop;
    case IC_LOCK:
-+  case IC_CURRENT_RIP:
++  case IC_CURRENT_PC:
    case IC_RAW_BYTES:
    case __IC_STATICS_SIZE:
    case __IC_SET_STATIC_DATA:
@@ -77,10 +76,10 @@
    return rpn;
  }
 +
-+CRPN *__HC_ICAdd_CurrentRIP(CCodeCtrl *cc) {
++CRPN *__HC_ICAdd_CurrentPC(CCodeCtrl *cc) {
 +  CRPN *rpn;
 +  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
-+      .type = IC_CURRENT_RIP,
++      .type = IC_CURRENT_PC,
 +      .raw_type = RT_I64i,
 +      .ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1),
 +  };
@@ -96,7 +95,7 @@
    case IC_IREG:
    case IC_FREG:
    case IC_BASE_PTR:
-+  case IC_CURRENT_RIP:
++  case IC_CURRENT_PC:
    case IC_STR:
    case IC_CHR:
    case IC_FS:
@@ -104,23 +103,23 @@
        [IC_COS] = &&ic_cos,
        [IC_TAN] = &&ic_tan,
        [IC_ATAN] = &&ic_atan,
-+      [IC_CURRENT_RIP] = &&ic_current_rip,
++      [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RAW_BYTES] = &&ic_raw_bytes,
    };
    if (!poop_ants[rpn->type])
      goto ret;
    goto *poop_ants[rpn->type];
    do {
-+  ic_current_rip:
++  ic_current_pc:
 +    if (rpn->res.mode == MD_REG)
 +      into_reg = rpn->res.reg;
 +    else
-+      into_reg = 0;
++      into_reg = AIWNIOS_TMP_IREG_POOP;
 +    AIWNIOS_ADD_CODE(X86LeaSIB, MIR(cctrl, into_reg), -1, -1, RIP, 0);
 +    if (rpn->res.mode != MD_REG) {
 +      tmp.mode = MD_REG;
 +      tmp.raw_type = RT_I64i;
-+      tmp.reg = 0;
++      tmp.reg = AIWNIOS_TMP_IREG_POOP;
 +      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
 +    }
 +    break;

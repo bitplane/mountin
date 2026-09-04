@@ -1,10 +1,12 @@
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
-@@ -1043,13 +1043,13 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
+@@ -1043,13 +1043,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
  		    if (tmpaot=PrsAsmBlk(cc)) {
  		      //If we are not in a function,we will jump past the assembly block
  		      // to avoid running it
 -		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
 +		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
  		        g_lb=COCMiscNew(cc,CMT_LABEL);
  		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
@@ -16,11 +18,13 @@
  		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
  		    }
  #endif
-@@ -1057,13 +1057,13 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
+@@ -1057,13 +1059,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
  		    if (tmpaot=PrsAsmBlk(cc)) {
  		      //If we are not in a function,we will jump past the assembly block
  		      // to avoid running it
 -		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
 +		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
  		        g_lb=COCMiscNew(cc,CMT_LABEL);
  		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
@@ -32,11 +36,13 @@
  		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
  		    }
  #endif
-@@ -1071,13 +1071,13 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
+@@ -1071,13 +1075,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
  		    if (tmpaot=PrsAsmBlk(cc)) {
  		      //If we are not in a function,we will jump past the assembly block
  		      // to avoid running it
 -		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
 +		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
  		        g_lb=COCMiscNew(cc,CMT_LABEL);
  		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
@@ -46,5 +52,11 @@
 -		      if(!cc->htc.fun)
 +		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
  		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
- 		    }
+		    }
  #endif
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -2174,2 +2174,3 @@
+ #define CCF_CLASS_DOL_OFFSET	0x4000000000
++#define CCF_RAW_AOT_ASM		0x10000000000
+ #define CCF_DONT_MAKE_RES	0x8000000000

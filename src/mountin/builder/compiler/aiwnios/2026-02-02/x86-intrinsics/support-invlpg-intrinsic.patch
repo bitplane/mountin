@@ -158,7 +158,7 @@
    case IC_BNOT:
    case IC_POS:
 @@ -6374,5 +6388,6 @@
-       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,
        [IC_QUE_INIT] = &&ic_que_init,
 +      [IC_INVLPG] = &&ic_invlpg,

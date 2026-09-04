@@ -67,7 +67,7 @@
 +++ b/c/parser.c
 @@ -220,6 +220,7 @@ CRPN *ICFwd(CRPN *rpn) {
    case IC_LOCK:
-   case IC_CURRENT_RIP:
+   case IC_CURRENT_PC:
    case IC_RDTSC:
 +  case IC_GET_RFLAGS:
    case IC_RAW_BYTES:
@@ -140,7 +140,7 @@
    case IC_IN_U32:
 @@ -2906,6 +2917,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_BASE_PTR:
-   case IC_CURRENT_RIP:
+   case IC_CURRENT_PC:
    case IC_RDTSC:
 +  case IC_GET_RFLAGS:
    case IC_STR:
@@ -156,7 +156,7 @@
      return;
 @@ -6454,6 +6467,7 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_ATAN] = &&ic_atan,
-       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,
 +      [IC_GET_RFLAGS] = &&ic_get_rflags,
        [IC_IN_U8] = &&ic_in_u8,

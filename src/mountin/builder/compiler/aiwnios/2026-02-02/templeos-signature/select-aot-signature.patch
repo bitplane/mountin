@@ -1,10 +1,16 @@
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -1532,2 +1532,3 @@
+ #define OPTf_BYTE_CODE 0x28 //Added by nroot
++#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
+ #define OPTf_RAW_AOT 0x29
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
 @@ -405,6 +405,8 @@
  #ifdef TARGET_RISCV
      bfh->bin_signature='RV64';
  #endif
-+    if (GetOption(OPTf_NATIVE_BIN_SIGNATURE))
++    if (GetOption(OPTf_TEMPLEOS_BIN_SIGNATURE))
 +      bfh->bin_signature=BIN_SIGNATURE_VAL;
      MemCpy(bfh(U8 *)+sizeof(CBinFile),tmpaot->buf,aot_U8s);
      MemCpy(bfh(U8 *)+sizeof(CBinFile)+aot_U8s,patch_table,

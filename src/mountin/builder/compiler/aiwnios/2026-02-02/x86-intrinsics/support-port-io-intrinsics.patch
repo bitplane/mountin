@@ -309,7 +309,7 @@
    case IC_XOR_XOR:
 @@ -6404,6 +6444,12 @@
        [IC_ATAN] = &&ic_atan,
-       [IC_CURRENT_RIP] = &&ic_current_rip,
+       [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,
 +      [IC_IN_U8] = &&ic_in_u8,
 +      [IC_IN_U16] = &&ic_in_u16,
