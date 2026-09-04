@@ -1,7 +1,8 @@
-diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index a8fdbe3..093ae3a 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -94,6 +94,7 @@
+@@ -94,6 +94,7 @@ import U8 *__HC_ICAdd_Neg(U8*);
  import U8 *__HC_ICAdd_Bsf(U8*);
  import U8 *__HC_ICAdd_Bsr(U8*);
  import U8 *__HC_ICAdd_Rdtsc(U8*);
@@ -9,7 +10,7 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  import U8 *__HC_ICAdd_Ret(U8*);
  import U8 *__HC_ICAdd_Arg(U8*,I64);
  import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -199,6 +200,7 @@
+@@ -199,6 +200,7 @@ extern U8 *__HC_ICAdd_Neg(U8*);
  extern U8 *__HC_ICAdd_Bsf(U8*);
  extern U8 *__HC_ICAdd_Bsr(U8*);
  extern U8 *__HC_ICAdd_Rdtsc(U8*);
@@ -17,8 +18,7 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  extern U8 *__HC_ICAdd_Ret(U8*);
  extern U8 *__HC_ICAdd_Arg(U8*,I64);
  extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -1972,7 +1974,9 @@
-     break;case IC_BSR:
+@@ -1976,6 +1978,8 @@ break;case IC_RIP:
      new=__HC_ICAdd_Bsr(cc2);
      break;case IC_RDTSC:
      new=__HC_ICAdd_Rdtsc(cc2);
@@ -27,10 +27,11 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
      break;case IC_SQRT:
      new=__HC_ICAdd_Sqrt(cc2);
      break;case IC_DEREF:
-diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 5f14830..595eb84 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -241,6 +241,7 @@
+@@ -241,6 +241,7 @@ enum {
    IC_BSF,
    IC_BSR,
    IC_RDTSC,
@@ -38,7 +39,7 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
    IC_POS,
    IC_NAME,
    IC_STR, //->code_misc
-@@ -687,6 +688,7 @@
+@@ -687,6 +688,7 @@ HC_IC_BINDINGH(HC_ICAdd_Neg)
  HC_IC_BINDINGH(HC_ICAdd_Bsf)
  HC_IC_BINDINGH(HC_ICAdd_Bsr)
  HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
@@ -46,10 +47,11 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
  HC_IC_BINDINGH(HC_ICAdd_And)
  HC_IC_BINDINGH(HC_ICAdd_EqEq)
  HC_IC_BINDINGH(HC_ICAdd_Ret)
-diff -ruN a/c/main.c b/c/main.c
+diff --git a/c/main.c b/c/main.c
+index b28a2ea..8335e72 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1199,6 +1199,9 @@
+@@ -1199,6 +1199,9 @@ static int64_t STK___HC_ICAdd_Bsr(int64_t *stk) {
  static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
    return __HC_ICAdd_Rdtsc(stk[0]);
  }
@@ -59,7 +61,7 @@ diff -ruN a/c/main.c b/c/main.c
  static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
    return __HC_ICAdd_Ret(stk[0]);
  }
-@@ -1813,6 +1816,7 @@
+@@ -1813,6 +1816,7 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_Bsf", STK___HC_ICAdd_Bsf, 1);
      PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
      PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
@@ -67,10 +69,11 @@ diff -ruN a/c/main.c b/c/main.c
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
      PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
      PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
-diff -ruN a/c/optpass.c b/c/optpass.c
+diff --git a/c/optpass.c b/c/optpass.c
+index 47057dd..dcb3af0 100644
 --- a/c/optpass.c
 +++ b/c/optpass.c
-@@ -700,6 +700,7 @@
+@@ -700,6 +700,7 @@ loop:
        goto binop_next;
        break;
      case IC_DEREF:
@@ -78,7 +81,7 @@ diff -ruN a/c/optpass.c b/c/optpass.c
        goto next1;
        break;
      case IC_AND:
-@@ -1127,6 +1128,7 @@
+@@ -1127,6 +1128,7 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
        continue;
        break;
      case IC_DEREF:
@@ -86,10 +89,11 @@ diff -ruN a/c/optpass.c b/c/optpass.c
        continue;
        break;
      case IC_AND:
-diff -ruN a/c/parser.c b/c/parser.c
+diff --git a/c/parser.c b/c/parser.c
+index f45afee..d2a2737 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -243,6 +243,7 @@
+@@ -243,6 +243,7 @@ CRPN *ICFwd(CRPN *rpn) {
      return rpn->base.next;
      break;
    case IC_TYPECAST:
@@ -97,7 +101,7 @@ diff -ruN a/c/parser.c b/c/parser.c
      goto unop;
      break;
    case IC_COMMA:
-@@ -802,6 +803,10 @@
+@@ -802,6 +803,10 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
      printf("RDTSC\n");
      goto ret;
      break;
@@ -108,7 +112,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_NAME:
      printf("NAME:%s\n", rpn->string);
      goto ret;
-@@ -1328,6 +1333,10 @@
+@@ -1328,6 +1333,10 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
      len = AddBytes(to, len, "$PURPLE$RDTSC$FD$\n");
      goto ret;
      break;
@@ -119,7 +123,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_NAME:
      goto ret;
      break;
-@@ -3477,6 +3486,10 @@
+@@ -3477,6 +3486,10 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
      AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
      return rpn->raw_type = RT_U0; // dummy
      break;
@@ -130,7 +134,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_BT:
    case IC_BTR:
    case IC_BTS:
-@@ -4645,6 +4658,7 @@
+@@ -4645,6 +4658,7 @@ HC_IC_BINDING(HC_ICAdd_Neg, IC_NEG);
  HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
  HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
  HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
@@ -138,10 +142,11 @@ diff -ruN a/c/parser.c b/c/parser.c
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
  HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
  
-diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index c1ccae0..834ac0c 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -2217,6 +2217,7 @@
+@@ -2217,6 +2217,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    case IC_NEG:
    case IC_BSF:
    case IC_BSR:
@@ -149,7 +154,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_SQRT:
    case IC_TO_BOOL:
    unop:
-@@ -2896,6 +2897,7 @@
+@@ -2896,6 +2897,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_NEG:
    case IC_BSF:
    case IC_BSR:
@@ -157,7 +162,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
      goto unop;
      break;
    case IC_POS:
-@@ -6142,6 +6144,7 @@
+@@ -6142,6 +6144,7 @@ static void SetKeepTmps(CRPN *rpn) {
    case IC_NEG:
    case IC_BSF:
    case IC_BSR:
@@ -165,7 +170,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_LNOT:
    case IC_BNOT:
    case IC_POS:
-@@ -6370,12 +6373,24 @@
+@@ -6370,12 +6373,24 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_ATAN] = &&ic_atan,
        [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,

@@ -1,8 +1,8 @@
 diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
-index dcff72d..79f36f5 100644
+index 9fcdc07..91d6e33 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1035,6 +1035,10 @@ rex|=0x40;
+@@ -1036,6 +1036,10 @@ rex|=0x40;
      to[len++]=0x66;
    }
  //Prefix group 4(Address size ovveride)

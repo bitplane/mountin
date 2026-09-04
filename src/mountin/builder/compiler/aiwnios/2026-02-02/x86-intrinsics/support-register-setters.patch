@@ -1,20 +1,32 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 2649cfd..a424c3b 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -98,2 +98,6 @@
+@@ -98,6 +98,10 @@ import U8 *__HC_ICAdd_Bsf(U8*);
+ import U8 *__HC_ICAdd_Bsr(U8*);
+ import U8 *__HC_ICAdd_Rdtsc(U8*);
  import U8 *__HC_ICAdd_GetRFlags(U8*);
 +import U8 *__HC_ICAdd_SetRFlags(U8*);
 +import U8 *__HC_ICAdd_SetRAX(U8*);
 +import U8 *__HC_ICAdd_SetRBP(U8*);
 +import U8 *__HC_ICAdd_SetRSP(U8*);
  import U8 *__HC_ICAdd_InU8(U8*);
-@@ -218,2 +222,6 @@
+ import U8 *__HC_ICAdd_InU16(U8*);
+ import U8 *__HC_ICAdd_InU32(U8*);
+@@ -218,6 +222,10 @@ extern U8 *__HC_ICAdd_Bsf(U8*);
+ extern U8 *__HC_ICAdd_Bsr(U8*);
+ extern U8 *__HC_ICAdd_Rdtsc(U8*);
  extern U8 *__HC_ICAdd_GetRFlags(U8*);
 +extern U8 *__HC_ICAdd_SetRFlags(U8*);
 +extern U8 *__HC_ICAdd_SetRAX(U8*);
 +extern U8 *__HC_ICAdd_SetRBP(U8*);
 +extern U8 *__HC_ICAdd_SetRSP(U8*);
  extern U8 *__HC_ICAdd_InU8(U8*);
-@@ -2024,2 +2032,10 @@
+ extern U8 *__HC_ICAdd_InU16(U8*);
+ extern U8 *__HC_ICAdd_InU32(U8*);
+@@ -2027,6 +2035,14 @@ break;case IC_RIP:
+     new=__HC_ICAdd_Rdtsc(cc2);
+     break;case IC_GET_RFLAGS:
      new=__HC_ICAdd_GetRFlags(cc2);
 +    break;case IC_SET_RFLAGS:
 +    new=__HC_ICAdd_SetRFlags(cc2);
@@ -25,48 +37,78 @@
 +    break;case IC_SET_RSP:
 +    new=__HC_ICAdd_SetRSP(cc2);
      break;case IC_IN_U8:
+     new=__HC_ICAdd_InU8(cc2);
+     break;case IC_IN_U16:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index fcefcfe..5e6ab8c 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -244,2 +244,6 @@
+@@ -245,6 +245,10 @@ enum {
+   IC_BSR,
+   IC_RDTSC,
    IC_GET_RFLAGS,
 +  IC_SET_RFLAGS,
 +  IC_SET_RAX,
 +  IC_SET_RBP,
 +  IC_SET_RSP,
    IC_IN_U8,
-@@ -703,2 +707,6 @@
+   IC_IN_U16,
+   IC_IN_U32,
+@@ -704,6 +708,10 @@ HC_IC_BINDINGH(HC_ICAdd_Bsf)
+ HC_IC_BINDINGH(HC_ICAdd_Bsr)
+ HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
  HC_IC_BINDINGH(HC_ICAdd_GetRFlags)
 +HC_IC_BINDINGH(HC_ICAdd_SetRFlags)
 +HC_IC_BINDINGH(HC_ICAdd_SetRAX)
 +HC_IC_BINDINGH(HC_ICAdd_SetRBP)
 +HC_IC_BINDINGH(HC_ICAdd_SetRSP)
  HC_IC_BINDINGH(HC_ICAdd_InU8)
+ HC_IC_BINDINGH(HC_ICAdd_InU16)
+ HC_IC_BINDINGH(HC_ICAdd_InU32)
+diff --git a/c/main.c b/c/main.c
+index 991b2fe..e7e73e6 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1215,2 +1215,6 @@
+@@ -1215,6 +1215,10 @@ static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
+ static int64_t STK___HC_ICAdd_GetRFlags(int64_t *stk) {
+   return __HC_ICAdd_GetRFlags(stk[0]);
  }
 +static int64_t STK___HC_ICAdd_SetRFlags(int64_t *stk) { return __HC_ICAdd_SetRFlags(stk[0]); }
 +static int64_t STK___HC_ICAdd_SetRAX(int64_t *stk) { return __HC_ICAdd_SetRAX(stk[0]); }
 +static int64_t STK___HC_ICAdd_SetRBP(int64_t *stk) { return __HC_ICAdd_SetRBP(stk[0]); }
 +static int64_t STK___HC_ICAdd_SetRSP(int64_t *stk) { return __HC_ICAdd_SetRSP(stk[0]); }
  static int64_t STK___HC_ICAdd_InU8(int64_t *stk) { return __HC_ICAdd_InU8(stk[0]); }
-@@ -1859,2 +1863,6 @@
+ static int64_t STK___HC_ICAdd_InU16(int64_t *stk) { return __HC_ICAdd_InU16(stk[0]); }
+ static int64_t STK___HC_ICAdd_InU32(int64_t *stk) { return __HC_ICAdd_InU32(stk[0]); }
+@@ -1859,6 +1863,10 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
+     PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
      PrsAddSymbol("__HC_ICAdd_GetRFlags", STK___HC_ICAdd_GetRFlags, 1);
 +    PrsAddSymbol("__HC_ICAdd_SetRFlags", STK___HC_ICAdd_SetRFlags, 1);
 +    PrsAddSymbol("__HC_ICAdd_SetRAX", STK___HC_ICAdd_SetRAX, 1);
 +    PrsAddSymbol("__HC_ICAdd_SetRBP", STK___HC_ICAdd_SetRBP, 1);
 +    PrsAddSymbol("__HC_ICAdd_SetRSP", STK___HC_ICAdd_SetRSP, 1);
      PrsAddSymbol("__HC_ICAdd_InU8", STK___HC_ICAdd_InU8, 1);
+     PrsAddSymbol("__HC_ICAdd_InU16", STK___HC_ICAdd_InU16, 1);
+     PrsAddSymbol("__HC_ICAdd_InU32", STK___HC_ICAdd_InU32, 1);
+diff --git a/c/parser.c b/c/parser.c
+index 39e6d38..a0b2f1b 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -251,2 +251,6 @@
+@@ -251,6 +251,10 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_IN_U8:
+   case IC_IN_U16:
    case IC_IN_U32:
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
 +  case IC_SET_RBP:
 +  case IC_SET_RSP:
      goto unop;
-@@ -841,2 +845,8 @@
+     break;
+   case IC_QUE_INS:
+@@ -841,6 +845,12 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+   case IC_IN_U32:
+     printf("IN\n");
      goto unop;
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
@@ -75,7 +117,11 @@
 +    printf("SET_REG\n");
 +    goto unop;
    case IC_OUT_U8:
-@@ -3573,2 +3583,9 @@
+   case IC_OUT_U16:
+   case IC_OUT_U32:
+@@ -3573,6 +3583,13 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     return rpn->raw_type = RT_U0;
      break;
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
@@ -85,16 +131,26 @@
 +    return rpn->raw_type = RT_U0;
 +    break;
    case IC_IN_U8:
-@@ -4764,2 +4781,6 @@
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     rpn->ic_class = HashFind("U8i", Fs->hash_table, HTT_CLASS, 1);
+@@ -4764,6 +4781,10 @@ HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
+ HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
+ HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
  HC_IC_BINDING(HC_ICAdd_GetRFlags, IC_GET_RFLAGS);
 +HC_IC_BINDING(HC_ICAdd_SetRFlags, IC_SET_RFLAGS);
 +HC_IC_BINDING(HC_ICAdd_SetRAX, IC_SET_RAX);
 +HC_IC_BINDING(HC_ICAdd_SetRBP, IC_SET_RBP);
 +HC_IC_BINDING(HC_ICAdd_SetRSP, IC_SET_RSP);
  HC_IC_BINDING(HC_ICAdd_InU8, IC_IN_U8);
+ HC_IC_BINDING(HC_ICAdd_InU16, IC_IN_U16);
+ HC_IC_BINDING(HC_ICAdd_InU32, IC_IN_U32);
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 1da979b..e2e3d46 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -1390,3 +1390,12 @@
+@@ -1389,6 +1389,15 @@ static int64_t X86PushFQ(char *to, int64_t unused) {
+   ADD_U8(0x9c);
+   return len;
  }
 +static int64_t X86PopFQ(char *to, int64_t unused) {
 +  int64_t len = 0;
@@ -107,14 +163,21 @@
 +}
  
  static int64_t X86InPort(char *to, int64_t width) {
-@@ -2261,2 +2271,6 @@
+   int64_t len = 0;
+@@ -2261,6 +2270,10 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   case IC_OUT_U8:
+   case IC_OUT_U16:
    case IC_OUT_U32:
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
 +  case IC_SET_RBP:
 +  case IC_SET_RSP:
      goto pass;
-@@ -3038,2 +3052,10 @@
+   case IC_FS:
+   case IC_GS:
+@@ -3038,6 +3051,14 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+     PopTmp(cctrl, arg2);
+     PopTmp(cctrl, arg);
      goto fin;
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
@@ -125,21 +188,33 @@
 +    PopTmp(cctrl, arg);
 +    goto fin;
      break;
-@@ -6264,2 +6286,6 @@
+   case IC_ADD:
+     orig = r;
+@@ -6275,6 +6296,10 @@ static void SetKeepTmps(CRPN *rpn) {
+   case IC_OUT_U8:
+   case IC_OUT_U16:
    case IC_OUT_U32:
 +  case IC_SET_RFLAGS:
 +  case IC_SET_RAX:
 +  case IC_SET_RBP:
 +  case IC_SET_RSP:
    case IC_AND_AND:
-@@ -6468,2 +6494,6 @@
+   case IC_OR_OR:
+   case IC_XOR_XOR:
+@@ -6479,6 +6504,10 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_CURRENT_PC] = &&ic_current_pc,
+       [IC_RDTSC] = &&ic_rdtsc,
        [IC_GET_RFLAGS] = &&ic_get_rflags,
 +      [IC_SET_RFLAGS] = &&ic_set_rflags,
 +      [IC_SET_RAX] = &&ic_set_rax,
 +      [IC_SET_RBP] = &&ic_set_rbp,
 +      [IC_SET_RSP] = &&ic_set_rsp,
        [IC_IN_U8] = &&ic_in_u8,
-@@ -6627,2 +6657,26 @@
+       [IC_IN_U16] = &&ic_in_u16,
+       [IC_IN_U32] = &&ic_in_u32,
+@@ -6638,6 +6667,30 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+     tmp.reg = RAX;
+     code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
      break;
 +  ic_set_rflags:
 +    next = ICArgN(rpn, 0);
@@ -166,3 +241,5 @@
 +    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
 +    break;
    ic_rdtsc:
+     AIWNIOS_ADD_CODE(X86Rdtsc, 0);
+     AIWNIOS_ADD_CODE(X86ShlImm, RDX, 32);

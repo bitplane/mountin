@@ -16,6 +16,6 @@ The final TempleOS source snapshot and a source-built HolyC bootstrap. The
 toolbox deliberately retains source rather than importing an installed disk or
 prebuilt TempleOS compiler image.
 
-The bootstrap runtime comes from AIWNIOS. TempleOS's own `BootDVDIns` procedure
-recompiles `/Compiler/Compiler` and `/Kernel/Kernel` before constructing the
-distribution image.
+The bootstrap runtime comes from AIWNIOS. It builds `/Compiler/Compiler` first;
+that compiler then builds `/Kernel/Kernel` before TempleOS's own `BootDVDIns`
+machinery constructs the distribution image.

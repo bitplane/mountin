@@ -1,7 +1,8 @@
-diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index e05aaa7..ad634b4 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -104,6 +104,9 @@
+@@ -104,6 +104,9 @@ import U8 *__HC_ICAdd_OutU8(U8*);
  import U8 *__HC_ICAdd_OutU16(U8*);
  import U8 *__HC_ICAdd_OutU32(U8*);
  import U8 *__HC_ICAdd_QueInit(U8*);
@@ -11,7 +12,7 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  import U8 *__HC_ICAdd_InvlPg(U8*);
  import U8 *__HC_ICAdd_StrLen(U8*);
  import U8 *__HC_ICAdd_Ret(U8*);
-@@ -220,6 +223,9 @@
+@@ -220,6 +223,9 @@ extern U8 *__HC_ICAdd_OutU8(U8*);
  extern U8 *__HC_ICAdd_OutU16(U8*);
  extern U8 *__HC_ICAdd_OutU32(U8*);
  extern U8 *__HC_ICAdd_QueInit(U8*);
@@ -21,7 +22,7 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  extern U8 *__HC_ICAdd_InvlPg(U8*);
  extern U8 *__HC_ICAdd_StrLen(U8*);
  extern U8 *__HC_ICAdd_Ret(U8*);
-@@ -2028,6 +2034,12 @@
+@@ -2031,6 +2037,12 @@ break;case IC_RIP:
      new=__HC_ICAdd_OutU32(cc2);
      break;case IC_QUE_INIT:
      new=__HC_ICAdd_QueInit(cc2);
@@ -34,10 +35,11 @@ diff -ruN a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
      break;case IC_INVLPG:
      new=__HC_ICAdd_InvlPg(cc2);
      break;case IC_STRLEN:
-diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 7c99589..c10e534 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -250,6 +250,9 @@
+@@ -251,6 +251,9 @@ enum {
    IC_OUT_U16,
    IC_OUT_U32,
    IC_QUE_INIT,
@@ -47,7 +49,7 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
    IC_INVLPG,
    IC_STRLEN,
    IC_POS,
-@@ -705,6 +708,9 @@
+@@ -706,6 +709,9 @@ HC_IC_BINDINGH(HC_ICAdd_OutU8)
  HC_IC_BINDINGH(HC_ICAdd_OutU16)
  HC_IC_BINDINGH(HC_ICAdd_OutU32)
  HC_IC_BINDINGH(HC_ICAdd_QueInit)
@@ -57,10 +59,11 @@ diff -ruN a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
  HC_IC_BINDINGH(HC_ICAdd_InvlPg)
  HC_IC_BINDINGH(HC_ICAdd_StrLen)
  HC_IC_BINDINGH(HC_ICAdd_And)
-diff -ruN a/c/main.c b/c/main.c
+diff --git a/c/main.c b/c/main.c
+index 4b1b64c..cc8a3b1 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1221,6 +1221,15 @@
+@@ -1221,6 +1221,15 @@ static int64_t STK___HC_ICAdd_OutU32(int64_t *stk) { return __HC_ICAdd_OutU32(st
  static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
    return __HC_ICAdd_QueInit(stk[0]);
  }
@@ -76,7 +79,7 @@ diff -ruN a/c/main.c b/c/main.c
  static int64_t STK___HC_ICAdd_InvlPg(int64_t *stk) {
    return __HC_ICAdd_InvlPg(stk[0]);
  }
-@@ -1853,6 +1862,9 @@
+@@ -1853,6 +1862,9 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_OutU16", STK___HC_ICAdd_OutU16, 1);
      PrsAddSymbol("__HC_ICAdd_OutU32", STK___HC_ICAdd_OutU32, 1);
      PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
@@ -86,10 +89,11 @@ diff -ruN a/c/main.c b/c/main.c
      PrsAddSymbol("__HC_ICAdd_InvlPg", STK___HC_ICAdd_InvlPg, 1);
      PrsAddSymbol("__HC_ICAdd_StrLen", STK___HC_ICAdd_StrLen, 1);
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
-diff -ruN a/c/optpass.c b/c/optpass.c
+diff --git a/c/optpass.c b/c/optpass.c
+index 675b21a..699b31c 100644
 --- a/c/optpass.c
 +++ b/c/optpass.c
-@@ -704,6 +704,7 @@
+@@ -704,6 +704,7 @@ loop:
        break;
      case IC_DEREF:
      case IC_QUE_INIT:
@@ -97,7 +101,7 @@ diff -ruN a/c/optpass.c b/c/optpass.c
      case IC_INVLPG:
      case IC_STRLEN:
      case IC_IN_U8:
-@@ -714,6 +715,10 @@
+@@ -714,6 +715,10 @@ loop:
      case IC_OUT_U32:
        goto next1;
        break;
@@ -108,7 +112,7 @@ diff -ruN a/c/optpass.c b/c/optpass.c
      case IC_AND:
        if (IsConst(next = rpn->base.next) && IsConst(ICFwd(rpn->base.next))) {
          if (rpn->raw_type == RT_F64) {
-@@ -1140,6 +1145,9 @@
+@@ -1140,6 +1145,9 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
        break;
      case IC_DEREF:
      case IC_QUE_INIT:
@@ -118,10 +122,11 @@ diff -ruN a/c/optpass.c b/c/optpass.c
      case IC_INVLPG:
      case IC_STRLEN:
      case IC_IN_U8:
-diff -ruN a/c/parser.c b/c/parser.c
+diff --git a/c/parser.c b/c/parser.c
+index 2dccbb9..0ea3d4a 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -244,6 +244,7 @@
+@@ -244,6 +244,7 @@ CRPN *ICFwd(CRPN *rpn) {
      break;
    case IC_TYPECAST:
    case IC_QUE_INIT:
@@ -129,7 +134,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_INVLPG:
    case IC_STRLEN:
    case IC_IN_U8:
-@@ -251,6 +252,10 @@
+@@ -251,6 +252,10 @@ CRPN *ICFwd(CRPN *rpn) {
    case IC_IN_U32:
      goto unop;
      break;
@@ -140,7 +145,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_COMMA:
    case IC_MAX_F64:
    case IC_MAX_U64:
-@@ -341,7 +346,6 @@
+@@ -341,7 +346,6 @@ CRPN *ICFwd(CRPN *rpn) {
    case IC_SQR:
    case IC_POS:
      goto unop;
@@ -148,7 +153,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_NAME:
      return rpn->base.next;
      break;
-@@ -815,6 +819,15 @@
+@@ -815,6 +819,15 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
      printf("QUE_INIT\n");
      goto unop;
      break;
@@ -164,7 +169,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_INVLPG:
      printf("INVLPG\n");
      goto unop;
-@@ -1361,6 +1374,15 @@
+@@ -1361,6 +1374,15 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
      len = AddBytes(to, len, "$PURPLE$QUE_INIT$FD$\n");
      goto unop;
      break;
@@ -180,7 +185,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_INVLPG:
      len = AddBytes(to, len, "$PURPLE$INVLPG$FD$\n");
      goto unop;
-@@ -3527,6 +3549,13 @@
+@@ -3527,6 +3549,13 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
      return rpn->raw_type = RT_U0; // dummy
      break;
    case IC_QUE_INIT:
@@ -194,7 +199,7 @@ diff -ruN a/c/parser.c b/c/parser.c
      AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
      return rpn->raw_type = RT_U0;
      break;
-@@ -3689,7 +3718,6 @@
+@@ -3689,7 +3718,6 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
      break;
    case IC_POS:
      goto unop;
@@ -202,7 +207,7 @@ diff -ruN a/c/parser.c b/c/parser.c
    case IC_NAME:
      abort();
      break;
-@@ -4732,6 +4760,9 @@
+@@ -4732,6 +4760,9 @@ HC_IC_BINDING(HC_ICAdd_OutU8, IC_OUT_U8);
  HC_IC_BINDING(HC_ICAdd_OutU16, IC_OUT_U16);
  HC_IC_BINDING(HC_ICAdd_OutU32, IC_OUT_U32);
  HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
@@ -212,10 +217,11 @@ diff -ruN a/c/parser.c b/c/parser.c
  HC_IC_BINDING(HC_ICAdd_InvlPg, IC_INVLPG);
  HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
-diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 9349636..1c0b348 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -2269,6 +2269,7 @@
+@@ -2269,6 +2269,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -223,7 +229,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_INVLPG:
    case IC_STRLEN:
    case IC_SQRT:
-@@ -2284,6 +2285,9 @@
+@@ -2284,6 +2285,9 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
      break;
    case IC_POW:
      goto pass; // calls pow
@@ -233,7 +239,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    binop:
      if (SpillsTmpRegs(rpn->base.next))
        goto pass;
-@@ -2951,6 +2955,7 @@
+@@ -2951,6 +2955,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -241,7 +247,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_INVLPG:
    case IC_STRLEN:
    case IC_IN_U8:
-@@ -2965,6 +2970,8 @@
+@@ -2965,6 +2970,8 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_GT:
    case IC_GE:
    case IC_LE:
@@ -250,7 +256,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    cmp_binop:
      arg = ICArgN(r, 1);
      arg2 = ICArgN(r, 0);
-@@ -6208,6 +6215,7 @@
+@@ -6219,6 +6226,7 @@ static void SetKeepTmps(CRPN *rpn) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -258,7 +264,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_INVLPG:
    case IC_STRLEN:
    case IC_IN_U8:
-@@ -6238,6 +6246,8 @@
+@@ -6249,6 +6257,8 @@ static void SetKeepTmps(CRPN *rpn) {
    case IC_LBTR:
    case IC_LBTC:
    case IC_STORE:
@@ -267,7 +273,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_OUT_U8:
    case IC_OUT_U16:
    case IC_OUT_U32:
-@@ -6451,6 +6461,9 @@
+@@ -6462,6 +6472,9 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_OUT_U16] = &&ic_out_u16,
        [IC_OUT_U32] = &&ic_out_u32,
        [IC_QUE_INIT] = &&ic_que_init,
@@ -277,7 +283,7 @@ diff -ruN a/c/x86_64_backend.c b/c/x86_64_backend.c
        [IC_INVLPG] = &&ic_invlpg,
        [IC_STRLEN] = &&ic_strlen,
        [IC_RAW_BYTES] = &&ic_raw_bytes,
-@@ -6548,6 +6561,50 @@
+@@ -6559,6 +6572,50 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
      AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
                       MIR(cctrl, into_reg), 8);
      break;

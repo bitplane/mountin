@@ -1,6 +1,8 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 6ad10c3..3e0c62c 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1465,6 +1465,21 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+@@ -1426,6 +1426,21 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
            patch->imm->local_asm_undef_hash=NULL;
            patch->imm->glbl_asm_undef_hash=NULL;
          }

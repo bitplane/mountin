@@ -1,6 +1,8 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 89b7fbb..b48d0cd 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -658,7 +658,8 @@
+@@ -647,7 +647,8 @@ Bool OpcodePassesModes(CX86Opcode *opc,CX86AddrMode **modes) {
    for(mem_sz=2;mem_sz<=8;mem_sz*=2) {
      a=0;
      for(idx=0;opc->operands[idx].u8[0];idx++) {
@@ -10,11 +12,10 @@
        if(a>=opc->arity) break;
        if(ModeMatch(opc->operands[idx],modes[a],mem_sz)) {
  	a++;
-@@ -945,7 +946,15 @@
+@@ -934,6 +935,14 @@ I64 X86EncodeOpcode(I64 rip,I64 seg_size,CX86Opcode *opc,CX86AddrMode **modes,U8
  	      a++;
  	      break;
  	    }
--	  case X86_OPERAND_R8:
 +	  case X86_OPERAND_PREV_RMx:
 +	    if(!indir_mode) {
 +	      if(!a)
@@ -23,11 +24,10 @@
 +	      indir_mode=modes[a-1];
 +	    }
 +	    break;
-+	  case X86_OPERAND_R8:
+ 	  case X86_OPERAND_R8:
  	  case X86_OPERAND_R16:
  	  case X86_OPERAND_R32:
- 	  case X86_OPERAND_R64:
-@@ -1162,7 +1171,8 @@
+@@ -1157,7 +1166,8 @@ rex|=0x40;
  		  len+=8;
  	      }
  	    }
@@ -37,17 +37,19 @@
  	      a++;
  	  }
          } else
+diff --git a/Src/UAsmX64.HC b/Src/UAsmX64.HC
+index 5be7e56..4d702cb 100644
 --- a/Src/UAsmX64.HC
 +++ b/Src/UAsmX64.HC
-@@ -59,6 +59,7 @@
- //TODO,Nroot is not implementeing vector types now.
+@@ -60,6 +60,7 @@
  #define X86_OPERAND_M128 49
  #define X86_OPERAND_CONST_SREG 50
  #define X86_OPERAND_EXPLICIT_IMM16 51
 +#define X86_OPERAND_PREV_RMx 52
  
  class CX86Opcode:CHash {
-@@ -111,7 +112,8 @@
+   //-1 for absent
+@@ -112,7 +113,8 @@ CX86Opcode *AO(U8 *name,I64 pf,I64 _0f,I64 po,I64 so,I64 flags,...) {
      if(idx>argc) {
        throw('UAsmInit');
      }
@@ -57,7 +59,7 @@
        opc->arity++;
      switch(argv[idx]) {
        start:
-@@ -1356,6 +1358,8 @@
+@@ -1357,6 +1359,8 @@ U0 UAsmInit() {
    AO("IMUL",-1,-1,0xf6,-1,X86_OPCF_MODRM,X86_OPERAND_RM8,X86_OPERAND_EXT,5);
    AO("IMUL",-1,-1,0xf7,-1,X86_OPCF_MODRM,X86_OPERAND_RMx,X86_OPERAND_EXT,5);
    AO("IMUL2",-1,0xf,0xaf,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_RMx);
@@ -65,4 +67,4 @@
 +  AO("IMUL2",-1,-1,0x6b,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_PREV_RMx,X86_OPERAND_IMM8);
  
    AO("IN",-1,-1,0xe4,-1,0,X86_OPERAND_CONST_R8,REG_RAX,X86_OPERAND_IMM8);
-   AO("IN",-1,-1,0xe5,-1,0,X86_OPERAND_CONST_R32,REG_RAX,X86_OPERAND_IMM8);
+   AO("IN",-1,-1,0xe5,-1,X86_OPCF_OPSIZE32,X86_OPERAND_CONST_R32,REG_RAX,X86_OPERAND_IMM8);

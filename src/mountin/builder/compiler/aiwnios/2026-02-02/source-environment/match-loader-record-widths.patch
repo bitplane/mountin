@@ -1,0 +1,22 @@
+diff --git a/Src/KLoadARM.HC b/Src/KLoadARM.HC
+index ea74dfe..075257b 100644
+--- a/Src/KLoadARM.HC
++++ b/Src/KLoadARM.HC
+@@ -140,7 +140,7 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ 	break;
+       case IET_ABS_ADDR:
+ 	if (ld_flags & LDF_NO_ABSS)
+-	  src+=i*sizeof(U64);
++	  src+=i*sizeof(U32);
+ 	else {
+ 	  cnt=i;
+ 	  for (j=0;j<cnt;j++) {
+@@ -238,7 +238,7 @@ U0 LoadPass2(U8 *src,U8 *module_base,I64)
+ 	(*code)();
+         break;
+       case IET_ABS_ADDR:
+-        src+=sizeof(U64)*i;
++        src+=sizeof(U32)*i;
+         break;
+       case IET_CODE_HEAP:
+       case IET_ZEROED_CODE_HEAP:

@@ -1,0 +1,240 @@
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index 31014e2..ad0347f 100644
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -93,9 +93,7 @@ U0 AsmExpressionImportsResolve(U8 *name,U8 *module_base,I64 value)
+       if (entry->type&HTT_IMPORT_SYS_SYM &&
+             entry->module_base==module_base &&
+             !StrCmp(entry->str,name)) {
+-        rel_off=entry->module_header_entry[1](U32);
+-        if (rel_off&0x80000000)
+-          rel_off-=0x100000000;
++        rel_off=entry->module_header_entry[1](I32);
+         resolved=value+entry->module_header_entry[5](I32);
+         WriteProtectMemCpy(entry->module_base+rel_off,&resolved,8);
+         entry->type=HTT_INVALID;
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 8dce5a5..fd61d72 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -63,7 +63,6 @@ class CAsmPatch:CQue  {
+ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+ {
+   I64 old_flags=cc->flags;
+-  I64 (*machine_code)();
+   arg->local_asm_undef_hash=NULL;
+   arg->glbl_asm_undef_hash=NULL;
+   cc->asm_undef_hash=NULL;
+@@ -84,8 +83,7 @@ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+ 	cc->asm_undef_hash=NULL;
+       }
+     } else {
+-      machine_code=arg->machine_code;
+-      arg->imm=(*machine_code)();
++      arg->imm=Call(arg->machine_code);
+       arg->glbl_asm_undef_hash=cc->asm_undef_hash;
+       cc->asm_undef_hash=NULL;
+       Free(arg->machine_code);
+@@ -1074,6 +1072,9 @@ rex|=0x40;
+     to[len++]=0x66;
+   }
+ //Prefix group 4(Address size ovveride)
++  //There is no 16-bit ModRM encoder. TempleOS's 16-bit boot code keeps the
++  //upper halves clear, so address-size override plus the 32-bit form encodes
++  //its [SI]-style operands correctly.
+   if (seg_size==16&&indir_mode ||
+         seg_size==64&&indir_mode&&indir_mode->short_addr==1)
+     to[len++]=0x67;
+@@ -1351,28 +1352,18 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+     for (label=to_fill->next;label!=to_fill;label=label->next)
+       if (!StrCmp(label->h->str,cur->hash->str))
+         break;
+-    if (label==to_fill) {
+-      if (!fun_name_len ||
+-            StrNCmp(cur->hash->str,cc->htc.fun->str,fun_name_len) ||
+-            cur->hash->str[fun_name_len]!='.' ||
+-            !MemberFind(cur->hash->str+fun_name_len+1,cc->htc.fun))
+-        return FALSE;
+-    }
+-  }
+-
+-  for (cur=tab;cur;cur=cur->next) {
+-    for (label=to_fill->next;label!=to_fill;label=label->next)
+-      if (!StrCmp(label->h->str,cur->hash->str))
+-        break;
++    if (label==to_fill && (!fun_name_len ||
++          StrNCmp(cur->hash->str,cc->htc.fun->str,fun_name_len) ||
++          cur->hash->str[fun_name_len]!='.' ||
++          !(member=MemberFind(cur->hash->str+fun_name_len+1,cc->htc.fun))))
++      return FALSE;
+     exp=CAlloc(sizeof CHashExport);
+     exp->type=HTT_EXPORT_SYS_SYM|HTF_RESOLVE;
+     exp->str=StrNew(cur->hash->str);
+     if (label!=to_fill)
+       exp->val=label->h->val;
+-    else {
+-      member=MemberFind(cur->hash->str+fun_name_len+1,cc->htc.fun);
++    else
+       exp->val=-member->offset;
+-    }
+     HashAdd(exp,Fs->hash_table);
+     AsmExpressionImportsResolve(cur->hash->str,patch->imm->machine_code,
+           exp->val);
+@@ -1387,11 +1378,35 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+   patch->imm->glbl_asm_undef_hash=NULL;
+   return TRUE;
+ }
++
++U0 AsmPatchStore(CCmpCtrl *cc,U8 *buf,CAsmPatch *patch,I64 value)
++{
++  switch(patch->sz) {
++    break;case 1: buf[patch->rip]=value;
++    break;case 2: buf[patch->rip](U16)=value;
++    break;case 4: buf[patch->rip](U32)=value;
++    break;case 8: buf[patch->rip](U64)=value;
++    default: LexExcept(cc,"Invalid assembler relocation size");
++  }
++}
++
++I64 AsmPatchRelocationType(CCmpCtrl *cc,CAsmPatch *patch)
++{
++  switch(patch->sz) {
++    break;case 1: return patch->is_rel ? IET_REL_I8 : IET_IMM_U8;
++    break;case 2: return patch->is_rel ? IET_REL_I16 : IET_IMM_U16;
++    break;case 4: return patch->is_rel ? IET_REL_I32 : IET_IMM_U32;
++    break;case 8: return patch->is_rel ? IET_REL_I64 : IET_IMM_I64;
++    default: LexExcept(cc,"Invalid AOT assembler relocation size");
++  }
++  return 0;
++}
++
+ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+   CToFill *to_fill=blob->to_fill,*tmp_to_fill;
+   CAsmPatch *patch,*next_patch;
+   CAOTAbsAddr *tmpabs;
+-  I64 tmp,sz;
++  I64 tmp;
+   tmp_to_fill=to_fill->next;
+   while(tmp_to_fill!=to_fill) {
+     tmp_to_fill->h->type&=~HTF_UNRESOLVED;
+@@ -1412,13 +1427,7 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+           tmp=patch->imm->off;
+           if (patch->is_rel)
+             tmp-=blob->final_start_rip+patch->rip+patch->sz;
+-          switch(patch->sz) {
+-            break;case 1: buf[patch->rip]=tmp;
+-            break;case 2: buf[patch->rip](U16)=tmp;
+-            break;case 4: buf[patch->rip](U32)=tmp;
+-            break;case 8: buf[patch->rip](U64)=tmp;
+-            default: LexExcept(cc,"Invalid AOT assembler relocation size");
+-          }
++          AsmPatchStore(cc,buf,patch,tmp);
+           if(!patch->is_rel&&patch->sz==4) {
+             tmpabs=CAlloc(sizeof(CAOTAbsAddr));
+             tmpabs->next=cc->aotc->abss;
+@@ -1427,15 +1436,9 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+             cc->aotc->abss=tmpabs;
+           }
+         } else {
+-          switch(patch->sz) {
+-            break;case 1: sz=IET_REL_I8;
+-            break;case 2: sz=IET_REL_I16;
+-            break;case 4: sz=IET_REL_I32;
+-            break;case 8: sz=IET_REL_I64;
+-            default: LexExcept(cc,"Invalid AOT assembler relocation size");
+-          }
+           AsmUnresolvedAdd(cc,patch->imm->machine_code,
+-                sz+!patch->is_rel,blob->final_start_rip+patch->rip,
++                AsmPatchRelocationType(cc,patch),
++                blob->final_start_rip+patch->rip,
+                 blob->final_start_rip+patch->rip+patch->sz,
+                 patch->imm->local_asm_undef_hash,
+                 patch->imm->glbl_asm_undef_hash,
+@@ -1449,14 +1452,7 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+         tmp=patch->imm->off;
+         if(patch->is_rel)
+           tmp-=blob->final_start_rip+patch->rip+patch->sz;
+-        if(patch->sz==1)
+-          buf[patch->rip]=tmp;
+-        else if(patch->sz==2)
+-          buf[patch->rip](U16)=tmp;
+-        else if(patch->sz==4)
+-          buf[patch->rip](U32)=tmp;
+-        else
+-          buf[patch->rip](U64)=tmp;
++        AsmPatchStore(cc,buf,patch,tmp);
+         X86AddrModeDel(patch->imm);
+         patch->imm=NULL;
+       }
+@@ -1471,32 +1467,9 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+     next_patch=patch->next;
+     if(patch->imm) {
+       tmp=patch->imm->off;
+-      switch(sz=patch->sz) {
+-        case 1:
+-	  if(patch->is_rel)
+-	    buf[patch->rip]=tmp-(buf+sz+patch->rip);
+-	  else
+-	    buf[patch->rip]=tmp;
+-	  break;
+-        case 2:
+-	  if(patch->is_rel)
+-	    buf[patch->rip](U16)=tmp-(buf+sz+patch->rip);
+-	  else
+-	    buf[patch->rip](U16)=tmp;
+-	  break;
+-        case 4:
+-	  if(patch->is_rel)
+-	    buf[patch->rip](U32)=tmp-(buf+sz+patch->rip);
+-	  else
+-	    buf[patch->rip](U32)=tmp;
+-	  break;
+-        case 8:
+-	  if(patch->is_rel)
+-	    buf[patch->rip](U64)=tmp-(buf+sz+patch->rip);
+-	  else
+-	    buf[patch->rip](U64)=tmp;
+-	  break;
+-      }
++      if(patch->is_rel)
++        tmp-=buf+patch->sz+patch->rip;
++      AsmPatchStore(cc,buf,patch,tmp);
+       Free(patch->imm);
+       patch->imm=NULL;
+     }
+@@ -1565,6 +1538,8 @@ enter:
+           has_zero_arity=TRUE;
+       }
+     Lex(cc);
++    //An opcode or keyword starts the next statement, so a zero-arity variant
++    //wins without consuming it as an operand.
+     if(has_zero_arity && cc->hash_entry &&
+         cc->hash_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD|HTT_KEYWORD))
+       max_arity=0;
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index de434d1..cbf3d58 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -565,6 +565,7 @@ CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
+ {
+   CHash *h=HashFind(name,cc->htc.glbl_hash_table,HTT_FUN);
+   if (h) {
++    //A resolved address below the current AOT offset belongs to this image.
+     if (h->type&HTF_RESOLVE && 0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
+       return h;
+     return NULL;
+@@ -656,6 +657,9 @@ skip:;
+         QueRem(tmpaotie);
+         Free(tmpaotie->str);
+         Free(tmpaotie);
++#else
++        PrintErr("AOT export relocation is not implemented for this target\n");
++        throw('Compiler');
+ #endif
+       }
+     } else if (tmpaotie->type==IET_IMM_I64 && tmpaotie->str) {
+@@ -688,4 +692,3 @@ skip:;
+     }
+   }
+ }
+-

@@ -1,6 +1,8 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index f7494d5..a8c8553 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1431,6 +1431,7 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+@@ -1371,6 +1371,7 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
  U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
    CToFill *to_fill=blob->to_fill,*tmp_to_fill;
    CAsmPatch *patch,*next_patch;
@@ -8,9 +10,9 @@
    I64 tmp,sz;
    tmp_to_fill=to_fill->next;
    while(tmp_to_fill!=to_fill) {
-@@ -1471,6 +1472,13 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
-                     patch->sz,patch->rip,patch->is_rel);
-               LexExcept(cc,"Invalid AOT assembler relocation size");
+@@ -1399,6 +1400,13 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+             break;case 8: buf[patch->rip](U64)=tmp;
+             default: LexExcept(cc,"Invalid AOT assembler relocation size");
            }
 +          if(!patch->is_rel&&patch->sz==4) {
 +            tmpabs=CAlloc(sizeof(CAOTAbsAddr));

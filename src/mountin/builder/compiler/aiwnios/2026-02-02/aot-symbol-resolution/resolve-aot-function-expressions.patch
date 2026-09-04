@@ -1,6 +1,8 @@
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index 25a711e..2ba2740 100644
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -169,6 +169,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+@@ -127,6 +127,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
  	      !Bt(&tmpf->flags,Cf_EXTERN)) {
  	  tmpex->val=tmpf->exe_addr;
  	  tmpex->type&=~HTF_UNRESOLVED;

@@ -1,6 +1,8 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 224b5ed..a8fdbe3 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -93,6 +93,7 @@
+@@ -93,6 +93,7 @@ import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
  import U8 *__HC_ICAdd_Neg(U8*);
  import U8 *__HC_ICAdd_Bsf(U8*);
  import U8 *__HC_ICAdd_Bsr(U8*);
@@ -8,7 +10,7 @@
  import U8 *__HC_ICAdd_Ret(U8*);
  import U8 *__HC_ICAdd_Arg(U8*,I64);
  import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -197,6 +198,7 @@
+@@ -197,6 +198,7 @@ extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
  extern U8 *__HC_ICAdd_Neg(U8*);
  extern U8 *__HC_ICAdd_Bsf(U8*);
  extern U8 *__HC_ICAdd_Bsr(U8*);
@@ -16,7 +18,7 @@
  extern U8 *__HC_ICAdd_Ret(U8*);
  extern U8 *__HC_ICAdd_Arg(U8*,I64);
  extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -1968,6 +1970,8 @@
+@@ -1972,6 +1974,8 @@ break;case IC_RIP:
      new=__HC_ICAdd_Bsf(cc2);
      break;case IC_BSR:
      new=__HC_ICAdd_Bsr(cc2);
@@ -25,9 +27,11 @@
      break;case IC_SQRT:
      new=__HC_ICAdd_Sqrt(cc2);
      break;case IC_DEREF:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 6f4bd4a..5f14830 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -240,6 +240,7 @@
+@@ -240,6 +240,7 @@ enum {
    IC_NEG,
    IC_BSF,
    IC_BSR,
@@ -35,7 +39,7 @@
    IC_POS,
    IC_NAME,
    IC_STR, //->code_misc
-@@ -685,6 +686,7 @@
+@@ -685,6 +686,7 @@ HC_IC_BINDINGH(HC_ICAdd_ModEq)
  HC_IC_BINDINGH(HC_ICAdd_Neg)
  HC_IC_BINDINGH(HC_ICAdd_Bsf)
  HC_IC_BINDINGH(HC_ICAdd_Bsr)
@@ -43,9 +47,11 @@
  HC_IC_BINDINGH(HC_ICAdd_And)
  HC_IC_BINDINGH(HC_ICAdd_EqEq)
  HC_IC_BINDINGH(HC_ICAdd_Ret)
+diff --git a/c/main.c b/c/main.c
+index 73026e2..b28a2ea 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1196,6 +1196,9 @@
+@@ -1196,6 +1196,9 @@ static int64_t STK___HC_ICAdd_Bsf(int64_t *stk) {
  static int64_t STK___HC_ICAdd_Bsr(int64_t *stk) {
    return __HC_ICAdd_Bsr(stk[0]);
  }
@@ -55,7 +61,7 @@
  static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
    return __HC_ICAdd_Ret(stk[0]);
  }
-@@ -1809,6 +1812,7 @@
+@@ -1809,6 +1812,7 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_Neg", STK___HC_ICAdd_Neg, 1);
      PrsAddSymbol("__HC_ICAdd_Bsf", STK___HC_ICAdd_Bsf, 1);
      PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
@@ -63,9 +69,11 @@
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
      PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
      PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff --git a/c/parser.c b/c/parser.c
+index a13a865..f45afee 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -219,6 +219,7 @@
+@@ -219,6 +219,7 @@ CRPN *ICFwd(CRPN *rpn) {
      goto unop;
    case IC_LOCK:
    case IC_CURRENT_PC:
@@ -73,7 +81,7 @@
    case IC_RAW_BYTES:
    case __IC_STATICS_SIZE:
    case __IC_SET_STATIC_DATA:
-@@ -797,6 +798,10 @@
+@@ -797,6 +798,10 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
      printf("NOP\n");
      goto ret;
      break;
@@ -84,7 +92,7 @@
    case IC_NAME:
      printf("NAME:%s\n", rpn->string);
      goto ret;
-@@ -1319,6 +1324,10 @@
+@@ -1319,6 +1324,10 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
    case IC_NOP:
      goto ret;
      break;
@@ -95,7 +103,7 @@
    case IC_NAME:
      goto ret;
      break;
-@@ -3459,6 +3468,7 @@
+@@ -3459,6 +3468,7 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
      break;
    case IC_FS:
    case IC_GS:
@@ -103,7 +111,7 @@
      rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
      return rpn->raw_type = RT_I64i;
      break;
-@@ -4634,6 +4644,7 @@
+@@ -4634,6 +4644,7 @@ HC_IC_BINDING(HC_ICAdd_Rsh, IC_RSH);
  HC_IC_BINDING(HC_ICAdd_Neg, IC_NEG);
  HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
  HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
@@ -111,9 +119,11 @@
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
  HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
  
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 18db497..c1ccae0 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -1359,6 +1359,17 @@
+@@ -1359,6 +1359,17 @@ static int64_t X86BitScanRegReg(char *to, int64_t dst, int64_t src,
    return len;
  }
  
@@ -131,7 +141,7 @@
  static int64_t X86IMul2SIB64(char *to, int64_t r, int64_t s, int64_t i,
                               int64_t b, int64_t off) {
    int64_t len = 0;
-@@ -2187,6 +2197,8 @@
+@@ -2187,6 +2198,8 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    if (rpn->flags & ICF_DOESNT_SPILL_TMP_REGS)
      return 0;
    switch (rpn->type) {
@@ -140,7 +150,7 @@
    case IC_FS:
    case IC_GS:
      goto fail;
-@@ -2834,6 +2846,7 @@
+@@ -2834,6 +2847,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_FREG:
    case IC_BASE_PTR:
    case IC_CURRENT_PC:
@@ -148,7 +158,7 @@
    case IC_STR:
    case IC_CHR:
    case IC_FS:
-@@ -6096,6 +6109,7 @@
+@@ -6096,6 +6110,7 @@ static void SetKeepTmps(CRPN *rpn) {
    int64_t idx;
    CRPN *left, *right, *last;
    switch (rpn->type) {
@@ -156,7 +166,7 @@
    case IC_FS:
    case IC_GS:
      return;
-@@ -6354,12 +6368,22 @@
+@@ -6354,12 +6369,22 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_TAN] = &&ic_tan,
        [IC_ATAN] = &&ic_atan,
        [IC_CURRENT_PC] = &&ic_current_pc,

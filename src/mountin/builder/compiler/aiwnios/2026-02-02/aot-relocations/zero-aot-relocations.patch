@@ -1,6 +1,8 @@
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 1c0b348..6edd785 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -9083,7 +9083,10 @@ static int64_t CompileCodeMisc(CCodeCtrl *cctrl, char *bin, int64_t code_off,
+@@ -9099,7 +9099,10 @@ char *OptPassFinal(CCmpCtrl *cctrl, int64_t *res_sz, char **dbg_info,
            code_off += 8 - code_off % 8;
          misc->addr = bin + code_off;
          if (bin)

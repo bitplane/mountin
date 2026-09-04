@@ -1,6 +1,8 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index e703d4d..f7494d5 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1316,6 +1316,63 @@
+@@ -1311,6 +1311,63 @@ nxt:
      patch=patch->next;
    }
  }
@@ -64,7 +66,7 @@
  U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
    CToFill *to_fill=blob->to_fill,*tmp_to_fill;
    CAsmPatch *patch,*next_patch;
-@@ -1324,7 +1368,10 @@
+@@ -1319,7 +1376,10 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
    while(tmp_to_fill!=to_fill) {
      tmp_to_fill->h->type&=~HTF_UNRESOLVED;
      tmp_to_fill->h->type|=HTF_RESOLVE;
@@ -76,7 +78,7 @@
      tmp_to_fill=tmp_to_fill->next;
    }
    patch=blob->asm_patches->next;
-@@ -1333,22 +1384,35 @@
+@@ -1328,22 +1388,35 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
        next_patch=patch->next;
        if(patch->imm&&(patch->imm->local_asm_undef_hash||
              patch->imm->glbl_asm_undef_hash)) {

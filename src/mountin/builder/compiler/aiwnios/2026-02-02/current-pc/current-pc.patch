@@ -1,6 +1,8 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index a2da7fb..5bc7be5 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -8,6 +8,7 @@
+@@ -9,6 +9,7 @@ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of byte
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
  import U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
@@ -8,7 +10,7 @@
  import U8 *__HC_ICAdd_GetVargsPtr(U8*);
  import U8 *__HC_ICAdd_ToF64(U8 *);
  import U8 *__HC_ICAdd_ToI64(U8 *);
-@@ -118,6 +119,7 @@
+@@ -119,6 +120,7 @@ extern U8 *__HC_ICAdd_Max_F64(U8 *);
  extern U8 *__HC_ICAdd_Min_F64(U8 *);
  extern U8 *__HC_ICAdd_GetVargsPtr(U8*);
  extern U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
@@ -16,16 +18,20 @@
  extern U0 __HC_CodeMiscInterateThroughRefs(U8 *,U0(*fptr)(U8*addr,U8*ud),U8*user_data);
  extern U8 * __HC_ICAdd_ToF64(U8 *);
  extern U8 * __HC_ICAdd_ToI64(U8 *);
-@@ -1826,4 +1828,6 @@
+@@ -1834,6 +1836,8 @@ break;case IC_GET_RSP:
+   PrintErr("x86 register operation is unavailable for this target.\n");
+   throw('Compiler');
  #endif
 +break;case IC_RIP:
 +  new=__HC_ICAdd_CurrentPC(cc2);
  //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
      //break;case IC_CALL_END:
      //break;case IC_CALL_END2:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 482503a..0854a0f 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -337,6 +337,7 @@
+@@ -338,6 +338,7 @@ enum {
    IC_COS,
    IC_TAN,
    IC_ATAN,
@@ -33,7 +39,7 @@
    IC_RAW_BYTES,
    IC_GET_VARGS_PTR, // Doing this sets the function as a VARGS function
    IC_LOCK, // Lock means "lock EXPRESSION;",it operates on expressions as a
-@@ -634,6 +635,7 @@
+@@ -635,6 +636,7 @@ CRPN *__HC_ICAdd_PreDec(CCodeCtrl *cc, int64_t amt);
  CRPN *__HC_ICAdd_PostDec(CCodeCtrl *cc, int64_t amt);
  CRPN *__HC_ICAdd_PostInc(CCodeCtrl *cc, int64_t amt);
  CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt);
@@ -41,9 +47,11 @@
  void __HC_ICSetLock(CRPN *l);
  CRPN *__HC_ICAdd_RelocUnqiue(CCmpCtrl *, CCodeCtrl *, int64_t *, char *,
                               int64_t, int64_t);
+diff --git a/c/main.c b/c/main.c
+index 3ba9251..466ae2e 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1200,6 +1200,9 @@
+@@ -1205,6 +1205,9 @@ static int64_t STK___HC_ICAdd_Reloc(int64_t *stk) {
  static int64_t STK___HC_ICAdd_RelocUnique(int64_t *stk) {
    return __HC_ICAdd_RelocUnqiue(stk[0], stk[1], stk[2], stk[3], stk[4], stk[5]);
  }
@@ -53,7 +61,7 @@
  
  static int64_t STK___HC_ICSetLine(int64_t *stk) {
    __HC_ICSetLine(stk[0], stk[1]);
-@@ -1588,6 +1591,7 @@
+@@ -1593,6 +1596,7 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("MakeContext", STK_AIWNIOS_makecontext, 3);
  #endif
      PrsAddSymbol("__HC_ICAdd_RawBytes", STK__HC_ICAdd_RawBytes, 3);
@@ -61,9 +69,11 @@
      PrsAddSymbol("__HC_SetAOTRelocBeforeRIP", STK___HC_SetAOTRelocBeforeRIP, 2);
      PrsAddSymbol("__HC_CodeMiscIsUsed", STK___HC_CodeMiscIsUsed, 1);
      PrsAddSymbol("AiwniosSetClipboard", STK_AiwniosSetClipboard, 1);
+diff --git a/c/parser.c b/c/parser.c
+index 8ff5d1d..1454873 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -218,6 +218,7 @@
+@@ -218,6 +218,7 @@ CRPN *ICFwd(CRPN *rpn) {
    case IC_FS:
      goto unop;
    case IC_LOCK:
@@ -71,11 +81,10 @@
    case IC_RAW_BYTES:
    case __IC_STATICS_SIZE:
    case __IC_SET_STATIC_DATA:
-@@ -4953,6 +4954,17 @@
-   QueIns(rpn, cc->ir_code);
+@@ -4954,6 +4955,17 @@ CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt) {
    return rpn;
  }
-+
+ 
 +CRPN *__HC_ICAdd_CurrentPC(CCodeCtrl *cc) {
 +  CRPN *rpn;
 +  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
@@ -86,12 +95,15 @@
 +  QueIns(rpn, cc->ir_code);
 +  return rpn;
 +}
- 
++
  CRPN *__HC_ICAdd_Vargs(CCodeCtrl *cc, int64_t arity) {
    CRPN *rpn;
+   *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 5954e4b..9803e14 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -2818,6 +2818,7 @@
+@@ -2818,6 +2818,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_IREG:
    case IC_FREG:
    case IC_BASE_PTR:
@@ -99,7 +111,7 @@
    case IC_STR:
    case IC_CHR:
    case IC_FS:
-@@ -6331,12 +6332,26 @@
+@@ -6331,12 +6332,26 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_COS] = &&ic_cos,
        [IC_TAN] = &&ic_tan,
        [IC_ATAN] = &&ic_atan,

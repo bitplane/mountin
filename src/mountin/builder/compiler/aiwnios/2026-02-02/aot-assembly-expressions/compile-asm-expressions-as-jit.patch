@@ -1,6 +1,9 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index de2da3a..e703d4d 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -70,7 +70,7 @@ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+@@ -68,7 +68,7 @@ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+   arg->glbl_asm_undef_hash=NULL;
    cc->asm_undef_hash=NULL;
    cc->abs_cnts=0;
 -  cc->flags&=~(CCF_UNRESOLVED+CCF_LOCAL);

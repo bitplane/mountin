@@ -1,6 +1,10 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index d158dc6..6eb8c9d 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -565,7 +565,7 @@
+@@ -569,9 +569,9 @@ U0 FillInShortCalls(CCmpCtrl *cc) {
+   for(tmpaotie=cc->aot->next_ie;tmpaotie!=&cc->aot->next_ie;tmpaotie=tmpaotie1) {
+     tmpaotie1=tmpaotie->next;
      if(tmpaotie->short_jmp) {		  
 -      fun=HashSingleTableFind(tmpaotie->str,cc->htc.glbl_hash_table,HTT_FUN|HTT_GLBL_VAR);
 +      fun=AOTResolvedHashFind(cc,tmpaotie->str);
@@ -10,7 +14,8 @@
  		  #ifdef TARGET_RISCV
  		  ptr=fun->exe_addr+tmpaotie->offset;
  riscv_patch:
-@@ -609,5 +610,15 @@
+@@ -625,6 +625,16 @@ riscv_patch:
+ 			Free(tmpaotie->str);
  			Free(tmpaotie);
  skip:;
 +      } else if (fun && fun->type&HTT_EXPORT_SYS_SYM &&

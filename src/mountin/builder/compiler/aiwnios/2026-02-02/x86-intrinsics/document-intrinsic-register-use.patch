@@ -1,0 +1,64 @@
+diff --git a/c/main.c b/c/main.c
+index e7e73e6..f5fc9bd 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -1215,16 +1215,36 @@ static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
+ static int64_t STK___HC_ICAdd_GetRFlags(int64_t *stk) {
+   return __HC_ICAdd_GetRFlags(stk[0]);
+ }
+-static int64_t STK___HC_ICAdd_SetRFlags(int64_t *stk) { return __HC_ICAdd_SetRFlags(stk[0]); }
+-static int64_t STK___HC_ICAdd_SetRAX(int64_t *stk) { return __HC_ICAdd_SetRAX(stk[0]); }
+-static int64_t STK___HC_ICAdd_SetRBP(int64_t *stk) { return __HC_ICAdd_SetRBP(stk[0]); }
+-static int64_t STK___HC_ICAdd_SetRSP(int64_t *stk) { return __HC_ICAdd_SetRSP(stk[0]); }
+-static int64_t STK___HC_ICAdd_InU8(int64_t *stk) { return __HC_ICAdd_InU8(stk[0]); }
+-static int64_t STK___HC_ICAdd_InU16(int64_t *stk) { return __HC_ICAdd_InU16(stk[0]); }
+-static int64_t STK___HC_ICAdd_InU32(int64_t *stk) { return __HC_ICAdd_InU32(stk[0]); }
+-static int64_t STK___HC_ICAdd_OutU8(int64_t *stk) { return __HC_ICAdd_OutU8(stk[0]); }
+-static int64_t STK___HC_ICAdd_OutU16(int64_t *stk) { return __HC_ICAdd_OutU16(stk[0]); }
+-static int64_t STK___HC_ICAdd_OutU32(int64_t *stk) { return __HC_ICAdd_OutU32(stk[0]); }
++static int64_t STK___HC_ICAdd_SetRFlags(int64_t *stk) {
++  return __HC_ICAdd_SetRFlags(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRAX(int64_t *stk) {
++  return __HC_ICAdd_SetRAX(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRBP(int64_t *stk) {
++  return __HC_ICAdd_SetRBP(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRSP(int64_t *stk) {
++  return __HC_ICAdd_SetRSP(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU8(int64_t *stk) {
++  return __HC_ICAdd_InU8(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU16(int64_t *stk) {
++  return __HC_ICAdd_InU16(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU32(int64_t *stk) {
++  return __HC_ICAdd_InU32(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU8(int64_t *stk) {
++  return __HC_ICAdd_OutU8(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU16(int64_t *stk) {
++  return __HC_ICAdd_OutU16(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU32(int64_t *stk) {
++  return __HC_ICAdd_OutU32(stk[0]);
++}
+ static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
+   return __HC_ICAdd_QueInit(stk[0]);
+ }
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index e2e3d46..2c31ba0 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -6525,6 +6525,8 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
++  // These intrinsic lowerings may use RCX, RDX and R8 as scratch registers.
++  // Keep them distinct from the backend temporaries (R9 and RBX).
+   do {
+   ic_in_u8:
+     i = 8;

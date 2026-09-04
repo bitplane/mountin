@@ -1,7 +1,8 @@
 diff --git a/Src/CInit.HC b/Src/CInit.HC
+index f2f36cd..3c0806d 100644
 --- a/Src/CInit.HC
 +++ b/Src/CInit.HC
-@@ -415,7 +415,7 @@ U0 CMiscInit() {
+@@ -426,7 +426,7 @@ U0 CMiscInit() {
    CmpAddKw(cmp.asm_hash,"static",41);
    CmpAddKw(cmp.asm_hash,"lock",42);
    CmpAddKw(cmp.asm_hash,"defined",43);

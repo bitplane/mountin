@@ -1,6 +1,21 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index cadf3e8..f4821ca 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2273,7 +2273,7 @@ break;case IC_RIP:
+           h->module_base=machine_code;
+           //[reloc type 1][reloc offset 4][target-offset 4][name?]NULL]
+           //Nroot adds an aditional byte to specify NULL after we load the silly sauce 
+-          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1);
++          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1+1);
+           if(IsTLSReloc(misc))
+ 	    h->module_header_entry[0]=IET_IMM_I64;
+           else 
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index 8781c81..95f6e3a 100644
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -75,6 +75,30 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+@@ -82,6 +82,30 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
    }
  }
  
@@ -31,7 +46,7 @@
  CHashExport *AOTResolvedAsmExportFind(CCmpCtrl *cc,U8 *name)
  {
    CHashTable *table;
-@@ -132,7 +155,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+@@ -138,7 +162,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
            binding->str=StrNew(tmpex->str);
            binding->val=resolved_export->val;
            HashAdd(binding,Fs->hash_table);
@@ -41,9 +56,11 @@
            HashRemDel(binding,Fs->hash_table);
  	  label=tmpauh->hash->str;
  	} else {
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index a8c8553..6ad10c3 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1350,7 +1350,8 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+@@ -1356,7 +1356,8 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
        exp->val=-member->offset;
      }
      HashAdd(exp,Fs->hash_table);
@@ -53,8 +70,3 @@
      HashRemDel(exp,Fs->hash_table);
    }
  
---- a/Src/AIWNIOS_CodeGen.HC
-+++ b/Src/AIWNIOS_CodeGen.HC
-@@ -2252 +2252 @@
--          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1);
-+          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1+1);

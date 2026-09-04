@@ -1,0 +1,86 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index a424c3b..85c5c5a 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1367,6 +1367,7 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code=
+   CRPN *head=&cc->coc.coc_head,*cur,*new;
+   CCodeMisc *misc,**table;
+   Bool relocate_glbl;
++  I64 relocation_value;
+   CMemberLst *mlst,*mlst2;
+   COptMemberVar *mv=NULL;
+   CHashImport *h;
+@@ -1901,8 +1902,8 @@ break;case IC_GET_RSP:
+   PrintErr("x86 register operation is unavailable for this target.\n");
+   throw('Compiler');
+ #endif
+-break;case IC_RIP:
+-  new=__HC_ICAdd_CurrentPC(cc2);
++    break;case IC_RIP:
++    new=__HC_ICAdd_CurrentPC(cc2);
+ //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
+     //break;case IC_CALL_END:
+     //break;case IC_CALL_END2:
+@@ -2027,6 +2028,7 @@ break;case IC_RIP:
+     new=__HC_ICAdd_LNot(cc2);
+     break;case IC_UNARY_MINUS:
+     new=__HC_ICAdd_Neg(cc2);
++#ifdef TARGET_X86
+     break;case IC_BSF:
+     new=__HC_ICAdd_Bsf(cc2);
+     break;case IC_BSR:
+@@ -2067,6 +2069,30 @@ break;case IC_RIP:
+     new=__HC_ICAdd_InvlPg(cc2);
+     break;case IC_STRLEN:
+     new=__HC_ICAdd_StrLen(cc2);
++#else
++    break;case IC_BSF:
++    case IC_BSR:
++    case IC_RDTSC:
++    case IC_GET_RFLAGS:
++    case IC_SET_RFLAGS:
++    case IC_SET_RAX:
++    case IC_SET_RBP:
++    case IC_SET_RSP:
++    case IC_IN_U8:
++    case IC_IN_U16:
++    case IC_IN_U32:
++    case IC_OUT_U8:
++    case IC_OUT_U16:
++    case IC_OUT_U32:
++    case IC_QUE_INIT:
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
++    case IC_QUE_REM:
++    case IC_INVLPG:
++    case IC_STRLEN:
++      PrintErr("Intrinsic is not implemented for this target\n");
++      throw('Compiler');
++#endif
+     break;case IC_SQRT:
+     new=__HC_ICAdd_Sqrt(cc2);
+     break;case IC_DEREF:
+@@ -2346,8 +2372,9 @@ break;case IC_RIP:
+               if (misc->h(CHashGlblVar*)->flags&GVF_ALIAS)
+                 relocate_glbl=TRUE;
+               if (Bt(&cc->opts,OPTf_RAW_AOT) && relocate_glbl) {
+-                foff=misc->h(CHashGlblVar*)->data_addr_rip+misc->offset;
+-                WriteProtectMemCpy(misc->addr,&foff,8);
++                relocation_value=misc->h(CHashGlblVar*)->data_addr_rip+
++                      misc->offset;
++                WriteProtectMemCpy(misc->addr,&relocation_value,8);
+                 tmpabs=CAlloc(sizeof(CAOTAbsAddr));
+                 tmpabs->next=cc->aotc->abss;
+                 tmpabs->type=AAT_ADD_U64;
+@@ -2377,9 +2404,8 @@ break;case IC_RIP:
+           foff=0;
+           WriteProtectMemCpy(misc->addr,&foff,8);
+           h->module_base=machine_code;
+-          //[reloc type 1][reloc offset 4][target-offset 4][name?]NULL]
+-          //Nroot adds an aditional byte to specify NULL after we load the silly sauce 
+-          h->module_header_entry=CAlloc(StrLen(h->str)+8+1+1+1);
++          //[reloc type 1][reloc offset 4][target-offset 4][name NUL]
++          h->module_header_entry=CAlloc(StrLen(h->str)+10);
+           if(IsTLSReloc(misc))
+ 	    h->module_header_entry[0]=IET_IMM_I64;
+           else 

@@ -1,0 +1,31 @@
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index e714f56..45976bf 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -1068,7 +1068,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+@@ -1084,7 +1084,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+@@ -1100,7 +1100,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }

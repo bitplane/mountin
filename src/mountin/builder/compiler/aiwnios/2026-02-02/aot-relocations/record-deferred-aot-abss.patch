@@ -1,13 +1,16 @@
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index cbfdcb9..f2ae14d 100644
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -40,5 +40,6 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+@@ -31,6 +31,7 @@ U0 AsmUnresolvedAdd(CCmpCtrl *cc,U8 *machine_code,I64 type,I64 rip,I64 rel_rip,
+ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
  {
    CAOTImportExport *tmpie;
 +  CAOTAbsAddr *tmpabs;
    CAsmUndefHash *tmpauh;
-   I64 res=Call(tmpu->machine_code);
-   if (label && (!StrCmp(label,"SYS_RUN_LEVEL") ||
-@@ -71,6 +72,16 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+   I64 (*machine_code)()=tmpu->machine_code;
+   I64 res=(*machine_code)();
+@@ -58,6 +59,16 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
      if (tmpu->U8_avail && tmpu->type>IET_IMM_U8 && -124<=res<=123)
        PrintWarn("could use I8 displacement at line:%04d %s %s\n",
              tmpu->line_num,cc->aotc->last_label,label);

@@ -1,6 +1,8 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 560b93a..81f3104 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1907,7 +1907,8 @@
+@@ -1911,7 +1911,8 @@ break;case IC_RIP:
            h(CHashFun*)->exe_addr
          );
        }

@@ -1,5 +1,5 @@
 diff --git a/Src/UAsmX64.HC b/Src/UAsmX64.HC
-index 78b4f4e..131a47b 100644
+index 78b4f4e..7f90412 100644
 --- a/Src/UAsmX64.HC
 +++ b/Src/UAsmX64.HC
 @@ -1104,7 +1104,7 @@ U0 UAsmInit() {

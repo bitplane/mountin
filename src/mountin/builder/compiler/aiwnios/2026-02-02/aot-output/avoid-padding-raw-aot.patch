@@ -1,0 +1,39 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 6f3d168..2ae90a8 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -4,6 +4,7 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
+   CCodeCtrl *tmpcbh;
+   CRPN *rpn;
+   LBtr(&cc->flags,CCf_PASS_TRACE_PRESENT);
++  cc->flags&=~CCF_RAW_AOT_ASM;
+   if (cc->aot_depth==2)
+     COCPush(cc);
+   COCInit(cc);
+@@ -75,7 +76,7 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
+ 	  RPNAddNew(cc,IC_IMM_I64,0,cmp.internal_types[RT_I64],FALSE);
+ 	  RPNAddNew(cc,IC_RET,0,cmp.internal_types[RT_I64],FALSE);
+       }
+-      if(cc->flags&CCF_AOT_COMPILE)
++      if(cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_RAW_AOT_ASM))
+ //ARM likes 4byte align for instrcutions
+         while(cc->aotc->rip%4)
+ 	  AOTStoreCodeU8(cc,0);
+@@ -86,9 +87,14 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
+       if (res) {
+         if (cc->flags&CCF_AOT_COMPILE) {
+ 	  j=cc->aotc->rip;
+-	  k=(size+7)>>3;
+-	  for (i=0;i<k;i++)
+-	    AOTStoreCodeU64(cc,res[i]);
++          if (cc->flags&CCF_RAW_AOT_ASM)
++            for (i=0;i<size;i++)
++              AOTStoreCodeU8(cc,res(U8*)[i]);
++          else {
++            k=(size+7)>>3;
++            for (i=0;i<k;i++)
++              AOTStoreCodeU64(cc,res[i]);
++          }
+ 	  Free(res);
+ 	  res=j;
+         }

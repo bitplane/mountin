@@ -1,3 +1,5 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index f33619b..e05aaa7 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -6,6 +6,7 @@
@@ -8,7 +10,7 @@
  import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
-@@ -188,6 +189,7 @@
+@@ -188,6 +189,7 @@ extern U8 * __HC_ICAdd_AndEq(U8*);
  extern U8 * __HC_ICAdd_OrEq(U8*);
  extern U8 * __HC_ICAdd_XorEq(U8*);
  extern U8 * __HC_ICAdd_ModEq(U8*);
@@ -16,7 +18,7 @@
  extern U8 * __HC_ICAdd_FReg(U8*,I64);
  extern U8 * __HC_ICAdd_Ds(U8 *,I64);
  extern U8 * __HC_ICAdd_IReg(U8*,I64 r,I64 rt,I64 ptrs);
-@@ -1369,6 +1371,8 @@
+@@ -1369,6 +1371,8 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code=
    Bool force_segment=FALSE;
    I64 statics_sz=0;
    static I64 static_cnt=0;
@@ -25,9 +27,11 @@
    stat_nam=MStrPrint(".STATIC_%d",static_cnt++);
  //Turn all IC_IMM_I64s that are used as F64's to IC_IMM_I64
    for(cur=head->next;cur!=head;cur=cur->next) {
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 3497de0..7c99589 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -187,6 +187,8 @@
+@@ -187,6 +187,8 @@ typedef struct CCmpCtrl {
  #define CCF_ICMOV_NO_USE_RAX         0x8
  #define CCF_RAW_AOT_ASM              0x10
  #define CCF_NATIVE_SEGMENTS          0x20
@@ -36,7 +40,7 @@
    int64_t flags;
    CHashFun *cur_fun;
    CCodeCtrl *code_ctrl;
-@@ -793,6 +795,7 @@
+@@ -793,6 +795,7 @@ extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
  void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
  void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
  void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
@@ -44,9 +48,26 @@
  
  CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
  
+diff --git a/c/arm_backend.c b/c/arm_backend.c
+index abaefe7..7a344e4 100644
+--- a/c/arm_backend.c
++++ b/c/arm_backend.c
+@@ -2537,6 +2537,10 @@ static int64_t FuncProlog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
+   CMemberLst *lst;
+   CICArg fun_arg = {0}, write_to = {0};
+   CRPN *rpn, *arg;
++  if (cctrl->flags & CCF_INTERRUPT) {
++    fprintf(stderr, "interrupt functions are unsupported on AArch64\n");
++    abort();
++  }
+   /* Old SP
+    * saved regs
+    * wiggle room
+diff --git a/c/main.c b/c/main.c
+index 3d7b6b1..4b1b64c 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -928,6 +928,11 @@
+@@ -928,6 +928,11 @@ static int64_t STK___HC_CmpCtrl_UseNativeSegments(int64_t *stk) {
    return 0;
  }
  
@@ -58,7 +79,7 @@
  static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
    return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
                                        stk[2]);
-@@ -1765,6 +1770,8 @@
+@@ -1765,6 +1770,8 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
      PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
                   STK___HC_CmpCtrl_UseNativeSegments, 1);
@@ -67,9 +88,11 @@
      PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
      PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
      PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+diff --git a/c/parser.c b/c/parser.c
+index 3cdf260..2dccbb9 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -5222,6 +5222,12 @@
+@@ -5222,6 +5222,12 @@ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc) {
  void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc) {
    cc->flags |= CCF_NATIVE_SEGMENTS;
  }
@@ -82,9 +105,26 @@
  HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
  HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
  HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+diff --git a/c/riscv_backend.c b/c/riscv_backend.c
+index bbdcc79..babf29f 100644
+--- a/c/riscv_backend.c
++++ b/c/riscv_backend.c
+@@ -2363,6 +2363,10 @@ static int64_t FuncProlog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
+   CMemberLst *lst;
+   CICArg fun_arg = {0}, write_to = {0}, stack = {0}, tmp = {0};
+   CRPN *rpn, *arg;
++  if (cctrl->flags & CCF_INTERRUPT) {
++    fprintf(stderr, "interrupt functions are unsupported on RISC-V\n");
++    abort();
++  }
+   if (cctrl->cur_fun) {
+     fsz = cctrl->cur_fun->base.sz + 16; //+16 for RBP/return address
+     arg_cnt = cctrl->cur_fun->argc;
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 0f20908..9349636 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -387,6 +387,16 @@
+@@ -387,6 +387,16 @@ int64_t X86Ret(char *to, int64_t ul) {
    return len;
  }
  
@@ -101,7 +141,7 @@
  int64_t X86MovImm(char *to, int64_t a, int64_t off) {
    int64_t len = 0;
    char buf[16];
-@@ -5388,6 +5398,15 @@
+@@ -5388,6 +5398,15 @@ static int64_t __FindPushedIRegs(CCmpCtrl *cctrl, char *to_push) {
    int64_t cnt = 0;
    int64_t idx = 0;
    memset(to_push, 0, 16);
@@ -117,7 +157,7 @@
    if (!cctrl->cur_fun) {
      if (!cctrl->found_used_iregs) {
        // Perhaps we are being called from HolyC and we aren't using a "cur_fun"
-@@ -5838,7 +5857,11 @@
+@@ -5838,7 +5857,11 @@ static int64_t FuncEpilog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
  
    off = -old_regs_start;
    AIWNIOS_ADD_CODE(X86Leave, 0);
@@ -130,29 +170,3 @@
      AIWNIOS_ADD_CODE(X86Ret, 0);
    } else {
      AIWNIOS_ADD_CODE(X86Ret, 8 * arg_cnt);
---- a/c/arm_backend.c
-+++ b/c/arm_backend.c
-@@ -2537,6 +2537,10 @@
-   CMemberLst *lst;
-   CICArg fun_arg = {0}, write_to = {0};
-   CRPN *rpn, *arg;
-+  if (cctrl->flags & CCF_INTERRUPT) {
-+    fprintf(stderr, "interrupt functions are unsupported on AArch64\n");
-+    abort();
-+  }
-   /* Old SP
-    * saved regs
-    * wiggle room
---- a/c/riscv_backend.c
-+++ b/c/riscv_backend.c
-@@ -2363,6 +2363,10 @@
-   CMemberLst *lst;
-   CICArg fun_arg = {0}, write_to = {0}, stack = {0}, tmp = {0};
-   CRPN *rpn, *arg;
-+  if (cctrl->flags & CCF_INTERRUPT) {
-+    fprintf(stderr, "interrupt functions are unsupported on RISC-V\n");
-+    abort();
-+  }
-   if (cctrl->cur_fun) {
-     fsz = cctrl->cur_fun->base.sz + 16; //+16 for RBP/return address
-     arg_cnt = cctrl->cur_fun->argc;

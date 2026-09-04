@@ -1,6 +1,9 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 4b8e883..a2da7fb 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1818,5 +1818,19 @@
+@@ -1820,6 +1820,20 @@ break;case IC_ASM:
+   __HC_ICAdd_Label(cc2,__HC_CodeMiscLabelNew(acc,&cur->ic_data(CAiwniosAOTBlob*)->final_start_addr));
     new=__HC_ICAdd_RawBytes(cc2,cur->ic_data(CAiwniosAOTBlob*)->data,cur->ic_data(CAiwniosAOTBlob*)->len);
              
 +#ifdef TARGET_X86

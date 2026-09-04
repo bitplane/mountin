@@ -1,6 +1,9 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 643b569..dec2c03 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1909,9 +1909,7 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
+@@ -1928,9 +1928,7 @@ break;case IC_RIP:
+ 	);
      }
      if(cc->flags&CCF_AOT_COMPILE) {
 -      if(h->type&HTT_GLBL_VAR&&h->type&HTF_EXPORT) {

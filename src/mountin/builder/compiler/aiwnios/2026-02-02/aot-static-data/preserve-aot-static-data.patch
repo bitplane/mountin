@@ -1,11 +1,26 @@
---- a/Src/PrsVar.HC
-+++ b/Src/PrsVar.HC
-@@ -605,2 +605,0 @@
--	  if (cc->flags&CCF_AOT_COMPILE)
--	    Free(tmpm->static_data);
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 3c4801e..ea5165b 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -2223,1 +2223,3 @@
- 					MemCpy(tmpgh->data+mlst->offset,mlst->static_data,mlst->member_class->size*mlst->dim.total_cnt);
+@@ -2221,6 +2221,8 @@ break;case IC_ASM:
+             tmpaie->rip=cc->aotc->rip+(misc->addr(U8*)-machine_code);
+             tmpaie->offset=misc->offset;
+             QueIns(tmpaie,cc->aot->last_ie);
 +					Free(mlst->static_data);
 +					mlst->static_data=NULL;
+ 	  }
+         }
+       } else {
+diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
+index 5d74704..af87671 100644
+--- a/Src/PrsVar.HC
++++ b/Src/PrsVar.HC
+@@ -604,8 +604,6 @@ pvl_restart3:
+ 	    tmpm->use_cnt=0;
+ 	    cc->flags|=CCF_DONT_MAKE_RES;
+ 	  }
+-	  if (cc->flags&CCF_AOT_COMPILE)
+-	    Free(tmpm->static_data);
+ 	  break;
+ 	case PRS1B_LOCAL_VAR:
+ 	  if (mode&PRSF_UNION) {

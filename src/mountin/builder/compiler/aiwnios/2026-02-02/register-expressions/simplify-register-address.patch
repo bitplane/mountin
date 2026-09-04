@@ -1,7 +1,8 @@
 diff --git a/c/optpass.c b/c/optpass.c
+index 662e0f3..47057dd 100644
 --- a/c/optpass.c
 +++ b/c/optpass.c
-@@ -1583,7 +1583,7 @@ static void OptPassRemoveUselessTypecasts(CCmpCtrl *cctrl) {
+@@ -1585,7 +1585,7 @@ static void OptPassRemoveUselessTypecasts(CCmpCtrl *cctrl) {
  }
  static void OptPassMergeAddressOffsets(CCmpCtrl *cctrl) {
    CRPN *r, *arg, *next, *base, *off;
@@ -10,11 +11,11 @@ diff --git a/c/optpass.c b/c/optpass.c
    for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
         r = next) {
      next = r->base.next;
-@@ -1624,21 +1624,24 @@ static void OptPassMergeAddressOffsets(CCmpCtrl *cctrl) {
+@@ -1623,21 +1623,24 @@ static void OptPassMergeAddressOffsets(CCmpCtrl *cctrl) {
+     }
    nxt:;
    }
 -  // When we do "cd3.z" we have *(base_ptr+16). Turn *(base+16) into a frame ptr
-+  // Collapse DEREF(ADDR_OF(x)) for direct frame and register operands.
 -  for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
 -       r = next) {
 -    next = r->base.next;
@@ -26,6 +27,7 @@ diff --git a/c/optpass.c b/c/optpass.c
 -        ICFree(r);
 -        ICFree(next);
 -        next = base;
++  // Collapse DEREF(ADDR_OF(x)) for direct frame and register operands.
 +  do {
 +    changed = 0;
 +    for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;

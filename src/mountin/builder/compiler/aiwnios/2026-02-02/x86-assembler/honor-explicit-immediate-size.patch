@@ -1,8 +1,8 @@
 diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
-index 79f36f5..415a989 100644
+index 91d6e33..89b7fbb 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -385,6 +385,11 @@ r64:
+@@ -386,6 +386,11 @@ r64:
        goto r64;
      case X86_OPERAND_IMM8:
        if(mem_only) return FALSE;
@@ -14,7 +14,7 @@ index 79f36f5..415a989 100644
        if(mode->type==X86MT_IMM)
          if(I8_MIN<=mode->imm<=U8_MAX)
  	  goto pass;
-@@ -395,6 +400,12 @@ r64:
+@@ -396,6 +401,12 @@ r64:
          if(I16_MIN<=mode->imm<=U16_MAX)
  	  goto pass;
        return FALSE;
@@ -27,7 +27,7 @@ index 79f36f5..415a989 100644
      case X86_OPERAND_IMM32:
        if(mem_only) return FALSE;
        if(mode->type==X86MT_IMM)
-@@ -1096,6 +1107,7 @@ rex|=0x40;
+@@ -1097,6 +1108,7 @@ rex|=0x40;
  		    sz=1;
  		    break;
  		  case X86_OPERAND_IMM16:
@@ -35,7 +35,7 @@ index 79f36f5..415a989 100644
  		    sz=2;
  		    break;
  		  case X86_OPERAND_IMM32:
-@@ -1131,6 +1143,7 @@ rex|=0x40;
+@@ -1132,6 +1144,7 @@ rex|=0x40;
  		  to[len++]=modes[a]->imm;
  		  break;
  	        case X86_OPERAND_IMM16:

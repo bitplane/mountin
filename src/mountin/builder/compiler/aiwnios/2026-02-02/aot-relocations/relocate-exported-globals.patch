@@ -1,13 +1,19 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index dec2c03..cadf3e8 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1321,5 +1321,6 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
+@@ -1321,6 +1321,7 @@ next_ic:
+ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code=FALSE) {
    CRPN *head=&cc->coc.coc_head,*cur,*new;
    CCodeMisc *misc,**table;
 +  Bool relocate_glbl;
    CMemberLst *mlst,*mlst2;
    COptMemberVar *mv=NULL;
    CHashImport *h;
-@@ -2230,2 +2231,18 @@ U8 *AiwniosCompile(CCmpCtrl *cc,I64 *res_sz=NULL,CDbgInfo **info,Bool byte_code
+@@ -2232,8 +2233,24 @@ break;case IC_RIP:
+             fill_user_data.cc=cc;
+ 	    fill_user_data.cm=misc;
+ 	    fill_user_data.machine_code=machine_code;
 -	    if(!Globalify(misc->addr,&fill_user_data))
 -		  goto norm_reloc;
 +            if (!Globalify(misc->addr,&fill_user_data)) {
@@ -28,3 +34,6 @@
 +              } else
 +                goto norm_reloc;
 +            }
+ 	  } else {
+ 	  norm_reloc:
+ 	    tmpaie=CAlloc(sizeof(CAOTImportExport));

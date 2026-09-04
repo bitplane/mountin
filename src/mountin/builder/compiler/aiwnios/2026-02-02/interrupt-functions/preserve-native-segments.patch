@@ -1,57 +1,5 @@
---- a/c/aiwn_lexparser.h
-+++ b/c/aiwn_lexparser.h
-@@ -185,6 +185,7 @@
- #define CCF_AOT_COMPILE              0x4
- #define CCF_ICMOV_NO_USE_RAX         0x8
- #define CCF_RAW_AOT_ASM              0x10
-+#define CCF_NATIVE_SEGMENTS          0x20
-   int64_t flags;
-   CHashFun *cur_fun;
-   CCodeCtrl *code_ctrl;
-@@ -772,6 +773,7 @@
- extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
- void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
- void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
-+void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
- 
- CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
- 
---- a/c/parser.c
-+++ b/c/parser.c
-@@ -5115,6 +5115,10 @@
- void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc) {
-   cc->flags |= CCF_RAW_AOT_ASM;
- }
-+
-+void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc) {
-+  cc->flags |= CCF_NATIVE_SEGMENTS;
-+}
- HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
- HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
- HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
---- a/c/main.c
-+++ b/c/main.c
-@@ -922,6 +922,11 @@
-   __HC_CmpCtrl_SetRawAOTAsm((CCmpCtrl *)stk[0]);
-   return 0;
- }
-+
-+static int64_t STK___HC_CmpCtrl_UseNativeSegments(int64_t *stk) {
-+  __HC_CmpCtrl_UseNativeSegments((CCmpCtrl *)stk[0]);
-+  return 0;
-+}
- 
- static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
-   return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
-@@ -1740,6 +1745,8 @@
-     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
-     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
-     PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
-+    PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
-+                 STK___HC_CmpCtrl_UseNativeSegments, 1);
-     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
-     PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
-     PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 1bc0e9f..f33619b 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -5,6 +5,7 @@
@@ -62,7 +10,7 @@
  import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
-@@ -1408,5 +1409,8 @@
+@@ -1436,6 +1437,9 @@ skip_convert:;
    if (cc->flags&CCF_AOT_COMPILE &&
          !(cc->flags&CCF_ASM_EXPRESSIONS))
      __HC_CmpCtrl_SetAOT(acc);
@@ -71,9 +19,8 @@
 +    __HC_CmpCtrl_UseNativeSegments(acc);
    if(cc->flags&CCF_RAW_AOT_ASM)
      __HC_CmpCtrl_SetRawAOTAsm(acc);
-@@ -1706,10 +1710,14 @@
-     #else
-     force_segment=FALSE;
+   if(info) {
+@@ -1740,8 +1744,12 @@ found_offset:;;
      #endif
      if(force_segment) {
        //Bypass import and use raw one on X86,they are predictable
@@ -88,9 +35,7 @@
      } else if(!(misc->h->type&HTF_IMPORT)) {
        new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
      } else
-@@ -1737,10 +1744,14 @@
-     #else
-     force_segment=FALSE;
+@@ -1774,8 +1782,12 @@ found_offset:;;
      #endif
      if(force_segment) {
        //Bypass import and use raw one on X86,they are predictable
@@ -105,9 +50,72 @@
      } else if(!(misc->h->type&HTF_IMPORT)) {
        new=__HC_ICAdd_I64(cc2,misc->h(CHashFun*)->exe_addr);
      } else
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 8f0b64a..3497de0 100644
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -186,6 +186,7 @@ typedef struct CCmpCtrl {
+ #define CCF_AOT_COMPILE              0x4
+ #define CCF_ICMOV_NO_USE_RAX         0x8
+ #define CCF_RAW_AOT_ASM              0x10
++#define CCF_NATIVE_SEGMENTS          0x20
+   int64_t flags;
+   CHashFun *cur_fun;
+   CCodeCtrl *code_ctrl;
+@@ -791,6 +792,7 @@ extern void PrsBindCSymbolNaked(char *name, void *ptr, int64_t arity);
+ extern void PrsBindCSymbol(char *name, void *ptr, int64_t arity);
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
++void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
+ 
+ CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
+ 
+diff --git a/c/main.c b/c/main.c
+index 03f25ae..3d7b6b1 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -923,6 +923,11 @@ static int64_t STK___HC_CmpCtrl_SetRawAOTAsm(int64_t *stk) {
+   return 0;
+ }
+ 
++static int64_t STK___HC_CmpCtrl_UseNativeSegments(int64_t *stk) {
++  __HC_CmpCtrl_UseNativeSegments((CCmpCtrl *)stk[0]);
++  return 0;
++}
++
+ static int64_t STK__HC_ICAdd_RawBytes(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_RawBytes((CCmpCtrl *)stk[0], (char *)stk[1],
+                                       stk[2]);
+@@ -1758,6 +1763,8 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
++    PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
++                 STK___HC_CmpCtrl_UseNativeSegments, 1);
+     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
+     PrsAddSymbol("__HC_ICAdd_SubCall", STK___HC_ICAdd_SubCall, 2);
+     PrsAddSymbol("__HC_ICAdd_SubProlog", STK___HC_ICAdd_SubProlog, 1);
+diff --git a/c/parser.c b/c/parser.c
+index 8fc961b..3cdf260 100644
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -5218,6 +5218,10 @@ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc) {
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc) {
+   cc->flags |= CCF_RAW_AOT_ASM;
+ }
++
++void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc) {
++  cc->flags |= CCF_NATIVE_SEGMENTS;
++}
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index a27f4ff..0f20908 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -6439,11 +6439,18 @@
+@@ -6604,13 +6604,20 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       abort();
      }
    segment:
 -    // %gs is used as a TLS reg for all OS'es
@@ -129,3 +137,4 @@
 +    }
      if (rpn->res.mode == MD_REG && next->type == IC_I64 &&
          Is32Bit(next->integer)) {
+       into_reg = rpn->res.reg;

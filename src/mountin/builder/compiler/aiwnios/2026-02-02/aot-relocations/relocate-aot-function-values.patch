@@ -1,6 +1,11 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 6eb8c9d..de434d1 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -558,6 +558,28 @@
+@@ -561,10 +561,32 @@ I64 StreamExePrint(U8 *fmt,...)
+   return res;
+ }
+ 
 +CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
 +{
 +  CHash *h=HashFind(name,cc->htc.glbl_hash_table,HTT_FUN);
@@ -29,7 +34,8 @@
 +  Bool value_resolved;
    I64 i,ptr,low12;
    for(tmpaotie=cc->aot->next_ie;tmpaotie!=&cc->aot->next_ie;tmpaotie=tmpaotie1) {
-@@ -631,6 +653,33 @@
+     tmpaotie1=tmpaotie->next;
+@@ -636,6 +658,33 @@ skip:;
          Free(tmpaotie);
  #endif
        }

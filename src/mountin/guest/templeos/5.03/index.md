@@ -10,5 +10,6 @@ output_platforms:
 
 # TempleOS 5.03 guest components
 
-Builds TempleOS's compiler and kernel from the final source snapshot, then uses
-the operating system's own RedSea distribution builder to produce boot media.
+Uses Aiwnios to bootstrap TempleOS's compiler from the final source snapshot.
+The resulting native compiler builds the kernel, then TempleOS's own RedSea
+distribution builder produces the boot media.

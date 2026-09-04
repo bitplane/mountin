@@ -1,6 +1,8 @@
+diff --git a/Src/MakeISOFile.HC b/Src/MakeISOFile.HC
+index dadfbd3..2723afc 100644
 --- a/Src/MakeISOFile.HC
 +++ b/Src/MakeISOFile.HC
-@@ -34,6 +34,8 @@
+@@ -34,18 +34,22 @@ U0 RedSeaISO9660Stage1(U8 *iso_filename,U8 *stage2_filename)
    U64 BDVD_BLK_CNT=0x8f46;
    U64 BDVD_SHIFT_BLKS=0x8f48;
  
@@ -9,7 +11,7 @@
    CDirEntry de;
    CFile *out_file=NULL;
    U8	*stage1_buf=CAlloc(DVD_BOOT_LOADER_SIZE);
-@@ -41,10 +43,12 @@
+   U8	*stage1_src=FileRead("::/Src/DvdBootloader.BIN.C");
    if (FileFind(stage2_filename,&de) && (out_file=FOpen(iso_filename,"wc+"))) {
      MemCpy(stage1_buf,stage1_src,BDVD_END-BDVD_START);
 -    *(BDVD_BLK_LO	-BDVD_START+stage1_buf)(U32 *)=de.clus>>2;
@@ -28,7 +30,8 @@
 +    MemCpy(stage1_buf+BDVD_SHIFT_BLKS-BDVD_START,&stage2_shift,sizeof(U16));
      FBlkWrite(out_file,stage1_buf,
  	  20<<2+1<<2,DVD_BOOT_LOADER_SIZE/BLK_SIZE);
-@@ -68,7 +72,7 @@
+     FClose(out_file);
+@@ -68,7 +72,7 @@ U0 RedSeaISO9660(U8 *iso_filename,U8 drv_let)
    CFile *out_file=NULL;
  
    if (out_file=iso_filename) {
@@ -36,3 +39,4 @@
 +    iso_size=(dv->bd->max_blk+1)/(DVD_BLK_SIZE/BLK_SIZE);
      for (i=0;i<dv->bd->drv_offset;i+=4)
        FBlkWrite(out_file,zero_buf,i,4);
+ 

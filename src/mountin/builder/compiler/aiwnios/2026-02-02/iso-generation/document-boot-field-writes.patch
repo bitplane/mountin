@@ -1,0 +1,13 @@
+diff --git a/Src/MakeISOFile.HC b/Src/MakeISOFile.HC
+index 2723afc..bcaf10c 100644
+--- a/Src/MakeISOFile.HC
++++ b/Src/MakeISOFile.HC
+@@ -42,6 +42,8 @@ U0 RedSeaISO9660Stage1(U8 *iso_filename,U8 *stage2_filename)
+   U8	*stage1_src=FileRead("::/Src/DvdBootloader.BIN.C");
+   if (FileFind(stage2_filename,&de) && (out_file=FOpen(iso_filename,"wc+"))) {
+     MemCpy(stage1_buf,stage1_src,BDVD_END-BDVD_START);
++    //Aiwnios does not preserve these packed unaligned typed stores reliably.
++    //Copy locals into the boot-sector fields explicitly.
+     stage2_blk=de.clus>>2;
+     stage2_cnt=(de.size+DVD_BLK_SIZE-1)>>(BLK_SIZE_BITS+2);
+     stage2_shift=de.clus&3;

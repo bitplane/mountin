@@ -1,8 +1,8 @@
 diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
-index 79832e5..251a4f1 100644
+index b48d0cd..de2da3a 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -1474,7 +1474,25 @@ enter:
+@@ -1497,7 +1497,25 @@ enter:
        seg_size=64;
        Lex(cc);
      } else if(!StrCmp(cc->hash_entry->str,"IMPORT")) {

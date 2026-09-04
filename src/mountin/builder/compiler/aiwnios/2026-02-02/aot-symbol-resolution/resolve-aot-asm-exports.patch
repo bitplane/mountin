@@ -1,6 +1,8 @@
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index f2ae14d..25a711e 100644
 --- a/Src/AsmResolve.HC
 +++ b/Src/AsmResolve.HC
-@@ -71,10 +71,28 @@
+@@ -82,10 +82,28 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
    }
  }
  
@@ -29,7 +31,7 @@
    CAsmUnresolvedRef *tmpu=aotc->glbl_unresolved,*tmpu1;
    I64 i,j;
    CAOTImportExport *tmpie,*tmpie1;
-@@ -103,5 +121,17 @@
+@@ -110,6 +128,18 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
  	  tmpex->val=tmpf->exe_addr;
  	  tmpex->type&=~HTF_UNRESOLVED;
  	  label=tmpauh->hash->str;
@@ -47,7 +49,8 @@
 +	  label=tmpauh->hash->str;
  	} else {
  	  if (!(tmpex->type & HTF_IMPORT)) {
-@@ -153,7 +176,8 @@
+ 	    if (cc->htc.local_var_lst) {
+@@ -161,7 +191,8 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
  	  PrintErr("Undefined sym at %s\n",tmpex->str);
  	  LexExcept(cc);
  	}
@@ -57,4 +60,3 @@
  	  tmpf=tmpex;
  	  tmpeu=tmpf->ext_lst;
  	  while (tmpeu) {
- 	    if (cc->htc.local_var_lst) {

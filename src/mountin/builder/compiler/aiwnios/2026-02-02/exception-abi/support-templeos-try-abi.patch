@@ -1,3 +1,63 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 37ba7dd..1bc0e9f 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -87,6 +87,7 @@ import U8 *__HC_Compile(U8*,I64 *sz=NULL,U8 **dbg_info=NULL,CHeapCtrl *);
+ import U8 *__HC_CodeMiscStrNew(U8 *,U8*,I64);
+ import U8 *__HC_CodeMiscJmpTableNew(U8*,U8**,I64,I64);
+ import U8 *__HC_ICAdd_Label(U8*,U8*);
++import U8 *__HC_ICAdd_LabelAddr(U8*,U8*);
+ import U8 *__HC_ICAdd_Goto(U8*,U8*);
+ import U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+@@ -201,6 +202,7 @@ extern U8 *__HC_CodeMiscLabelNew(U8 *,U8 **patch_addr=NULL);
+ extern U8 *__HC_CodeMiscStrNew(U8 *,U8*,I64);
+ extern U8 *__HC_CodeMiscJmpTableNew(U8*,U8**,I64,I64);
+ extern U8 *__HC_ICAdd_Label(U8*,U8*);
++extern U8 *__HC_ICAdd_LabelAddr(U8*,U8*);
+ extern U8 *__HC_ICAdd_Goto(U8*,U8*);
+ extern U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+@@ -1844,6 +1846,11 @@ found_offset:;;
+     break;case IC_NOP2:
+     break;case IC_LABEL:
+       new=__HC_ICAdd_Label(cc2,cur->ic_data(CCodeMisc*)->addr);
++    break;case IC_GET_LABEL:
++      misc=cur->ic_data;
++      if (!misc->addr)
++        misc->addr=__HC_CodeMiscLabelNew(acc,&misc->addr2);
++      new=__HC_ICAdd_LabelAddr(cc2,misc->addr);
+ break;case IC_ASM:
+   __HC_ICAdd_Label(cc2,__HC_CodeMiscLabelNew(acc,&cur->ic_data(CAiwniosAOTBlob*)->final_start_addr));
+    new=__HC_ICAdd_RawBytes(cc2,cur->ic_data(CAiwniosAOTBlob*)->data,cur->ic_data(CAiwniosAOTBlob*)->len);
+@@ -2114,7 +2121,10 @@ break;case IC_RIP:
+     break;case IC_SUB_EQU:
+     new=__HC_ICAdd_SubEq(cc2);
+     break;case IC_JMP:
+-    new=__HC_ICAdd_Goto(cc2,cur->ic_data(CCodeMisc*)->addr);
++    misc=cur->ic_data;
++    if (!misc->addr)
++      misc->addr=__HC_CodeMiscLabelNew(acc,&misc->addr2);
++    new=__HC_ICAdd_Goto(cc2,misc->addr);
+     break;case IC_SUB_RET:
+     new=__HC_ICAdd_SubRet(cc2);
+     break;case IC_SUB_CALL:
+diff --git a/Src/AIWNIOS_PrsExp.HC b/Src/AIWNIOS_PrsExp.HC
+index d06cf9d..e0bda9f 100644
+--- a/Src/AIWNIOS_PrsExp.HC
++++ b/Src/AIWNIOS_PrsExp.HC
+@@ -86,8 +86,7 @@ CHashClass *AssignRawTypeToNode(CRPN *r) {
+     return r->ic_class=cmp.internal_types[RT_I64];
+     break;case IC_TYPE:
+     goto unimp;
+-    break;case IC_GET_LABEL:
+-    goto unimp;
++    break;case IC_GET_LABEL: return r->ic_class;
+     break;case IC_REG:
+     goto unimp;
+     break;case IC_TO_I64: return r->ic_class=cmp.internal_types[RT_I64];
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index e0fefd7..65e0697 100644
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
 @@ -967,6 +967,31 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
@@ -32,51 +92,24 @@
    //Changed by nroot
    RPNAddNew(cc,IC_ADDR_IMPORT,tmp_a_ent,tmpc,FALSE);
    RPNAddNew(cc,IC_ADDR_IMPORT,tmp_try,tmpc,FALSE);
---- a/Src/AIWNIOS_CodeGen.HC
-+++ b/Src/AIWNIOS_CodeGen.HC
-@@ -87,5 +87,6 @@ import U8 *__HC_CodeMiscStrNew(U8 *,U8*,I64);
- import U8 *__HC_CodeMiscJmpTableNew(U8*,U8**,I64,I64);
- import U8 *__HC_ICAdd_Label(U8*,U8*);
-+import U8 *__HC_ICAdd_LabelAddr(U8*,U8*);
- import U8 *__HC_ICAdd_Goto(U8*,U8*);
- import U8 *__HC_ICAdd_GotoIf(U8*,U8*)
- import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
-@@ -188,5 +189,6 @@ extern U8 *__HC_CodeMiscStrNew(U8 *,U8*,I64);
- extern U8 *__HC_CodeMiscJmpTableNew(U8*,U8**,I64,I64);
- extern U8 *__HC_ICAdd_Label(U8*,U8*);
-+extern U8 *__HC_ICAdd_LabelAddr(U8*,U8*);
- extern U8 *__HC_ICAdd_Goto(U8*,U8*);
- extern U8 *__HC_ICAdd_GotoIf(U8*,U8*)
- extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
-@@ -1818,5 +1820,10 @@ CRPN *CopyCode(CCmpCtrl *cc,CCodeCtrl *cc2,CAiwniosAOT *acc)
-     break;case IC_LABEL:
-       new=__HC_ICAdd_Label(cc2,cur->ic_data(CCodeMisc*)->addr);
-+    break;case IC_GET_LABEL:
-+      misc=cur->ic_data;
-+      if (!misc->addr)
-+        misc->addr=__HC_CodeMiscLabelNew(acc,&misc->addr2);
-+      new=__HC_ICAdd_LabelAddr(cc2,misc->addr);
- break;case IC_ASM:
-   __HC_ICAdd_Label(cc2,__HC_CodeMiscLabelNew(acc,&cur->ic_data(CAiwniosAOTBlob*)->final_start_addr));
-    new=__HC_ICAdd_RawBytes(cc2,cur->ic_data(CAiwniosAOTBlob*)->data,cur->ic_data(CAiwniosAOTBlob*)->len);
---- a/Src/AIWNIOS_PrsExp.HC
-+++ b/Src/AIWNIOS_PrsExp.HC
-@@ -95,2 +95,1 @@ CHashClass *AssignRawTypeToNode(CCmpCtrl *cc,CRPN *r)
--    break;case IC_GET_LABEL:
--    goto unimp;
-+    break;case IC_GET_LABEL: return r->ic_class;
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 9b51f85..8f0b64a 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -719,5 +719,6 @@ CCodeMisc *__HC_CodeMiscStrNew(CCmpCtrl *ccmp, char *str, int64_t sz);
- CCodeMisc *__HC_CodeMiscLabelNew(CCmpCtrl *ccmp, void **);
+@@ -752,6 +752,7 @@ char *__HC_Compile(CCmpCtrl *ccmp, int64_t *sz, char **dbg_info,
+                    struct CHeapCtrl *heap);
  CRPN *__HC_ICAdd_Goto(CCodeCtrl *cc, CCodeMisc *cm);
  CRPN *__HC_ICAdd_GotoIf(CCodeCtrl *cc, CCodeMisc *cm);
 +CRPN *__HC_ICAdd_LabelAddr(CCodeCtrl *cc, CCodeMisc *misc);
  CRPN *__HC_ICAdd_Str(CCodeCtrl *cc, CCodeMisc *cm);
  CRPN *__HC_ICAdd_Label(CCodeCtrl *cc, CCodeMisc *misc);
+ CRPN *__HC_ICAdd_Arg(CCodeCtrl *cc, int64_t arg);
+diff --git a/c/main.c b/c/main.c
+index 75191cd..03f25ae 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1157,5 +1157,8 @@ static int64_t STK___HC_CodeMiscLabelNew(int64_t *stk) {
+@@ -1156,6 +1156,9 @@ static int64_t STK___HC_CodeMiscStrNew(int64_t *stk) {
+ static int64_t STK___HC_CodeMiscLabelNew(int64_t *stk) {
    return (int64_t)__HC_CodeMiscLabelNew((CCmpCtrl *)stk[0], (void **)stk[1]);
  }
 +static int64_t STK___HC_ICAdd_LabelAddr(int64_t *stk) {
@@ -85,15 +118,37 @@
  static int64_t STK___HC_CmpCtrlNew(int64_t *stk) {
    return (int64_t)__HC_CmpCtrlNew();
  }
-@@ -1782,4 +1785,5 @@ int main(int argc, char **argv) {
+@@ -1816,6 +1819,7 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("__HC_CodeMiscStrNew", STK___HC_CodeMiscStrNew, 3);
      PrsAddSymbol("__HC_CodeMiscJmpTableNew", STK___HC_CodeMiscJmpTableNew, 4);
      PrsAddSymbol("__HC_ICAdd_Label", STK___HC_ICAdd_Label, 2);
 +    PrsAddSymbol("__HC_ICAdd_LabelAddr", STK___HC_ICAdd_LabelAddr, 2);
      PrsAddSymbol("__HC_ICAdd_Goto", STK___HC_ICAdd_Goto, 2);
      PrsAddSymbol("__HC_ICAdd_GotoIf", STK___HC_ICAdd_GotoIf, 2);
+     PrsAddSymbol("__HC_ICAdd_Str", STK___HC_ICAdd_Str, 2);
+diff --git a/c/optpass.c b/c/optpass.c
+index fdaa43e..675b21a 100644
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -33,9 +33,12 @@ static void FixFunArgs(CCmpCtrl *cctrl, CRPN *rpn) {
+   CHashFun *ic_fun;
+   CMemberLst *arg, *args_lst_rev;
+   for (cnt = 0; cnt != rpn->length; cnt++)
+-    rpn2 = ICFwd(rpn2);
++    if (!(rpn2 = ICFwd(rpn2)))
++      return;
+   AssignRawTypeToNode(cctrl, rpn2);
+   ic_fun = rpn2->ic_fun;
++  if (!ic_fun)
++    return;
+   rpn2 = rpn->base.next;
+   arg = ic_fun->base.members_lst;
+   cnt2 = ic_fun->argc;
+diff --git a/c/parser.c b/c/parser.c
+index c179ae1..8fc961b 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -4921,5 +4921,17 @@ CRPN *__HC_ICAdd_Label(CCodeCtrl *cc, CCodeMisc *misc) {
+@@ -5043,6 +5043,18 @@ CRPN *__HC_ICAdd_Label(CCodeCtrl *cc, CCodeMisc *misc) {
    return rpn;
  }
  
@@ -111,31 +166,4 @@
 +
  CRPN *__HC_ICAdd_Goto(CCodeCtrl *cc, CCodeMisc *cm) {
    CRPN *rpn;
---- a/c/optpass.c
-+++ b/c/optpass.c
-@@ -36,7 +36,10 @@ static void FixFunArgs(CCmpCtrl *cctrl, CRPN *rpn) {
-   CMemberLst *arg, *args_lst_rev;
-   for (cnt = 0; cnt != rpn->length; cnt++)
--    rpn2 = ICFwd(rpn2);
-+    if (!(rpn2 = ICFwd(rpn2)))
-+      return;
-   AssignRawTypeToNode(cctrl, rpn2);
-   ic_fun = rpn2->ic_fun;
-+  if (!ic_fun)
-+    return;
-   rpn2 = rpn->base.next;
-   arg = ic_fun->base.members_lst;
---- a/Src/AIWNIOS_CodeGen.HC
-+++ b/Src/AIWNIOS_CodeGen.HC
-@@ -2043,7 +2050,10 @@ CRPN *CopyCode(CCmpCtrl *cc,CCodeCtrl *cc2,CAiwniosAOT *acc)
-     new=__HC_ICAdd_AddEq(cc2);
-     break;case IC_SUB_EQU:
-     new=__HC_ICAdd_SubEq(cc2);
-     break;case IC_JMP:
--    new=__HC_ICAdd_Goto(cc2,cur->ic_data(CCodeMisc*)->addr);
-+    misc=cur->ic_data;
-+    if (!misc->addr)
-+      misc->addr=__HC_CodeMiscLabelNew(acc,&misc->addr2);
-+    new=__HC_ICAdd_Goto(cc2,misc->addr);
-     break;case IC_SUB_RET:
-     new=__HC_ICAdd_SubRet(cc2);
+   *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){

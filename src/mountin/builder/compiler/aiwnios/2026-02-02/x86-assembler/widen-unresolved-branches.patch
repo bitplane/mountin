@@ -1,8 +1,8 @@
 diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
-index 329f676..8a395c9 100644
+index 2315d97..379ef00 100644
 --- a/Src/AsmX64.HC
 +++ b/Src/AsmX64.HC
-@@ -329,6 +329,14 @@ class CX86Opcode:CHash {
+@@ -330,6 +330,14 @@ class CX86Opcode:CHash {
  //It is the added reg to the opcode
    I8 addi_reg,arity,pad[6];
  };
@@ -17,7 +17,7 @@ index 329f676..8a395c9 100644
  Bool ModeMatch(U16 md,CX86AddrMode *mode,I64 mem_sz,Bool mem_only=FALSE) {
    switch(md.u8[0]) {
      case X86_OPERAND_R8:
-@@ -1492,7 +1500,7 @@ CAiwniosAOTBlob *PrsAsmBlk(CCmpCtrl *cc,I64 flags=0) {
+@@ -1493,7 +1501,7 @@ CAiwniosAOTBlob *PrsAsmBlk(CCmpCtrl *cc,I64 flags=0) {
    I64 old_flags=cc->flags;
    I64 old_class_dol_offset=cc->class_dol_offset;
    CHashGeneric *asm_entry;
@@ -26,7 +26,7 @@ index 329f676..8a395c9 100644
    if(flags&CMPF_ONE_ASM_INS) {
      one_ins=TRUE;
      goto enter0;
-@@ -1562,13 +1570,22 @@ enter:
+@@ -1563,13 +1571,22 @@ enter:
          throw('Asm');
        }
      }

@@ -1,6 +1,8 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 093ae3a..1f5173a 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -96,6 +96,7 @@
+@@ -95,6 +95,7 @@ import U8 *__HC_ICAdd_Bsf(U8*);
  import U8 *__HC_ICAdd_Bsr(U8*);
  import U8 *__HC_ICAdd_Rdtsc(U8*);
  import U8 *__HC_ICAdd_QueInit(U8*);
@@ -8,7 +10,7 @@
  import U8 *__HC_ICAdd_Ret(U8*);
  import U8 *__HC_ICAdd_Arg(U8*,I64);
  import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -202,6 +203,7 @@
+@@ -201,6 +202,7 @@ extern U8 *__HC_ICAdd_Bsf(U8*);
  extern U8 *__HC_ICAdd_Bsr(U8*);
  extern U8 *__HC_ICAdd_Rdtsc(U8*);
  extern U8 *__HC_ICAdd_QueInit(U8*);
@@ -16,7 +18,7 @@
  extern U8 *__HC_ICAdd_Ret(U8*);
  extern U8 *__HC_ICAdd_Arg(U8*,I64);
  extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -1988,6 +1990,8 @@
+@@ -1980,6 +1982,8 @@ break;case IC_RIP:
      new=__HC_ICAdd_Rdtsc(cc2);
      break;case IC_QUE_INIT:
      new=__HC_ICAdd_QueInit(cc2);
@@ -25,9 +27,11 @@
      break;case IC_SQRT:
      new=__HC_ICAdd_Sqrt(cc2);
      break;case IC_DEREF:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 595eb84..d06d3ae 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -243,6 +243,7 @@
+@@ -242,6 +242,7 @@ enum {
    IC_BSR,
    IC_RDTSC,
    IC_QUE_INIT,
@@ -35,7 +39,7 @@
    IC_POS,
    IC_NAME,
    IC_STR, //->code_misc
-@@ -690,6 +691,7 @@
+@@ -689,6 +690,7 @@ HC_IC_BINDINGH(HC_ICAdd_Bsf)
  HC_IC_BINDINGH(HC_ICAdd_Bsr)
  HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
  HC_IC_BINDINGH(HC_ICAdd_QueInit)
@@ -43,9 +47,11 @@
  HC_IC_BINDINGH(HC_ICAdd_And)
  HC_IC_BINDINGH(HC_ICAdd_EqEq)
  HC_IC_BINDINGH(HC_ICAdd_Ret)
+diff --git a/c/main.c b/c/main.c
+index 8335e72..c22ed8a 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1207,6 +1207,9 @@
+@@ -1202,6 +1202,9 @@ static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
  static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
    return __HC_ICAdd_QueInit(stk[0]);
  }
@@ -55,7 +61,7 @@
  static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
    return __HC_ICAdd_Ret(stk[0]);
  }
-@@ -1824,6 +1827,7 @@
+@@ -1817,6 +1820,7 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
      PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
      PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
@@ -63,9 +69,31 @@
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
      PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
      PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff --git a/c/optpass.c b/c/optpass.c
+index dcb3af0..1b84a9b 100644
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -701,6 +701,7 @@ loop:
+       break;
+     case IC_DEREF:
+     case IC_QUE_INIT:
++    case IC_INVLPG:
+       goto next1;
+       break;
+     case IC_AND:
+@@ -1129,6 +1130,7 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
+       break;
+     case IC_DEREF:
+     case IC_QUE_INIT:
++    case IC_INVLPG:
+       continue;
+       break;
+     case IC_AND:
+diff --git a/c/parser.c b/c/parser.c
+index d2a2737..c9a2c2e 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -244,6 +244,7 @@
+@@ -244,6 +244,7 @@ CRPN *ICFwd(CRPN *rpn) {
      break;
    case IC_TYPECAST:
    case IC_QUE_INIT:
@@ -73,7 +101,7 @@
      goto unop;
      break;
    case IC_COMMA:
-@@ -805,6 +806,9 @@
+@@ -807,6 +808,9 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
      printf("QUE_INIT\n");
      goto unop;
      break;
@@ -83,7 +111,7 @@
    case IC_NAME:
      printf("NAME:%s\n", rpn->string);
      goto ret;
-@@ -1334,6 +1338,9 @@
+@@ -1337,6 +1341,9 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
      len = AddBytes(to, len, "$PURPLE$QUE_INIT$FD$\n");
      goto unop;
      break;
@@ -93,7 +121,7 @@
    case IC_NAME:
      goto ret;
      break;
-@@ -3488,6 +3495,10 @@
+@@ -3490,6 +3497,10 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
      AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
      return rpn->raw_type = RT_U0;
      break;
@@ -104,7 +132,7 @@
    case IC_BT:
    case IC_BTR:
    case IC_BTS:
-@@ -4657,6 +4668,7 @@
+@@ -4659,6 +4670,7 @@ HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
  HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
  HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
  HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
@@ -112,9 +140,11 @@
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
  HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
  
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 834ac0c..fca8a35 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -1369,5 +1369,18 @@
+@@ -1370,6 +1370,19 @@ static int64_t X86Rdtsc(char *to, int64_t unused) {
    return len;
  }
  
@@ -133,7 +163,8 @@
 +
  static int64_t X86IMul2SIB64(char *to, int64_t r, int64_t s, int64_t i,
                               int64_t b, int64_t off) {
-@@ -2218,6 +2229,7 @@
+   int64_t len = 0;
+@@ -2218,6 +2231,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -141,7 +172,7 @@
    case IC_SQRT:
    case IC_TO_BOOL:
    unop:
-@@ -2898,6 +2910,7 @@
+@@ -2898,6 +2912,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -149,7 +180,7 @@
      goto unop;
      break;
    case IC_POS:
-@@ -6145,6 +6158,7 @@
+@@ -6145,6 +6160,7 @@ static void SetKeepTmps(CRPN *rpn) {
    case IC_BSF:
    case IC_BSR:
    case IC_QUE_INIT:
@@ -157,14 +188,15 @@
    case IC_LNOT:
    case IC_BNOT:
    case IC_POS:
-@@ -6374,5 +6388,6 @@
+@@ -6374,12 +6390,21 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_CURRENT_PC] = &&ic_current_pc,
        [IC_RDTSC] = &&ic_rdtsc,
        [IC_QUE_INIT] = &&ic_que_init,
 +      [IC_INVLPG] = &&ic_invlpg,
        [IC_RAW_BYTES] = &&ic_raw_bytes,
    };
-@@ -6382,5 +6397,13 @@
+   if (!poop_ants[rpn->type])
+     goto ret;
    goto *poop_ants[rpn->type];
    do {
 +  ic_invlpg:
@@ -178,21 +210,3 @@
    ic_que_init:
      next = ICArgN(rpn, 0);
      next->res.keep_in_tmp = 1;
---- a/c/optpass.c
-+++ b/c/optpass.c
-@@ -702,6 +702,7 @@
-       break;
-     case IC_DEREF:
-     case IC_QUE_INIT:
-+    case IC_INVLPG:
-       goto next1;
-       break;
-     case IC_AND:
-@@ -1130,6 +1131,7 @@
-       break;
-     case IC_DEREF:
-     case IC_QUE_INIT:
-+    case IC_INVLPG:
-       continue;
-       break;
-     case IC_AND:

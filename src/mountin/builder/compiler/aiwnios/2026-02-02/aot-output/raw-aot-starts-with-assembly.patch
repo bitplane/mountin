@@ -1,62 +1,70 @@
---- a/Src/PrsStmt.HC
-+++ b/Src/PrsStmt.HC
-@@ -1043,13 +1043,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
- 		    if (tmpaot=PrsAsmBlk(cc)) {
- 		      //If we are not in a function,we will jump past the assembly block
- 		      // to avoid running it
--		      if(!cc->htc.fun) {
-+		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
-+			cc->flags|=CCF_RAW_AOT_ASM;
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
- 		        g_lb=COCMiscNew(cc,CMT_LABEL);
- 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
- 		      }
- 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
- 		      cc->flags|=CCF_HAS_MISC_DATA;
--		      if(!cc->htc.fun)
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
- 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
- 		    }
- #endif
-@@ -1057,13 +1059,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
- 		    if (tmpaot=PrsAsmBlk(cc)) {
- 		      //If we are not in a function,we will jump past the assembly block
- 		      // to avoid running it
--		      if(!cc->htc.fun) {
-+		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
-+			cc->flags|=CCF_RAW_AOT_ASM;
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
- 		        g_lb=COCMiscNew(cc,CMT_LABEL);
- 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
- 		      }
- 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
- 		      cc->flags|=CCF_HAS_MISC_DATA;
--		      if(!cc->htc.fun)
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
- 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
- 		    }
- #endif
-@@ -1071,13 +1075,15 @@ Bool PrsStmt(CCmpCtrl *cc,I64 try_cnt=0,CCodeMisc *lb_break=NULL,
- 		    if (tmpaot=PrsAsmBlk(cc)) {
- 		      //If we are not in a function,we will jump past the assembly block
- 		      // to avoid running it
--		      if(!cc->htc.fun) {
-+		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
-+			cc->flags|=CCF_RAW_AOT_ASM;
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
- 		        g_lb=COCMiscNew(cc,CMT_LABEL);
- 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
- 		      }
- 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
- 		      cc->flags|=CCF_HAS_MISC_DATA;
--		      if(!cc->htc.fun)
-+		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
- 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
-		    }
- #endif
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+index f69406c..e9624fc 100644
 --- a/Src/KernelA.HH
 +++ b/Src/KernelA.HH
-@@ -2174,2 +2174,3 @@
+@@ -2172,6 +2172,7 @@ class CLexHashTableContext
+ #define CCF_PAREN		0x2000000000
+ #define CCf_PAREN		37
  #define CCF_CLASS_DOL_OFFSET	0x4000000000
 +#define CCF_RAW_AOT_ASM		0x10000000000
  #define CCF_DONT_MAKE_RES	0x8000000000
+ 
+ public class CCmpCtrl
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index 7d8c9f7..a7253b2 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -1041,13 +1041,15 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		    if (tmpaot=PrsAsmBlk(cc)) {
+ 		      //If we are not in a function,we will jump past the assembly block
+ 		      // to avoid running it
+-		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+ 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
+ 		      cc->flags|=CCF_HAS_MISC_DATA;
+-		      if(!cc->htc.fun)
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
+ 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
+ 		    }
+ #endif
+@@ -1055,13 +1057,15 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		    if (tmpaot=PrsAsmBlk(cc)) {
+ 		      //If we are not in a function,we will jump past the assembly block
+ 		      // to avoid running it
+-		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+ 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
+ 		      cc->flags|=CCF_HAS_MISC_DATA;
+-		      if(!cc->htc.fun)
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
+ 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
+ 		    }
+ #endif
+@@ -1069,13 +1073,15 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		    if (tmpaot=PrsAsmBlk(cc)) {
+ 		      //If we are not in a function,we will jump past the assembly block
+ 		      // to avoid running it
+-		      if(!cc->htc.fun) {
++		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
++			cc->flags|=CCF_RAW_AOT_ASM;
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+ 		      RPNAddNew(cc,IC_ASM,tmpaot,NULL,FALSE);
+ 		      cc->flags|=CCF_HAS_MISC_DATA;
+-		      if(!cc->htc.fun)
++		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT))
+ 		        RPNAddNew(cc,IC_LABEL,g_lb,NULL,FALSE);
+ 		    }
+ #endif

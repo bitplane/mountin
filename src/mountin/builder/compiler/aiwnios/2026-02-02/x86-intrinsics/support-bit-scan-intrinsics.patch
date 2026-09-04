@@ -1,6 +1,41 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index f4821ca..224b5ed 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -91,6 +91,8 @@ import U8 *__HC_ICAdd_Goto(U8*,U8*);
+ import U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+ import U8 *__HC_ICAdd_Neg(U8*);
++import U8 *__HC_ICAdd_Bsf(U8*);
++import U8 *__HC_ICAdd_Bsr(U8*);
+ import U8 *__HC_ICAdd_Ret(U8*);
+ import U8 *__HC_ICAdd_Arg(U8*,I64);
+ import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -193,6 +195,8 @@ extern U8 *__HC_ICAdd_Goto(U8*,U8*);
+ extern U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+ extern U8 *__HC_ICAdd_Neg(U8*);
++extern U8 *__HC_ICAdd_Bsf(U8*);
++extern U8 *__HC_ICAdd_Bsr(U8*);
+ extern U8 *__HC_ICAdd_Ret(U8*);
+ extern U8 *__HC_ICAdd_Arg(U8*,I64);
+ extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -1964,6 +1968,10 @@ break;case IC_RIP:
+     new=__HC_ICAdd_LNot(cc2);
+     break;case IC_UNARY_MINUS:
+     new=__HC_ICAdd_Neg(cc2);
++    break;case IC_BSF:
++    new=__HC_ICAdd_Bsf(cc2);
++    break;case IC_BSR:
++    new=__HC_ICAdd_Bsr(cc2);
+     break;case IC_SQRT:
+     new=__HC_ICAdd_Sqrt(cc2);
+     break;case IC_DEREF:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 0854a0f..6f4bd4a 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
-@@ -238,6 +238,8 @@
+@@ -238,6 +238,8 @@ enum {
    IC_NOP,
    IC_PAREN,
    IC_NEG,
@@ -9,7 +44,7 @@
    IC_POS,
    IC_NAME,
    IC_STR, //->code_misc
-@@ -681,6 +683,8 @@
+@@ -681,6 +683,8 @@ HC_IC_BINDINGH(HC_ICAdd_OrEq)
  HC_IC_BINDINGH(HC_ICAdd_XorEq)
  HC_IC_BINDINGH(HC_ICAdd_ModEq)
  HC_IC_BINDINGH(HC_ICAdd_Neg)
@@ -18,73 +53,11 @@
  HC_IC_BINDINGH(HC_ICAdd_And)
  HC_IC_BINDINGH(HC_ICAdd_EqEq)
  HC_IC_BINDINGH(HC_ICAdd_Ret)
---- a/c/parser.c
-+++ b/c/parser.c
-@@ -322,6 +322,8 @@
-     abort();
-     break;
-   case IC_NEG:
-+  case IC_BSF:
-+  case IC_BSR:
-   case IC_SQRT:
-   unop:
-     return ICFwd(rpn->base.next);
-@@ -990,6 +992,12 @@
-     printf("SQRT");
-     goto unop;
-     break;
-+  case IC_BSF:
-+    printf("BSF");
-+    goto unop;
-+  case IC_BSR:
-+    printf("BSR");
-+    goto unop;
-   case IC_NEG:
-     printf("-");
-     goto unop;
-@@ -1506,6 +1514,12 @@
-     len = AddBytes(to, len, "$PURPLE$SQR$FD$\n");
-     goto unop;
-     break;
-+  case IC_BSF:
-+    len = AddBytes(to, len, "$PURPLE$BSF$FD$\n");
-+    goto unop;
-+  case IC_BSR:
-+    len = AddBytes(to, len, "$PURPLE$BSR$FD$\n");
-+    goto unop;
-   case IC_NEG:
-     len = AddBytes(to, len, "$PURPLE$-a$FD$\n");
-     goto unop;
-@@ -1539,6 +1553,8 @@
-   case IC_LNOT:
-   case IC_POS:
-   case IC_NEG:
-+  case IC_BSF:
-+  case IC_BSR:
-   case IC_SQRT:
-   case IC_EQ:
-   case IC_ADD_EQ:
-@@ -3566,6 +3582,8 @@
-     return rpn->raw_type = rpn->ic_class->raw_type;
-     break;
-   case IC_NEG:
-+  case IC_BSF:
-+  case IC_BSR:
-   unop:
-     AssignRawTypeToNode(ccmp, rpn->base.next);
-     if (BETWEEN(((CRPN *)rpn->base.next)->raw_type, RT_I8i, RT_U32i)) {
-@@ -4614,6 +4632,8 @@
- HC_IC_BINDING(HC_ICAdd_Lsh, IC_LSH);
- HC_IC_BINDING(HC_ICAdd_Rsh, IC_RSH);
- HC_IC_BINDING(HC_ICAdd_Neg, IC_NEG);
-+HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
-+HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
- HC_IC_BINDING(HC_ICAdd_And, IC_AND);
- HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
- 
+diff --git a/c/main.c b/c/main.c
+index 466ae2e..73026e2 100644
 --- a/c/main.c
 +++ b/c/main.c
-@@ -1190,6 +1190,12 @@
+@@ -1190,6 +1190,12 @@ static int64_t STK___HC_ICAdd_EqEq(int64_t *stk) {
  static int64_t STK___HC_ICAdd_Neg(int64_t *stk) {
    return __HC_ICAdd_Neg(stk[0]);
  }
@@ -97,7 +70,7 @@
  static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
    return __HC_ICAdd_Ret(stk[0]);
  }
-@@ -1801,6 +1807,8 @@
+@@ -1801,6 +1807,8 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_Gs", STK___HC_ICAdd_Gs, 1);
      PrsAddSymbol("__HC_ICAdd_EqEq", STK___HC_ICAdd_EqEq, 1);
      PrsAddSymbol("__HC_ICAdd_Neg", STK___HC_ICAdd_Neg, 1);
@@ -106,9 +79,77 @@
      PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
      PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
      PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff --git a/c/parser.c b/c/parser.c
+index 1454873..a13a865 100644
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -322,6 +322,8 @@ CRPN *ICFwd(CRPN *rpn) {
+     abort();
+     break;
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   case IC_SQRT:
+   unop:
+     return ICFwd(rpn->base.next);
+@@ -990,6 +992,12 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+     printf("SQRT");
+     goto unop;
+     break;
++  case IC_BSF:
++    printf("BSF");
++    goto unop;
++  case IC_BSR:
++    printf("BSR");
++    goto unop;
+   case IC_NEG:
+     printf("-");
+     goto unop;
+@@ -1506,6 +1514,12 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+     len = AddBytes(to, len, "$PURPLE$SQR$FD$\n");
+     goto unop;
+     break;
++  case IC_BSF:
++    len = AddBytes(to, len, "$PURPLE$BSF$FD$\n");
++    goto unop;
++  case IC_BSR:
++    len = AddBytes(to, len, "$PURPLE$BSR$FD$\n");
++    goto unop;
+   case IC_NEG:
+     len = AddBytes(to, len, "$PURPLE$-a$FD$\n");
+     goto unop;
+@@ -1539,6 +1553,8 @@ static int64_t IsRightAssoc(int64_t ic) {
+   case IC_LNOT:
+   case IC_POS:
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   case IC_SQRT:
+   case IC_EQ:
+   case IC_ADD_EQ:
+@@ -3566,6 +3582,8 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     return rpn->raw_type = rpn->ic_class->raw_type;
+     break;
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   unop:
+     AssignRawTypeToNode(ccmp, rpn->base.next);
+     if (BETWEEN(((CRPN *)rpn->base.next)->raw_type, RT_I8i, RT_U32i)) {
+@@ -4614,6 +4632,8 @@ HC_IC_BINDING(HC_ICAdd_Ne, IC_NE);
+ HC_IC_BINDING(HC_ICAdd_Lsh, IC_LSH);
+ HC_IC_BINDING(HC_ICAdd_Rsh, IC_RSH);
+ HC_IC_BINDING(HC_ICAdd_Neg, IC_NEG);
++HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
++HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+ HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
+ 
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 9803e14..18db497 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -1346,6 +1346,19 @@
+@@ -1346,6 +1346,19 @@ static int64_t X86IMul2Reg(char *to, int64_t a, int64_t b) {
    return len;
  }
  
@@ -128,7 +169,7 @@
  static int64_t X86IMul2SIB64(char *to, int64_t r, int64_t s, int64_t i,
                               int64_t b, int64_t off) {
    int64_t len = 0;
-@@ -2189,6 +2202,8 @@
+@@ -2189,6 +2202,8 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    case IC_TO_F64:
    case IC_TO_I64:
    case IC_NEG:
@@ -137,7 +178,7 @@
    case IC_SQRT:
    case IC_TO_BOOL:
    unop:
-@@ -2865,6 +2880,8 @@
+@@ -2865,6 +2880,8 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
      break;
    case IC_SQRT:
    case IC_NEG:
@@ -146,7 +187,7 @@
      goto unop;
      break;
    case IC_POS:
-@@ -6108,6 +6125,8 @@
+@@ -6108,6 +6125,8 @@ static void SetKeepTmps(CRPN *rpn) {
    case IC_TO_I64:
    case IC_SQRT:
    case IC_NEG:
@@ -155,7 +196,7 @@
    case IC_LNOT:
    case IC_BNOT:
    case IC_POS:
-@@ -6247,6 +6266,8 @@
+@@ -6247,6 +6266,8 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_GLOBAL] = &&ic_global,
        [IC_NOP] = &&ic_nop,
        [IC_NEG] = &&ic_neg,
@@ -164,7 +205,7 @@
        [IC_SQRT] = &&ic_sqrt,
        [IC_POS] = &&ic_pos,
        [IC_STR] = &&ic_str,
-@@ -6858,6 +6879,30 @@
+@@ -6858,6 +6879,30 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
      tmp.raw_type = RT_F64;
      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
      break;
@@ -195,34 +236,3 @@
    ic_neg:
  #define BACKEND_UNOP(flt_op, int_op)                                           \
    next = rpn->base.next;                                                       \
---- a/Src/AIWNIOS_CodeGen.HC
-+++ b/Src/AIWNIOS_CodeGen.HC
-@@ -91,6 +91,8 @@
- import U8 *__HC_ICAdd_GotoIf(U8*,U8*)
- import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
- import U8 *__HC_ICAdd_Neg(U8*);
-+import U8 *__HC_ICAdd_Bsf(U8*);
-+import U8 *__HC_ICAdd_Bsr(U8*);
- import U8 *__HC_ICAdd_Ret(U8*);
- import U8 *__HC_ICAdd_Arg(U8*,I64);
- import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -193,6 +195,8 @@
- extern U8 *__HC_ICAdd_GotoIf(U8*,U8*)
- extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
- extern U8 *__HC_ICAdd_Neg(U8*);
-+extern U8 *__HC_ICAdd_Bsf(U8*);
-+extern U8 *__HC_ICAdd_Bsr(U8*);
- extern U8 *__HC_ICAdd_Ret(U8*);
- extern U8 *__HC_ICAdd_Arg(U8*,I64);
- extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
-@@ -1960,6 +1964,10 @@
-     new=__HC_ICAdd_LNot(cc2);
-     break;case IC_UNARY_MINUS:
-     new=__HC_ICAdd_Neg(cc2);
-+    break;case IC_BSF:
-+    new=__HC_ICAdd_Bsf(cc2);
-+    break;case IC_BSR:
-+    new=__HC_ICAdd_Bsr(cc2);
-     break;case IC_SQRT:
-     new=__HC_ICAdd_Sqrt(cc2);
-     break;case IC_DEREF:

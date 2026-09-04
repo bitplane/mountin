@@ -1,0 +1,13 @@
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index 65e0697..e714f56 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -987,7 +987,7 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+     RPNAddNew(cc,IC_LABEL,lb_catch,0,FALSE);
+     PrsStmt(cc,try_cnt+1);
+     RPNAddNew(cc,IC_IMM_I64,0,cmp.internal_types[RT_I64],FALSE);
+-    RPNAddNew(cc,IC_RET,0,cc->htc.fun->return_class,FALSE);
++    RPNAddNew(cc,IC_RET,0,tmpc,FALSE);
+     RPNAddNew(cc,IC_LABEL,lb_done,0,FALSE);
+     return;
+   }

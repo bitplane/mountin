@@ -1,7 +1,9 @@
 diff --git a/c/arm_backend.c b/c/arm_backend.c
+index dbaab83..abaefe7 100644
 --- a/c/arm_backend.c
 +++ b/c/arm_backend.c
-@@ -3695,5 +3695,11 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -3698,6 +3698,12 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, 1, bin, code_off);
        code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
        break;
 +    case IC_IREG:
@@ -14,9 +16,11 @@ diff --git a/c/arm_backend.c b/c/arm_backend.c
        if (rpn->res.mode == MD_REG)
          into_reg = rpn->res.reg;
 diff --git a/c/riscv_backend.c b/c/riscv_backend.c
+index aac75fe..bbdcc79 100644
 --- a/c/riscv_backend.c
 +++ b/c/riscv_backend.c
-@@ -3748,5 +3748,11 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -3749,6 +3749,12 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+                                  code_off);
        code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
        break;
 +    case IC_IREG:
@@ -29,9 +33,11 @@ diff --git a/c/riscv_backend.c b/c/riscv_backend.c
        if (rpn->res.mode == MD_REG)
          into_reg = rpn->res.reg;
 diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 0d20975..5954e4b 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -7466,5 +7466,11 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -7469,6 +7469,12 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+                                  AIWNIOS_TMP_IREG_POOP2, bin, code_off);
        code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
        break;
 +    case IC_IREG:

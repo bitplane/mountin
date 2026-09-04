@@ -1,6 +1,13 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index ea5165b..4b8e883 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -2232,1 +2232,3 @@
-           tmpgh->references=tmpghr;
+@@ -2230,6 +2230,8 @@ break;case IC_ASM:
+           h=CAlloc(sizeof CHashImport);
+           h->type=HTT_IMPORT_SYS_SYM;
+           h->str=StrNew(misc->h->str);
 +          foff=0;
 +          WriteProtectMemCpy(misc->addr,&foff,8);
+           h->module_base=machine_code;
+           //[reloc type 1][reloc offset 4][target-offset 4][name?]NULL]
+           //Nroot adds an aditional byte to specify NULL after we load the silly sauce 
