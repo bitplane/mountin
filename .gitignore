@@ -4,6 +4,9 @@
 # vim
 *.swp
 
+# temporary code reviews
+report.md
+
 # debug stuff
 *.log
 *.img
