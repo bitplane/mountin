@@ -29,6 +29,7 @@ Option(OPTf_WARN_DUP_TYPES, ON);
 DirMk("/Tmp");
 DirMk("/Home");
 
+Option(OPTf_TEMPLEOS_BIN_SIGNATURE,ON);
 if (Cmp("/MountinBuildCompiler.HC", "Compiler",
       "/Compiler/Compiler", ':'))
   throw('Compiler');

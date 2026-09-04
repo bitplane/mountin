@@ -1,0 +1,14 @@
+diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
+--- a/Src/PrsVar.HC
++++ b/Src/PrsVar.HC
+@@ -145,6 +145,10 @@ U0 PrsVarInit2(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,
+       MemCpy(*_base,st,i);
+ 	*_dst=*_base+i;
+       } else {
++	if (cc->flags&CCF_AOT_COMPILE && pass==2)
++	  for (j=0;j<tmpad1->cnt;j++)
++	    AOTStoreCodeU8At(cc,data_addr_rip+*_dst-*_base+j,
++		  st[j]);
+ 	MemCpy(*_dst,st,tmpad1->cnt);
+ 	*_dst+=tmpad1->cnt;
+       }

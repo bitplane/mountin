@@ -2,27 +2,31 @@ diff --git a/Src/CMain.HC b/Src/CMain.HC
 index 6eb8c9d..de434d1 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -561,10 +561,32 @@ I64 StreamExePrint(U8 *fmt,...)
+@@ -561,10 +561,36 @@ I64 StreamExePrint(U8 *fmt,...)
    return res;
  }
  
 +CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
 +{
-+  CHash *h=HashFind(name,cc->htc.glbl_hash_table,HTT_FUN);
-+  if (h) {
-+    if (h->type&HTF_RESOLVE && 0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
-+      return h;
-+    return NULL;
-+    }
-+  h=HashFind(name,cc->htc.glbl_hash_table,HTT_GLBL_VAR);
-+  if (h) {
-+    if (!(h(CHashGlblVar*)->flags&GVF_EXTERN))
-+      return h;
-+    return NULL;
-+  }
-+  h=HashFind(name,cc->htc.glbl_hash_table,HTT_EXPORT_SYS_SYM);
-+  if (h && h->type&HTF_RESOLVE)
-+    return h;
++  CHash *h;
++  CHashTable *table=cc->htc.glbl_hash_table;
++  I64 i;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_FUN && !StrCmp(h->str,name) &&
++            h->type&HTF_RESOLVE &&
++            0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
++        return h;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_GLBL_VAR && !StrCmp(h->str,name) &&
++            !(h(CHashGlblVar*)->flags&GVF_EXTERN))
++        return h;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_EXPORT_SYS_SYM && !StrCmp(h->str,name) &&
++            h->type&HTF_RESOLVE)
++        return h;
 +  return NULL;
 +}
 +
@@ -35,7 +39,7 @@ index 6eb8c9d..de434d1 100644
    I64 i,ptr,low12;
    for(tmpaotie=cc->aot->next_ie;tmpaotie!=&cc->aot->next_ie;tmpaotie=tmpaotie1) {
      tmpaotie1=tmpaotie->next;
-@@ -636,6 +658,33 @@ skip:;
+@@ -636,6 +662,36 @@ skip:;
          Free(tmpaotie);
  #endif
        }
@@ -53,14 +57,17 @@ index 6eb8c9d..de434d1 100644
 +      else
 +        value_resolved=FALSE;
 +      if (value_resolved) {
-+        AOTStoreCodeU8At(cc,tmpaotie->rip,
++        ptr=tmpaotie->rip;
++        if (tmpaotie->aot)
++          ptr+=tmpaotie->aot->rip2;
++        AOTStoreCodeU8At(cc,ptr,
 +              i,i>>8,i>>16,i>>24);
-+        AOTStoreCodeU8At(cc,tmpaotie->rip+4,
++        AOTStoreCodeU8At(cc,ptr+4,
 +              i>>32,i>>40,i>>48,i>>56);
 +        tmpabs=CAlloc(sizeof(CAOTAbsAddr));
 +        tmpabs->next=cc->aotc->abss;
 +        tmpabs->type=AAT_ADD_U64;
-+        tmpabs->rip=tmpaotie->rip;
++        tmpabs->rip=ptr;
 +        cc->aotc->abss=tmpabs;
 +        QueRem(tmpaotie);
 +        Free(tmpaotie->str);
@@ -69,3 +76,11 @@ index 6eb8c9d..de434d1 100644
      }
    }
  }
+diff --git a/Src/CExts.HC b/Src/CExts.HC
+index 296d3ae..89d87aa 100644
+--- a/Src/CExts.HC
++++ b/Src/CExts.HC
+@@ -42,2 +42,3 @@ extern U0 PrsVarInit2(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,
+ extern U0 FillInShortCalls(CCmpCtrl *cc);
++extern CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name);
+ extern CHashClass *AssignRawTypeToNode(CRPN *r);

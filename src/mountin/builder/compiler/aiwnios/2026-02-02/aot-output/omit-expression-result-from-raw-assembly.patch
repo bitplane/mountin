@@ -1,0 +1,12 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 2ae90a8..33d2801 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -13,6 +13,7 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
+   if (!PrsStmt(cc,,,cmp_flags)) {
+     if (cc->coc.coc_head.next!=&cc->coc.coc_head) {
+       rpn=cc->coc.coc_head.next;
++      if (!(cc->flags&CCF_RAW_AOT_ASM))
+       switch(rpn->type) {
+         case IC_TO_I64:
+         case IC_TO_F64:

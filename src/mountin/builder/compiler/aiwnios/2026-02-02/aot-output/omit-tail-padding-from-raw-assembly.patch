@@ -1,0 +1,18 @@
+diff --git a/c/arm_backend.c b/c/arm_backend.c
+--- a/c/arm_backend.c
++++ b/c/arm_backend.c
+@@ -5300 +5300 @@
+-      if (code_off % 8) // Align to 8
++      if (!(cctrl->flags & CCF_RAW_AOT_ASM) && code_off % 8) // Align to 8
+diff --git a/c/riscv_backend.c b/c/riscv_backend.c
+--- a/c/riscv_backend.c
++++ b/c/riscv_backend.c
+@@ -4883 +4883 @@
+-    if (code_off % 8) // Align to 8
++    if (!(cctrl->flags & CCF_RAW_AOT_ASM) && code_off % 8) // Align to 8
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -9250 +9250 @@
+-    if (code_off % 8) // Align to 8
++    if (!(cctrl->flags & CCF_RAW_AOT_ASM) && code_off % 8) // Align to 8

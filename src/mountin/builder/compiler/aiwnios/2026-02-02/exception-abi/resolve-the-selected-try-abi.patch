@@ -1,0 +1,39 @@
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index e714f56..20defbd 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -951,16 +951,13 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+   CHashClass	*tmpc=cmp.internal_types[RT_PTR];
+   CHashFun	*tmp_try=HashFind("SysTry",cc->htc.hash_table_lst,HTT_FUN),
+ 	*tmp_untry=HashFind("SysUntry",cc->htc.hash_table_lst,HTT_FUN),
+-  *tmp_a_ent=HashFind("AIWNIOS_SetJmp",cc->htc.hash_table_lst,HTT_FUN),
+-  *tmp_end_catch=HashFind("EndCatch",cc->htc.hash_table_lst,HTT_FUN);
++  *tmp_a_ent,*tmp_end_catch;
+ 
+-  if (!tmp_try || !tmp_untry || !tmp_a_ent)
+-    LexExcept(cc,"Missing header for SysTry(),EndCatch(),AIWNIOS_SetJmp() and SysUntry() at ");
++  if (!tmp_try || !tmp_untry)
++    LexExcept(cc,"Missing header for SysTry() and SysUntry() at ");
+ 
+   tmp_try=CodeMiscHashNew(cc,tmp_try);
+   tmp_untry=CodeMiscHashNew(cc,tmp_untry);
+-  tmp_a_ent=CodeMiscHashNew(cc,tmp_a_ent);
+-  tmp_end_catch=CodeMiscHashNew(cc,tmp_end_catch);
+   
+   cc->flags|=CCF_NO_REG_OPT; //TODO:Currently no reg vars in funs with try/catch
+ 
+@@ -994,6 +994,14 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+     return;
+   }
+ 
++  tmp_a_ent=HashFind("AIWNIOS_SetJmp",cc->htc.hash_table_lst,HTT_FUN);
++  tmp_end_catch=HashFind("EndCatch",cc->htc.hash_table_lst,HTT_FUN);
++  if (!tmp_a_ent || !tmp_end_catch)
++    LexExcept(cc,"Missing header for AIWNIOS_SetJmp() and EndCatch() at ");
++
++  tmp_a_ent=CodeMiscHashNew(cc,tmp_a_ent);
++  tmp_end_catch=CodeMiscHashNew(cc,tmp_end_catch);
++
+   //Changed by nroot
+   RPNAddNew(cc,IC_ADDR_IMPORT,tmp_a_ent,tmpc,FALSE);
+   RPNAddNew(cc,IC_ADDR_IMPORT,tmp_try,tmpc,FALSE);

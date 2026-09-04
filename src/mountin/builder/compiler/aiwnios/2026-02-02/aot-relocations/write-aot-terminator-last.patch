@@ -1,0 +1,29 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -346,7 +346,7 @@
+     tmpie=tmpaot->next_ie;
+     while (tmpie!=&tmpaot->next_ie) {
+       tmpie1=tmpie->next;
+-      if (!tmpie->type || IET_REL32_EXPORT<=tmpie->type<=IET_IMM64_EXPORT) {
++      if (IET_REL32_EXPORT<=tmpie->type<=IET_IMM64_EXPORT) {
+ 	QueRem(tmpie);
+ 	*ptr++=tmpie->type;
+ 	*ptr(U32 *)++=tmpie->rip;
+@@ -368,6 +368,8 @@
+     while (tmpie!=&tmpaot->next_ie) {
+       tmpie1=tmpie->next;
+       QueRem(tmpie);
++      if (!tmpie->type)
++        goto skip_import;
+       *ptr++=tmpie->type;
+       if (tmpie->aot)
+ 	tmpie->rip+=tmpie->aot->rip2;
+@@ -383,6 +385,7 @@
+ 	ptr+=i+1;
+       } else
+ 	*ptr++=0;
++skip_import:
+       Free(tmpie->src_link);
+       Free(tmpie);
+       tmpie=tmpie1;

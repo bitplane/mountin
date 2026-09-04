@@ -10,17 +10,15 @@ index 1bc0e9f..f33619b 100644
  import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
  import U8 *__HC_CmpCtrlDel(U8 *);
  import U8 *__HC_ICAdd_Sqr(U8 *);
-@@ -1436,6 +1437,9 @@ skip_convert:;
-   if (cc->flags&CCF_AOT_COMPILE &&
-         !(cc->flags&CCF_ASM_EXPRESSIONS))
+@@ -1436,5 +1437,7 @@ skip_convert:;
+   if(cc->flags&CCF_AOT_COMPILE)
      __HC_CmpCtrl_SetAOT(acc);
-+  if (cc->flags&CCF_AOT_COMPILE && !(cc->flags&CCF_ASM_EXPRESSIONS) &&
-+        Bt(&cc->opts,OPTf_RAW_AOT))
++  if (cc->flags&CCF_AOT_COMPILE && Bt(&cc->opts,OPTf_RAW_AOT))
 +    __HC_CmpCtrl_UseNativeSegments(acc);
    if(cc->flags&CCF_RAW_AOT_ASM)
      __HC_CmpCtrl_SetRawAOTAsm(acc);
    if(info) {
-@@ -1740,8 +1744,12 @@ found_offset:;;
+@@ -1740,8 +1743,12 @@ found_offset:;;
      #endif
      if(force_segment) {
        //Bypass import and use raw one on X86,they are predictable

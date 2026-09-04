@@ -1,8 +1,47 @@
 diff --git a/Src/CMain.HC b/Src/CMain.HC
-index 2ae90a8..d158dc6 100644
+index 2ae90a8..542820d 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -413,6 +413,8 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
+@@ -267,6 +267,7 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
+   U8 *ptr,*fbuf=NULL,*fbuf2=NULL,*fbuf3=NULL,
+	*patch_table=MAlloc(0x800000);
+   CAOT *tmpaot;
++  I64 *data_ref;
+   I64 i,cnt,size=0,error_cnt=0,warning_cnt=0,aot_U8s=0;
+   CBinFile *bfh;
+   CAOTImportExport *tmpie,*tmpie1;
+@@ -323,16 +324,24 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
+ 	} else
+	  *ptr++=0;
+	*ptr(I64 *)++=tmphg->size;
+-	if(!tmphg->data)
+-	  tmphg->data=CAlloc(tmphg->size);
+-	MemCpy(ptr,tmphg->data,tmphg->size);
+-	ptr+=tmphg->size;
++	if (!GetOption(OPTf_TEMPLEOS_BIN_SIGNATURE)) {
++	  if(!tmphg->data)
++	    tmphg->data=CAlloc(tmphg->size);
++	  MemCpy(ptr,tmphg->data,tmphg->size);
++	  ptr+=tmphg->size;
++	}
+ 	Free(tmphg->data);
+ 	tmphgr=tmphg->references;
+ 	while (tmphgr) {
+ 	  tmphgr1=tmphgr->next;
+-	  *ptr(U32 *)++=tmphgr->rip;
+-	  *ptr(U32 *)++=tmphgr->offset; //Added by nroot
++	  if (GetOption(OPTf_TEMPLEOS_BIN_SIGNATURE)) {
++	    data_ref=tmpaot->buf+tmphgr->rip;
++	    *data_ref+=tmphgr->offset;
++	    *ptr(U32 *)++=tmphgr->rip;
++	  } else {
++	    *ptr(U32 *)++=tmphgr->rip;
++	    *ptr(U32 *)++=tmphgr->offset; //Added by nroot
++	  }
+ 	  Free(tmphgr);
+ 	  tmphgr=tmphgr1;
+ 	}
+@@ -413,6 +422,8 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
  #ifdef TARGET_RISCV
      bfh->bin_signature='RV64';
  #endif
@@ -10,7 +49,7 @@ index 2ae90a8..d158dc6 100644
 +      bfh->bin_signature=BIN_SIGNATURE_VAL;
      MemCpy(bfh(U8 *)+sizeof(CBinFile),tmpaot->buf,aot_U8s);
      MemCpy(bfh(U8 *)+sizeof(CBinFile)+aot_U8s,patch_table,
- 	  size-aot_U8s-sizeof(CBinFile));
+	  size-aot_U8s-sizeof(CBinFile));
 diff --git a/Src/KernelA.HH b/Src/KernelA.HH
 index e9624fc..66b9dac 100644
 --- a/Src/KernelA.HH

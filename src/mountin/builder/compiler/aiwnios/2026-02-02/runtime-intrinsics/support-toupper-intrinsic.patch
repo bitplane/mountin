@@ -1,0 +1,176 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -47,6 +47,7 @@ import U8 * __HC_ICAdd_Deref(U8*,I64 rt,I64 ptrs);
+ import U8 * __HC_ICAdd_Comma(U8*);
+ import U0 __HC_ICSetLock(U8*);
+ import U8 * __HC_ICAdd_ToBool(U8*);
++import U8 * __HC_ICAdd_ToUpper(U8*);
+ import U8 * __HC_ICAdd_Addr(U8*);
+ import U8 * __HC_ICAdd_Xor(U8*);
+ import U8 * __HC_ICAdd_Mod(U8*);
+@@ -2013,7 +2014,8 @@ break;case IC_RIP:
+     new=__HC_ICAdd_ToF64(cc2);
+     break;case IC_TO_BOOL:
+     new=__HC_ICAdd_ToBool(cc2);
+-    break;case IC_TOUPPER:  //TODO
++    break;case IC_TOUPPER:
++    new=__HC_ICAdd_ToUpper(cc2);
+     break;case IC_HOLYC_TYPECAST:
+     new=__HC_ICAdd_Typecast(cc2,cur->ic_class->raw_type,0);
+     break;case IC_ADDR:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -368,6 +368,7 @@ enum {
+   IC_FS,
+   IC_GS,
+   IC_TO_BOOL,
++  IC_TO_UPPER,
+   IC_SQRT,
+   IC_CNT, // MUST BE THE LAST ITEM
+ };
+@@ -758,5 +759,6 @@ HC_IC_BINDINGH(HC_ICAdd_Fs)
+ HC_IC_BINDINGH(HC_ICAdd_Gs)
+ HC_IC_BINDINGH(HC_ICAdd_ToBool)
++HC_IC_BINDINGH(HC_ICAdd_ToUpper)
+ 
+ CRPN *__HC_ICAdd_FReg(CCodeCtrl *cc, int64_t r);
+ CRPN *__HC_ICAdd_IReg(CCodeCtrl *cc, int64_t r, int64_t rt, int64_t ptr_cnt);
+diff --git a/c/main.c b/c/main.c
+--- a/c/main.c
++++ b/c/main.c
+@@ -1589,5 +1589,8 @@ static int64_t STK__HC_ICAdd_ToBool(int64_t *stk) {
+   return __HC_ICAdd_ToBool(stk[0]);
+ }
++static int64_t STK__HC_ICAdd_ToUpper(int64_t *stk) {
++  return __HC_ICAdd_ToUpper(stk[0]);
++}
+ static int64_t STK_WriteProtectMemCpy(int64_t *stk) {
+   char *ptr = (void *)stk[0];
+   int64_t r = (int64_t)WriteProtectMemCpy(ptr, (char *)stk[1], stk[2]);
+@@ -1802,6 +1805,7 @@ int main(int argc, char **argv) {
+                           //(this is for parser.c checks)
+     */
+     PrsAddSymbol("__HC_ICAdd_ToBool", STK__HC_ICAdd_ToBool, 1);
++    PrsAddSymbol("__HC_ICAdd_ToUpper", STK__HC_ICAdd_ToUpper, 1);
+     PrsAddSymbol("__HC_ICAdd_GetVargsPtr", STK___HC_ICAdd_GetVargsPtr, 1);
+     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
+diff --git a/c/parser.c b/c/parser.c
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -234,6 +234,7 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_GET_VARGS_PTR:
+   case IC_TO_F64:
+   case IC_TO_I64:
++  case IC_TO_UPPER:
+   case IC_TO_BOOL:
+     goto unop;
+     break;
+@@ -646,6 +647,9 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+   case IC_TO_BOOL:
+     printf("TO_BOOL\n");
+     goto unop;
++  case IC_TO_UPPER:
++    printf("TO_UPPER\n");
++    goto unop;
+   case IC_GET_VARGS_PTR:
+     printf("GET_VARGS_PTR:\n");
+     return ParserDumpIR(rpn->base.next, indent + 1);
+@@ -1215,6 +1219,9 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+   case IC_TO_BOOL:
+     len = AddBytes(to, len, "$PURPLE$TO_BOOL$FD$\n");
+     goto unop;
++  case IC_TO_UPPER:
++    len = AddBytes(to, len, "$PURPLE$TO_UPPER$FD$\n");
++    goto unop;
+   case IC_GET_VARGS_PTR:
+     len = AddBytes(to, len, "$PURPLE$GET_VARGS_PTR$FD$\n");
+     return len;
+@@ -3636,6 +3643,7 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     return rpn->raw_type = RT_I64i;
+     break;
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+     AssignRawTypeToNode(ccmp, rpn->base.next);
+   case IC_TO_I64:
+     rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
+@@ -5294,5 +5294,6 @@ void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code) {
+ }
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
++HC_IC_BINDING(HC_ICAdd_ToUpper, IC_TO_UPPER);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+ HC_IC_BINDING(HC_ICAdd_BTS, IC_BTS);
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -2298,6 +2298,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   case IC_STRLEN:
+   case IC_SQRT:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   unop:
+     if (SpillsTmpRegs(rpn->base.next))
+       goto pass;
+@@ -2964,6 +2965,7 @@ static void PushTmpDepthFirst(CCodeCtrl *cctrl, CRPN *r, int64_t spilled) {
+     break;
+   case IC_TO_I64:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   unop:
+     PushTmpDepthFirst(cctrl, r->base.next, 0);
+     PopTmp(cctrl, r->base.next);
+@@ -6270,6 +6272,7 @@ static void SetKeepTmps(CRPN *rpn) {
+   case IC_BNOT:
+   case IC_POS:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   case IC_DEREF:
+   case IC_ADDR_OF:
+     right = ICArgN(rpn, 0);
+@@ -6405,6 +6408,7 @@ int64_t OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin, int64_t code_off) {
+       [IC_GOTO] = &&ic_goto,
+       [IC_GOTO_IF] = &&ic_goto_if,
+       [IC_TO_BOOL] = &&ic_to_bool,
++      [IC_TO_UPPER] = &&ic_to_upper,
+       [IC_TO_I64] = &&ic_to_i64,
+       [IC_TO_F64] = &&ic_to_f64,
+       [IC_LABEL] = &&ic_label,
+@@ -7112,6 +7116,35 @@ int64_t OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin, int64_t code_off) {
+     }
+     code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
+     break;
++  ic_to_upper: {
++    char *below_a, *above_z;
++
++    into_reg = 0;
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    if (rpn->res.mode == MD_REG)
++      into_reg = rpn->res.reg;
++    tmp.reg = into_reg;
++    next = rpn->base.next;
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_I64i, into_reg, bin,
++                               code_off);
++    tmp.reg = next->res.reg;
++    AIWNIOS_ADD_CODE(X86CmpRegImm, tmp.reg, 'a');
++    below_a = bin + code_off;
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_L, 0);
++    AIWNIOS_ADD_CODE(X86CmpRegImm, tmp.reg, 'z');
++    above_z = bin + code_off;
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_G, 0);
++    AIWNIOS_ADD_CODE(X86AddImm32, tmp.reg, -('a' - 'A'));
++    if (bin) {
++      X86Jcc(below_a, X86_COND_L, bin + code_off - below_a);
++      X86Jcc(above_z, X86_COND_G, bin + code_off - above_z);
++    }
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++  }
+     // These both do the same thing,only thier type detirmines what happens
+   ic_to_i64:
+   ic_to_f64:

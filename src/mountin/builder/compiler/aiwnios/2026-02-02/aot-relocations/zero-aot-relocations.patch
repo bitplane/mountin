@@ -7,10 +7,10 @@ index 1c0b348..6edd785 100644
          misc->addr = bin + code_off;
          if (bin)
 -          *(void **)((char *)MemGetWritePtr(bin) + code_off) = &DoNothing;
-+          *(void **)((char *)MemGetWritePtr(bin) + code_off) =
-+              cctrl->flags & CCF_AOT_COMPILE
-+                  ? NULL
-+                  : &DoNothing;
++          if (cctrl->flags & CCF_AOT_COMPILE)
++            *(void **)((char *)MemGetWritePtr(bin) + code_off) = NULL;
++          else
++            *(void **)((char *)MemGetWritePtr(bin) + code_off) = &DoNothing;
          code_off += 8;
          if (run == 2) {
            *(import = A_CALLOC(sizeof(CHashImport), NULL)) = (CHashImport){

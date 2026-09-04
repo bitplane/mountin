@@ -12,6 +12,7 @@ interrupt-functions/fix-interrupt-keyword.patch
 function-flags/preserve-function-flags.patch
 aot-static-data/preserve-aot-static-data.patch
 aot-static-data/clear-aot-static-reference.patch
+aot-static-data/emit-aot-character-array-data.patch
 register-expressions/translate-x86-register-getters.patch
 current-pc/current-pc.patch
 x86-assembler/parse-asm-operand-prefixes.patch
@@ -19,7 +20,6 @@ x86-assembler/encode-segment-prefixes.patch
 x86-assembler/honor-explicit-immediate-size.patch
 x86-assembler/support-same-register-operands.patch
 aot-assembly-expressions/parse-asm-import.patch
-aot-assembly-expressions/resolve-asm-expression-imports.patch
 aot-assembly-expressions/compile-asm-expressions-as-jit.patch
 aot-relocations/relocate-unresolved-asm-symbols.patch
 aot-symbol-resolution/resolve-aot-asm-labels.patch
@@ -59,4 +59,10 @@ iso-generation/document-boot-field-writes.patch
 x86-intrinsics/document-intrinsic-register-use.patch
 aot-relocations/validate-target-specific-code-generation.patch
 exception-abi/handle-file-scope-catches.patch
+exception-abi/resolve-the-selected-try-abi.patch
 aot-output/make-top-level-assembly-exclusive.patch
+aot-output/omit-expression-result-from-raw-assembly.patch
+aot-output/omit-tail-padding-from-raw-assembly.patch
+runtime-intrinsics/support-toupper-intrinsic.patch
+aot-assembly-expressions/relocate-aot-global-expressions.patch
+aot-relocations/write-aot-terminator-last.patch

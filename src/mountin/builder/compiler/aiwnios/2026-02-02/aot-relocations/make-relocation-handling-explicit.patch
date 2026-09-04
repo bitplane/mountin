@@ -80,31 +80,36 @@ index 8dce5a5..fd61d72 100644
      HashAdd(exp,Fs->hash_table);
      AsmExpressionImportsResolve(cur->hash->str,patch->imm->machine_code,
            exp->val);
-@@ -1387,11 +1378,35 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
+@@ -1387,11 +1378,40 @@ Bool AsmPatchResolveLabels(CCmpCtrl *cc,CAsmPatch *patch,CQue *to_fill)
    patch->imm->glbl_asm_undef_hash=NULL;
    return TRUE;
  }
 +
 +U0 AsmPatchStore(CCmpCtrl *cc,U8 *buf,CAsmPatch *patch,I64 value)
 +{
-+  switch(patch->sz) {
-+    break;case 1: buf[patch->rip]=value;
-+    break;case 2: buf[patch->rip](U16)=value;
-+    break;case 4: buf[patch->rip](U32)=value;
-+    break;case 8: buf[patch->rip](U64)=value;
-+    default: LexExcept(cc,"Invalid assembler relocation size");
-+  }
++  if (patch->sz==1) buf[patch->rip]=value;
++  else if (patch->sz==2) buf[patch->rip](U16)=value;
++  else if (patch->sz==4) buf[patch->rip](U32)=value;
++  else if (patch->sz==8) buf[patch->rip](U64)=value;
++  else LexExcept(cc,"Invalid assembler relocation size");
 +}
 +
 +I64 AsmPatchRelocationType(CCmpCtrl *cc,CAsmPatch *patch)
 +{
-+  switch(patch->sz) {
-+    break;case 1: return patch->is_rel ? IET_REL_I8 : IET_IMM_U8;
-+    break;case 2: return patch->is_rel ? IET_REL_I16 : IET_IMM_U16;
-+    break;case 4: return patch->is_rel ? IET_REL_I32 : IET_IMM_U32;
-+    break;case 8: return patch->is_rel ? IET_REL_I64 : IET_IMM_I64;
-+    default: LexExcept(cc,"Invalid AOT assembler relocation size");
++  if (patch->sz==1) {
++      if (patch->is_rel) return IET_REL_I8;
++      else return IET_IMM_U8;
++  } else if (patch->sz==2) {
++      if (patch->is_rel) return IET_REL_I16;
++      else return IET_IMM_U16;
++  } else if (patch->sz==4) {
++      if (patch->is_rel) return IET_REL_I32;
++      else return IET_IMM_U32;
++  } else if (patch->sz==8) {
++      if (patch->is_rel) return IET_REL_I64;
++      else return IET_IMM_I64;
 +  }
++  LexExcept(cc,"Invalid AOT assembler relocation size");
 +  return 0;
 +}
 +
@@ -215,14 +220,6 @@ diff --git a/Src/CMain.HC b/Src/CMain.HC
 index de434d1..cbf3d58 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -565,6 +565,7 @@ CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
- {
-   CHash *h=HashFind(name,cc->htc.glbl_hash_table,HTT_FUN);
-   if (h) {
-+    //A resolved address below the current AOT offset belongs to this image.
-     if (h->type&HTF_RESOLVE && 0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
-       return h;
-     return NULL;
 @@ -656,6 +657,9 @@ skip:;
          QueRem(tmpaotie);
          Free(tmpaotie->str);
