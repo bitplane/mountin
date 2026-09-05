@@ -1,0 +1,22 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 933283a..d02bb1b 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -63,6 +63,7 @@ class CAsmPatch:CQue  {
+ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+ {
+   I64 old_flags=cc->flags;
++  I64 (*machine_code)();
+   arg->local_asm_undef_hash=NULL;
+   arg->glbl_asm_undef_hash=NULL;
+   cc->asm_undef_hash=NULL;
+@@ -83,7 +84,8 @@ Bool PrsAsmImm(CCmpCtrl *cc,CX86AddrMode *arg)
+ 	cc->asm_undef_hash=NULL;
+       }
+     } else {
+-      arg->imm=(*arg->machine_code)();
++      machine_code=arg->machine_code;
++      arg->imm=(*machine_code)();
+       arg->glbl_asm_undef_hash=cc->asm_undef_hash;
+       cc->asm_undef_hash=NULL;
+       Free(arg->machine_code);

@@ -1,0 +1,68 @@
+diff --git a/Src/KLoadARM.HC b/Src/KLoadARM.HC
+index 7ec3d03..ea74dfe 100644
+--- a/Src/KLoadARM.HC
++++ b/Src/KLoadARM.HC
+@@ -113,7 +113,7 @@ U0 SysSymImportsResolve(U8 *st_ptr,I64 ld_flags)
+ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ {
+   U8 *ptr2,*ptr3,*st_ptr;
+-  I64 i,j,cnt,etype;
++  I64 i,j,cnt,etype,ref_offset;
+   CHashExport *tmpex=NULL;
+   while (etype=*src++) {
+     i=*src(U32 *)++;
+@@ -144,7 +144,7 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ 	else {
+ 	  cnt=i;
+ 	  for (j=0;j<cnt;j++) {
+-	    ptr2=module_base+*src(U64 *)++;
++	    ptr2=module_base+*src(U32 *)++;
+ 	    *ptr2(U64 *)+=module_base;
+ 	  }
+ 	}
+@@ -190,13 +190,35 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ 	cnt=i;
+ 	for (j=0;j<cnt;j++) {
+ 	  ptr2=module_base+*src(U32 *)++;
+-	  *ptr2(I64 *)+=ptr3;
++	  ref_offset=*src(U32 *)++;
++	  *ptr2(I64 *)+=ptr3+ref_offset;
+ 	}
+ 	break;
+     }
+   }
+ }
+ 
++Bool BinSignatureValid(U32 signature)
++{
++  if (signature==BIN_SIGNATURE_VAL)
++    return TRUE;
++#ifdef TARGET_BYTECODE
++  return signature=='BYTC';
++#endif
++#ifdef TARGET_X86
++  if (HOST_ABI=='OpenBSD')
++    return signature=='OX86';
++  return signature=='X86';
++#endif
++#ifdef TARGET_AARCH64
++  return signature=='ARM';
++#endif
++#ifdef TARGET_RISCV
++  return signature=='RV64';
++#endif
++  return FALSE;
++}
++
+ U0 LoadPass2(U8 *src,U8 *module_base,I64)
+ {
+   U8 *st_ptr;
+@@ -249,7 +271,7 @@ CBinFile *Load(U8 *filename,I64 ld_flags=0,CBinFile *bfh_addr=INVALID_PTR)
+ 
+   //See $$LK,"Patch Table Generation",A="FF:::/Compiler/CMain.HC,IET_ABS_ADDR"$$
+   module_align=1<<bfh->module_align_bits;
+-  if (!module_align || bfh->bin_signature!=BIN_SIGNATURE_VAL) {
++  if (!module_align || !BinSignatureValid(bfh->bin_signature)) {
+     Free(bfh);
+     Free(fbuf);
+     throw('BinModul');

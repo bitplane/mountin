@@ -1,14 +1,22 @@
-diff --git a/Src/Compiler.HC b/Src/Compiler.HC
---- a/Src/Compiler.HC
-+++ b/Src/Compiler.HC
-@@ -17,2 +17,3 @@
- #include "AsmResolve.HC"
-+#include "TempleOSMap.HC"
- #include "CMain.HC"
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 696160d..a6c568d 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1479,7 +1479,7 @@ skip_convert:;
+     __HC_CmpCtrl_SetRawAOTAsm(acc);
+   if(info) {
+     idx=cc->max_line-cc->min_line;
+-    *info=MAlloc((idx+2)*8+sizeof(CDbgInfo));
++    *info=CAlloc((idx+2)*8+sizeof(CDbgInfo));
+     info[0]->min_line=cc->min_line;
+     info[0]->max_line=cc->max_line;
+   }
 diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 40f5c2c..b2a9c33 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
-@@ -188,6 +188,10 @@ CAOT *CmpJoin(CCmpCtrl *cc,I64 cmp_flags,U8 *map_name=NULL,U8 mapfile_drv_let=0)
+@@ -188,8 +188,12 @@ CAOT *CmpJoin(CCmpCtrl *cc,I64 cmp_flags,U8 *map_name=NULL,U8 mapfile_drv_let=0)
+     LinkedLstDel(aotc->bin);
      res=NULL;
    } else {
 -    if (map_name)
@@ -21,11 +29,60 @@ diff --git a/Src/CMain.HC b/Src/CMain.HC
 +    }
      FillInShortCalls(cc);
      HashTableDel(cc->htc.local_hash_table);
+     HashTableDel(cc->htc.glbl_hash_table);
+diff --git a/Src/Compiler.HC b/Src/Compiler.HC
+index 0e9523c..9214d23 100644
+--- a/Src/Compiler.HC
++++ b/Src/Compiler.HC
+@@ -15,5 +15,6 @@ CMiscInit;
+ #include "AIWNIOS_CodeGen.HC"
+ #include "PrsStmt.HC";
+ #include "AsmResolve.HC"
++#include "TempleOSMap.HC"
+ #include "CMain.HC"
+ //AiwniosAotCompile("HCRT_TOS.HC","HCRT.BIN")
 diff --git a/Src/TempleOSMap.HC b/Src/TempleOSMap.HC
 new file mode 100644
+index 0000000..5af8c2f
 --- /dev/null
 +++ b/Src/TempleOSMap.HC
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,83 @@
++class CTempleOSDbgInfo
++{
++  U32 min_line,max_line;
++  U32 body[1];
++};
++
++CTempleOSDbgInfo *TempleOSMapDebugInfo(CHashFun *fun)
++{
++  CDbgInfo *info=fun->dbg_info;
++  CTempleOSDbgInfo *out;
++  I64 count,i,address;
++
++  if (!info)
++    return NULL;
++  if (MSize(info)<offset(CDbgInfo.body) || info->min_line>info->max_line)
++    return NULL;
++  count=info->max_line;
++  count+=2-info->min_line;
++  if (count>(MSize(info)-offset(CDbgInfo.body))/sizeof(U8 *))
++    return NULL;
++  out=CAlloc(offset(CTempleOSDbgInfo.body)+count*sizeof(U32));
++  out->min_line=info->min_line;
++  out->max_line=info->max_line;
++  for (i=0;i<count;i++) {
++    if (info->body[i]) {
++      address=fun->exe_addr+info->body[i]-info->body[0];
++      if (!(0<=address<=U32_MAX)) {
++        Free(out);
++        return NULL;
++      }
++      out->body[i]=address;
++    }
++  }
++  return out;
++}
++
 +U0 TempleOSMapFileWrite(CHashTable *h,U8 *map_name,U8 drv_let)
 +{
 +  CHashSrcSym *tmph;
@@ -33,7 +90,7 @@ new file mode 100644
 +  U8 *src_link;
 +  CDoc *doc;
 +  CDocBin *tmpb;
-+  CDbgInfo *dbg_info;
++  CTempleOSDbgInfo *dbg_info;
 +
 +  doc=DocNew(map_name);
 +  doc->flags|=DOCF_NO_CURSOR;
@@ -44,22 +101,20 @@ new file mode 100644
 +        src_link=StrNew(tmph->src_link);
 +        if (drv_let && StrLen(src_link)>=4)
 +          src_link[3]=drv_let;
-+        if (dbg_info=tmph->dbg_info) {
-+          size=offset(CDbgInfo.body)+
-+                sizeof(U32)*(dbg_info->max_line+2-dbg_info->min_line);
-+          if (size>MSize(dbg_info)) {
-+            "Corrupt Map Entry\n";
-+            dbg_info=NULL;
-+          } else if (dbg_info->min_line<=dbg_info->max_line) {
++        dbg_info=NULL;
++        if (tmph->type&HTT_FUN && tmph->dbg_info) {
++          if (dbg_info=TempleOSMapDebugInfo(tmph)) {
++            size=dbg_info->max_line;
++            size=offset(CTempleOSDbgInfo.body)+
++                  sizeof(U32)*(size+2-dbg_info->min_line);
 +            tmpb=CAlloc(sizeof(CDocBin));
 +            tmpb->size=size;
-+            tmpb->data=MAlloc(size);
-+            MemCpy(tmpb->data,dbg_info,size);
++            tmpb->data=dbg_info;
 +            tmpb->num=doc->cur_bin_num++;
 +            tmpb->use_cnt=1;
 +            QueIns(tmpb,doc->bin_head.last);
 +          } else
-+            dbg_info=NULL;
++            PrintWarn("Unrepresentable TempleOS debug map for %s\n",tmph->str);
 +        }
 +        if (dbg_info)
 +          DocPrint(doc,"$$LK,\"%s\",A=\"%s\",BI=%d$$\n",
@@ -75,3 +130,35 @@ new file mode 100644
 +  DocWrite(doc);
 +  DocDel(doc);
 +}
+diff --git a/Tests/Compiler/TempleOSMap.HC b/Tests/Compiler/TempleOSMap.HC
+new file mode 100644
+--- /dev/null
++++ b/Tests/Compiler/TempleOSMap.HC
+@@ -0,0 +1,27 @@
++#include "/Src/TempleOSMap.HC"
++CHashFun *fun=CAlloc(sizeof(CHashFun));
++CDbgInfo *info=CAlloc(offset(CDbgInfo.body)+4*sizeof(U8 *));
++info->min_line=10;
++info->max_line=12;
++info->body[0]=0x100000000;
++info->body[1]=0x100000010;
++info->body[2]=NULL;
++info->body[3]=0x100000030;
++fun->exe_addr=0x120;
++fun->dbg_info=info;
++CTempleOSDbgInfo *out=TempleOSMapDebugInfo(fun);
++if (!out || out->min_line!=10 || out->max_line!=12 ||
++      out->body[0]!=0x120 || out->body[1]!=0x130 ||
++      out->body[2]!=0 || out->body[3]!=0x150) throw('MapAddr');
++Free(out);
++info->max_line=100;
++if (TempleOSMapDebugInfo(fun)) throw('MapCount');
++info->max_line=9;
++if (TempleOSMapDebugInfo(fun)) throw('MapRange');
++info->max_line=12;
++fun->exe_addr=0x100000000;
++if (TempleOSMapDebugInfo(fun)) throw('MapWidth');
++Free(info);
++Free(fun);
++"PASS: TempleOS map\n";
++Exit;

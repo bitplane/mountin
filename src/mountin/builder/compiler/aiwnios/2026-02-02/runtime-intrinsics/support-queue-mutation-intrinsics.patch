@@ -1,5 +1,5 @@
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
-index e05aaa7..ad634b4 100644
+index e39ca4c..806655d 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -104,6 +104,9 @@ import U8 *__HC_ICAdd_OutU8(U8*);
@@ -22,7 +22,7 @@ index e05aaa7..ad634b4 100644
  extern U8 *__HC_ICAdd_InvlPg(U8*);
  extern U8 *__HC_ICAdd_StrLen(U8*);
  extern U8 *__HC_ICAdd_Ret(U8*);
-@@ -2031,6 +2037,12 @@ break;case IC_RIP:
+@@ -2033,6 +2039,12 @@ break;case IC_RIP:
      new=__HC_ICAdd_OutU32(cc2);
      break;case IC_QUE_INIT:
      new=__HC_ICAdd_QueInit(cc2);
@@ -60,7 +60,7 @@ index 7c99589..c10e534 100644
  HC_IC_BINDINGH(HC_ICAdd_StrLen)
  HC_IC_BINDINGH(HC_ICAdd_And)
 diff --git a/c/main.c b/c/main.c
-index 4b1b64c..cc8a3b1 100644
+index d319887..f4af49f 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -1221,6 +1221,15 @@ static int64_t STK___HC_ICAdd_OutU32(int64_t *stk) { return __HC_ICAdd_OutU32(st
@@ -218,7 +218,7 @@ index 2dccbb9..0ea3d4a 100644
  HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
  HC_IC_BINDING(HC_ICAdd_And, IC_AND);
 diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
-index 9349636..1c0b348 100644
+index 9349636..a062b3e 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
 @@ -2269,6 +2269,7 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
@@ -283,7 +283,7 @@ index 9349636..1c0b348 100644
        [IC_INVLPG] = &&ic_invlpg,
        [IC_STRLEN] = &&ic_strlen,
        [IC_RAW_BYTES] = &&ic_raw_bytes,
-@@ -6559,6 +6572,50 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -6559,6 +6572,55 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
      AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
                       MIR(cctrl, into_reg), 8);
      break;
@@ -294,11 +294,13 @@ index 9349636..1c0b348 100644
 +    next->res.keep_in_tmp = 1;
 +    next2->res.keep_in_tmp = 1;
 +    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PushToStack(cctrl, &next->res, bin, code_off);
 +    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
-+    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
-+    a_reg = next->res.reg;
-+    code_off = PutICArgIntoReg(cctrl, &next2->res, RT_PTR, RDX, bin, code_off);
-+    b_reg = next2->res.reg;
++    code_off = PushToStack(cctrl, &next2->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RDX));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RAX));
++    a_reg = RAX;
++    b_reg = RDX;
 +    if (rpn->type == IC_QUE_INS_REV) {
 +      AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
 +                       MIR(cctrl, b_reg), 8);
@@ -320,8 +322,11 @@ index 9349636..1c0b348 100644
 +    next = ICArgN(rpn, 0);
 +    next->res.keep_in_tmp = 1;
 +    code_off = __OptPassFinal(cctrl, next, bin, code_off);
-+    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
-+    into_reg = next->res.reg;
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_PTR;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    into_reg = RAX;
 +    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RDX), -1, -1,
 +                     MIR(cctrl, into_reg), 0);
 +    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
@@ -334,3 +339,28 @@ index 9349636..1c0b348 100644
    ic_rdtsc:
      AIWNIOS_ADD_CODE(X86Rdtsc, 0);
      AIWNIOS_ADD_CODE(X86ShlImm, RDX, 32);
+diff --git a/Tests/Compiler/Queues.HC b/Tests/Compiler/Queues.HC
+new file mode 100644
+--- /dev/null
++++ b/Tests/Compiler/Queues.HC
+@@ -0,0 +1,20 @@
++public _intern IC_QUE_INIT U0 TestInit(CQue *q);
++public _intern IC_QUE_INS U0 TestInsert(CQue *a,CQue *b);
++public _intern IC_QUE_INS_REV U0 TestInsertRev(CQue *a,CQue *b);
++public _intern IC_QUE_REM U0 TestRemove(CQue *q);
++CQue head,one,two;
++CQue *TestOne() {return &one;}
++CQue *TestHead() {return &head;}
++TestInit(&head);
++TestInsert(TestOne(),TestHead());
++if (head.next!=&one || one.last!=&head ||
++      one.next!=&head || head.last!=&one) throw('QueueIns');
++TestInsertRev(&two,TestHead());
++if (head.last!=&two || two.next!=&head ||
++      two.last!=&one || one.next!=&two) throw('QueueRev');
++TestRemove(TestOne());
++if (head.next!=&two || two.last!=&head) throw('QueueRem');
++TestRemove(&two);
++if (head.next!=&head || head.last!=&head) throw('QueueEnd');
++"PASS: queues\n";
++Exit;

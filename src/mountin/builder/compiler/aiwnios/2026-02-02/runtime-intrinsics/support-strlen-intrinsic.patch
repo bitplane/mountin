@@ -169,7 +169,7 @@ index fca8a35..7395b93 100644
    case IC_LNOT:
    case IC_BNOT:
    case IC_POS:
-@@ -6391,12 +6394,34 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -6391,12 +6394,37 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_RDTSC] = &&ic_rdtsc,
        [IC_QUE_INIT] = &&ic_que_init,
        [IC_INVLPG] = &&ic_invlpg,
@@ -184,11 +184,14 @@ index fca8a35..7395b93 100644
 +    next = ICArgN(rpn, 0);
 +    next->res.keep_in_tmp = 1;
 +    code_off = __OptPassFinal(cctrl, next, bin, code_off);
-+    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_PTR;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
 +    AIWNIOS_ADD_CODE(X86XorReg, RDX, RDX);
 +    misc = CodeMiscNew(cctrl, CMT_LABEL);
 +    misc->addr = bin + code_off;
-+    AIWNIOS_ADD_CODE(X86CmpSIB8Imm, 0, 1, RDX, next->res.reg, 0);
++    AIWNIOS_ADD_CODE(X86CmpSIB8Imm, 0, 1, RDX, RAX, 0);
 +    misc2 = CodeMiscNew(cctrl, CMT_LABEL);
 +    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_Z, 0);
 +    CodeMiscAddRef(misc2, bin + code_off - 4);
@@ -204,3 +207,20 @@ index fca8a35..7395b93 100644
    ic_invlpg:
      next = ICArgN(rpn, 0);
      next->res.keep_in_tmp = 1;
+diff --git a/Tests/Compiler/StrLen.HC b/Tests/Compiler/StrLen.HC
+new file mode 100644
+--- /dev/null
++++ b/Tests/Compiler/StrLen.HC
+@@ -0,0 +1,11 @@
++public _intern IC_STRLEN I64 TestStrLen(U8 *text);
++
++U8 *TestText(I64 select)
++{
++  if (select)
++    return "wrong";
++  return "Hello, world!";
++}
++
++if (TestStrLen(TestText(0)) != 13) throw('StrLen');
++"PASS: StrLen\n";
++Exit;

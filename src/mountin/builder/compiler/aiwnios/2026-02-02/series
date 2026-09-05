@@ -1,6 +1,15 @@
 interrupt-functions/default-iret-to-64-bit.patch
 x86-assembler/fix-x86-opcode-table.patch
+aot-relocations/resolve-assembly-blobs.patch
+aot-assembly-expressions/track-asm-expression-symbols.patch
+current-pc/parse-current-pc.patch
+aot-assembly-expressions/call-asm-immediates.patch
+x86-assembler/extend-assembler-syntax.patch
+source-language/register-integer-type-aliases.patch
 source-environment/source-drive.patch
+binary-loader/read-native-module-records.patch
+source-environment/resolve-relative-includes.patch
+source-environment/return-mount-result.patch
 source-environment/avoid-fsize-symbol-collision.patch
 iso-generation/fix-dvd-image.patch
 aot-output/aot-without-wrapper.patch
@@ -58,7 +67,7 @@ runtime-intrinsics/support-queue-mutation-intrinsics.patch
 aot-relocations/zero-aot-relocations.patch
 x86-intrinsics/support-rflags-intrinsic.patch
 x86-intrinsics/support-register-setters.patch
-source-environment/match-loader-record-widths.patch
+binary-loader/match-loader-record-widths.patch
 aot-relocations/make-relocation-handling-explicit.patch
 x86-assembler/correct-aliases-and-flag-order.patch
 iso-generation/document-boot-field-writes.patch
@@ -75,10 +84,10 @@ aot-assembly-expressions/relocate-aot-global-expressions.patch
 aot-relocations/write-aot-terminator-last.patch
 templeos-signature/place-data-globals-in-image.patch
 templeos-signature/write-templeos-import-records.patch
-templeos-signature/preserve-import-aliases.patch
+aot-symbol-resolution/preserve-import-aliases.patch
 templeos-signature/write-templeos-map-files.patch
 runtime-compatibility/enable-sse-runtime.patch
-function-abi/reserve-call-scratch.patch
 function-abi/model-varargs-as-stack-array.patch
 function-abi/mark-variadic-functions.patch
+function-abi/reserve-call-scratch.patch
 runtime-intrinsics/support-modu64-intrinsic.patch

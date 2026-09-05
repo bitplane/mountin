@@ -1,6 +1,11 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 6542ab4..696160d 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -620,11 +620,22 @@
+@@ -619,6 +619,17 @@ Bool Globalify(U8 *addr,CAddShortRelocData *data) {
+   }
+   return FALSE;
+ }
 +U8 *AOTImportName(CHash *h) {
 +  CHashSrcSym *src;
 +  if(h->type&HTG_SRC_SYM) {
@@ -15,7 +20,7 @@
  U0 AddShortReloc(U8 *addr,CAddShortRelocData *data) {
    CAOTImportExport *tmpaie=CAlloc(sizeof(CAOTImportExport));
    #ifdef TARGET_RISCV
-   tmpaie->type=IET_REL_RISCV;
+@@ -626,7 +637,7 @@ U0 AddShortReloc(U8 *addr,CAddShortRelocData *data) {
    #else
    tmpaie->type=IET_REL_I32;
    #endif
@@ -24,7 +29,7 @@
    tmpaie->rip=data->cc->aotc->rip+(addr-data->machine_code);
    
    tmpaie->offset=data->cm->offset;
-@@ -2356,7 +2367,7 @@
+@@ -2379,7 +2390,7 @@ break;case IC_GET_RSP:
            }else if(IsTLSReloc(misc)) {
              tmpaie=CAlloc(sizeof(CAOTImportExport));
              tmpaie->type=IET_IMM_I64;
@@ -33,7 +38,7 @@
              tmpaie->rip=cc->aotc->rip+(misc->addr(U8*)-machine_code);
              tmpaie->offset=misc->offset;
              QueIns(tmpaie,cc->aot->last_ie);
-@@ -2389,7 +2400,7 @@
+@@ -2412,7 +2423,7 @@ break;case IC_GET_RSP:
  	  norm_reloc:
  	    tmpaie=CAlloc(sizeof(CAOTImportExport));
              tmpaie->type=IET_IMM_I64;

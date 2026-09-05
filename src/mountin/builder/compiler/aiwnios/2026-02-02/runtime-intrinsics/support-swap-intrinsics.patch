@@ -1,4 +1,5 @@
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index eae8d22..6542ab4 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -39,6 +39,7 @@ import U8 * __HC_ICAdd_PostInc(U8*,I64);
@@ -9,7 +10,7 @@ diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  import U8 * __HC_ICAdd_Div(U8*);
  import U8 * __HC_ICAdd_Sub(U8*);
  import U8 * __HC_ICAdd_Mul(U8*);
-@@ -164,6 +165,7 @@ extern U8 * __HC_ICAdd_Lock(U8 *);
+@@ -164,6 +165,7 @@ extern U8 * __HC_ICAdd_PostDec(U8*,I64);
  extern U8 * __HC_ICAdd_PostInc(U8*,I64);
  extern U8 * __HC_ICAdd_Pow(U8 *);
  extern U8 * __HC_ICAdd_Eq(U8*);
@@ -17,10 +18,11 @@ diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
  extern U8 * __HC_ICAdd_Div(U8*);
  extern U8 * __HC_ICAdd_Sub(U8*);
  extern U8 * __HC_ICAdd_Mul(U8*);
-@@ -2187,6 +2189,14 @@ U8 *AIWNIOS_CodeGen(CCodeCtrl *cc,I64 *_type)
+@@ -2176,6 +2178,23 @@ break;case IC_GET_RSP:
      new=__HC_ICAdd_XorXor(cc2);
      break;case IC_ASSIGN:
      new=__HC_ICAdd_Eq(cc2);
++#ifdef TARGET_X86
 +    break;case IC_SWAP_U8:
 +    new=__HC_ICAdd_Swap(cc2,1);
 +    break;case IC_SWAP_U16:
@@ -29,10 +31,19 @@ diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
 +    new=__HC_ICAdd_Swap(cc2,4);
 +    break;case IC_SWAP_I64:
 +    new=__HC_ICAdd_Swap(cc2,8);
++#else
++    break;case IC_SWAP_U8:
++    case IC_SWAP_U16:
++    case IC_SWAP_U32:
++    case IC_SWAP_I64:
++      PrintErr("Intrinsic is not implemented for this target\n");
++      throw('Compiler');
++#endif
      //break;case IC_ASSIGN_PP //NOT USED BY AIWNIOS
      //break;case IC_ASSIGN_MM //DITTO
      break;case IC_SHL_EQU:
 diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 790289d..72b0902 100644
 --- a/c/aiwn_lexparser.h
 +++ b/c/aiwn_lexparser.h
 @@ -371,6 +371,7 @@ enum {
@@ -43,7 +54,8 @@ diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
    IC_CNT, // MUST BE THE LAST ITEM
  };
  typedef struct CICArg {
-@@ -760,5 +761,7 @@ HC_IC_BINDINGH(HC_ICAdd_ToBool)
+@@ -759,6 +760,8 @@ HC_IC_BINDINGH(HC_ICAdd_Gs)
+ HC_IC_BINDINGH(HC_ICAdd_ToBool)
  HC_IC_BINDINGH(HC_ICAdd_ToUpper)
  
 +CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width);
@@ -52,6 +64,7 @@ diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
  CRPN *__HC_ICAdd_IReg(CCodeCtrl *cc, int64_t r, int64_t rt, int64_t ptr_cnt);
  CRPN *__HC_ICAdd_Frame(CCodeCtrl *cc, int64_t off, int64_t rt, int64_t ptr_cnt);
 diff --git a/c/main.c b/c/main.c
+index 7e30da9..8021bb1 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -1034,6 +1034,10 @@ static int64_t STK___HC_ICAdd_Eq(int64_t *stk) {
@@ -65,7 +78,7 @@ diff --git a/c/main.c b/c/main.c
  static int64_t STK___HC_ICAdd_Div(int64_t *stk) {
    return (int64_t)__HC_ICAdd_Div((CCodeCtrl *)stk[0]);
  }
-@@ -1828,6 +1832,7 @@ void LoadHCRT(const char *fn, int boot) {
+@@ -1828,6 +1832,7 @@ static void BootAiwnios(char *bootstrap_text) {
      PrsAddSymbol("__HC_ICAdd_PostInc", STK___HC_ICAdd_PostInc, 2);
      PrsAddSymbol("__HC_ICAdd_Pow", STK___HC_ICAdd_Pow, 1);
      PrsAddSymbol("__HC_ICAdd_Eq", STK___HC_ICAdd_Eq, 1);
@@ -74,9 +87,10 @@ diff --git a/c/main.c b/c/main.c
      PrsAddSymbol("__HC_ICAdd_Sub", STK___HC_ICAdd_Sub, 1);
      PrsAddSymbol("__HC_ICAdd_Mul", STK___HC_ICAdd_Mul, 1);
 diff --git a/c/optpass.c b/c/optpass.c
+index 699b31c..7f88a36 100644
 --- a/c/optpass.c
 +++ b/c/optpass.c
-@@ -649,6 +649,7 @@ static int64_t OptPassRefs(CCodeCtrl *cctrl, CRPN *rpn, int64_t idx) {
+@@ -649,6 +649,7 @@ loop:
        goto binop_next;
        break;
      case IC_EQ:
@@ -84,7 +98,7 @@ diff --git a/c/optpass.c b/c/optpass.c
        goto next1;
        break;
      case IC_SUB:
-@@ -1132,6 +1133,7 @@ static void OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn) {
+@@ -1132,6 +1133,7 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
        continue;
        break;
      case IC_EQ:
@@ -93,9 +107,10 @@ diff --git a/c/optpass.c b/c/optpass.c
        break;
      case IC_SUB:
 diff --git a/c/parser.c b/c/parser.c
+index 463f19a..4487859 100644
 --- a/c/parser.c
 +++ b/c/parser.c
-@@ -375,6 +375,7 @@ static int64_t ICFwd(CRPN *rpn) {
+@@ -375,6 +375,7 @@ CRPN *ICFwd(CRPN *rpn) {
    case IC_LBTR:
    case IC_LBTS:
    case IC_LBTC:
@@ -103,7 +118,7 @@ diff --git a/c/parser.c b/c/parser.c
    case IC_EQ:
      goto binop;
      break;
-@@ -875,6 +876,10 @@ void DumpRPN(CRPN *rpn) {
+@@ -875,6 +876,10 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
      printf("+");
      goto binop;
      break;
@@ -114,7 +129,7 @@ diff --git a/c/parser.c b/c/parser.c
    case IC_EQ:
      printf("=");
      goto binop;
-@@ -1436,6 +1441,10 @@ int64_t DumpRPN2(char *to, CRPN *rpn) {
+@@ -1436,6 +1441,10 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
      len = AddBytes(to, len, "$PURPLE$+$FD$\n");
      goto binop;
      break;
@@ -125,7 +140,7 @@ diff --git a/c/parser.c b/c/parser.c
    case IC_EQ:
      len = AddBytes(to, len, "$PURPLE$=$FD$\n");
      goto binop;
-@@ -3537,6 +3546,11 @@ int64_t AssignRawTypeToNode(CCompCtrl *ccmp, CRPN *rpn) {
+@@ -3537,6 +3546,11 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
    if (rpn->raw_type)
      return rpn->raw_type;
    switch (rpn->type) {
@@ -137,7 +152,8 @@ diff --git a/c/parser.c b/c/parser.c
    case IC_SQRT:
      AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
      rpn->ic_class = HashFind("F64", Fs->hash_table, HTT_CLASS, 1);
-@@ -4809,5 +4823,16 @@ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+@@ -4808,6 +4822,17 @@ HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
  HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
  
 +CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width) {
@@ -155,9 +171,10 @@ diff --git a/c/parser.c b/c/parser.c
    CRPN *rpn;
    *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
 diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index cb12659..afb9363 100644
 --- a/c/x86_64_backend.c
 +++ b/c/x86_64_backend.c
-@@ -2322,6 +2322,9 @@ static void SpillRegs(CCodeCtrl *cctrl, CRPN *rpn, int64_t start) {
+@@ -2322,6 +2322,9 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
    case IC_ADD:
      goto binop;
      break;
@@ -167,7 +184,7 @@ diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_EQ:
      goto binop;
      break;
-@@ -3187,6 +3190,9 @@ static void PushTmp(CCodeCtrl *cctrl, CRPN *r) {
+@@ -3187,6 +3190,9 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
      PopTmp(cctrl, ICArgN(r, 0));
      goto fin;
      break;
@@ -177,7 +194,7 @@ diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_SUB:
      goto binop;
      break;
-@@ -6341,6 +6347,7 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -6341,6 +6347,7 @@ static void SetKeepTmps(CRPN *rpn) {
      //   Lets just reutrn 0 to make things simpler.
      break;
    case IC_EQ:
@@ -185,7 +202,7 @@ diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
    case IC_ADD_EQ:
    case IC_SUB_EQ:
    case IC_MUL_EQ:
-@@ -6410,6 +6417,7 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -6410,6 +6417,7 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
        [IC_GOTO] = &&ic_goto,
        [IC_GOTO_IF] = &&ic_goto_if,
        [IC_TO_BOOL] = &&ic_to_bool,
@@ -193,7 +210,7 @@ diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
        [IC_TO_UPPER] = &&ic_to_upper,
        [IC_TO_I64] = &&ic_to_i64,
        [IC_TO_F64] = &&ic_to_f64,
-@@ -8937,6 +8945,50 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+@@ -8942,6 +8950,50 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
    ic_set_static_data:
      // TODO later
      break;

@@ -1,17 +1,14 @@
 diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index e0fefd7..c61d7bd 100644
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
-@@ -452,8 +452,11 @@ U0 PrsGlblVarLst(CCmpCtrl *cc,I64 saved_mode,
- 	Lex(cc);
+@@ -453,6 +453,9 @@ U0 PrsGlblVarLst(CCmpCtrl *cc,I64 saved_mode,CHashClass *saved_tmpc,
  	PrsGlblInit(cc,tmpg,2);
  	if (cc->flags&CCF_AOT_COMPILE) {
--	  if (!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)) {
--	  } else
-+	  if (!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)) {
+ 	  if (!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)) {
 +	    if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
 +	      for (k=0;k<tmpg->size;k++)
 +		AOTStoreCodeU8At(cc,tmpg->data_addr_rip+k,tmpg->data_addr[k]);
-+	  } else
+ 	  } else
  //Nroot is modifing Load to include the ->data_addr in the IET_DATA_HEAP and in loader.c
  	    tmpg->heap_glbl->data=MAllocIdent(tmpg->data_addr);
- 	}

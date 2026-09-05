@@ -1,20 +1,50 @@
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1513,7 +1513,7 @@ enter0:
+   CX86Opcode *opc,*first_opc,*best;
+   CQue *asm_patches=MAlloc(sizeof CQue),*to_fill=MAlloc(sizeof CQue);
+   I64 arg_cnt,max_arity,best_sz,sz,len=0,tmp,idx,seg_size=64;
+-  U8 *buf=MAlloc(64),dummy[STR_LEN],*fbuf;
++  U8 *buf=MAlloc(64),dummy[STR_LEN],*fbuf,*lookahead;
+   CCodeMisc *cm;
+   CHashExport *exp;
+   CHashImport *imp;
+@@ -1545,9 +1545,17 @@ enter:
+     Lex(cc);
+     //An opcode or keyword starts the next statement, so a zero-arity variant
+     //wins without consuming it as an operand.
+-    if(has_zero_arity && cc->hash_entry &&
+-        cc->hash_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD|HTT_KEYWORD))
+-      max_arity=0;
++    if(has_zero_arity) {
++      lookahead=cc->cur_buf_ptr;
++      while(*lookahead && *lookahead<=' ') lookahead++;
++      if(cc->token==';' || cc->token=='}' ||
++          cc->hash_entry &&
++          cc->hash_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD|HTT_KEYWORD) ||
++          cc->token==TK_IDENT &&
++          !HashFind(cc->cur_str,cmp.asm_hash,HTT_REG) &&
++          (cc->flags&CCF_USE_LAST_U16 && cc->last_U16==':' || *lookahead==':'))
++        max_arity=0;
++    }
+     for(arg_cnt=0;arg_cnt<max_arity;arg_cnt++) {
+       if(arg_cnt) {
+ 	if(cc->token!=',')
 diff --git a/Src/KernelA.HH b/Src/KernelA.HH
-index 66b9dac..1f6752e 100644
 --- a/Src/KernelA.HH
 +++ b/Src/KernelA.HH
-@@ -1530,9 +1530,9 @@ public class CAutoCompleteDictGlbls
+@@ -1530,8 +1530,8 @@ public class CAutoCompleteDictGlbls
  #define OPTf_KEEP_RELOCATIONS 0x26 //Added by nroot,will keep the CHashImport's
  #define OPTf_BOUNDS_CHECK 0x27 //Added by nroot,Bounds checker
  #define OPTf_BYTE_CODE 0x28 //Added by nroot
--#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
--#define OPTf_X86_SSE_RUNTIME 0x2B
- #define OPTf_RAW_AOT 0x29
-+#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
-+#define OPTf_X86_SSE_RUNTIME 0x2B
++#define OPTf_RAW_AOT 0x29
+ #define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
+-#define OPTf_RAW_AOT 0x29
  
  #define OPTF_ECHO		(1<<OPTf_ECHO)
  
-@@ -2173,8 +2173,8 @@ class CLexHashTableContext
+@@ -2174,8 +2174,8 @@ class CLexHashTableContext
  #define CCF_PAREN		0x2000000000
  #define CCf_PAREN		37
  #define CCF_CLASS_DOL_OFFSET	0x4000000000
@@ -25,34 +55,91 @@ index 66b9dac..1f6752e 100644
  public class CCmpCtrl
  {
 diff --git a/Src/UAsmX64.HC b/Src/UAsmX64.HC
-index 40896d2..f7d264a 100644
 --- a/Src/UAsmX64.HC
 +++ b/Src/UAsmX64.HC
-@@ -1322,6 +1322,7 @@ U0 UAsmInit() {
+@@ -1322,6 +1322,8 @@ U0 UAsmInit() {
    AO("FSTP",-1,-1,0xdd,-1,X86_OPCF_MODRM,X86_OPERAND_M64,X86_OPERAND_EXT,3);
    AO("FSTP",-1,-1,0xdd,-1,X86_OPCF_MODRM,X86_OPERAND_STi,X86_OPERAND_EXT,3);
    AO("FSTSW",0x9b,-1,0xdd,-1,X86_OPCF_MODRM,X86_OPERAND_M16,X86_OPERAND_EXT,7);
 +  //TempleOS uses bare FSTSW as the implicit AX form.
++  AO("FSTSW",0x9b,-1,0xdf,0xe0,0,X86_OPERAND_CONST_R16,REG_RAX);
    AO("FSTSW",0x9b,-1,0xdf,0xe0,0);
    AO("FSUB",-1,-1,0xd8,-1,X86_OPCF_MODRM,X86_OPERAND_ST0,X86_OPERAND_M32,X86_OPERAND_EXT,4);
    AO("FSUB",-1,-1,0xd8,-1,X86_OPCF_MODRM,X86_OPERAND_ST0,X86_OPERAND_STi,X86_OPERAND_EXT,4);
-@@ -1688,7 +1689,8 @@ U0 UAsmInit() {
+@@ -1688,8 +1690,10 @@ U0 UAsmInit() {
  //POP FS
    AO("POPCNT",0xf3,0xf,0xb8,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_RMx);
    AO("POPF",-1,-1,0x9d,-1,0);
 -  AO("POPFW,POPFD",-1,-1,0x9d,-1,0);
+-  AO("POPAW,POPAD",-1,-1,0x61,-1,0);
 +  AO("POPFW",-1,-1,0x9d,-1,X86_OPCF_OPSIZE16);
-+  AO("POPFD",-1,-1,0x9d,-1,0);
-   AO("POPAW,POPAD",-1,-1,0x61,-1,0);
++  AO("POPFD",-1,-1,0x9d,-1,X86_OPCF_OPSIZE32);
++  AO("POPAW",-1,-1,0x61,-1,X86_OPCF_OPSIZE16);
++  AO("POPAD",-1,-1,0x61,-1,X86_OPCF_OPSIZE32);
    AO("POR",-1,0xf,0xeb,-1,X86_OPCF_MODRM,X86_OPERAND_RMM,X86_OPERAND_RMMM64);
    AO("POR",0x66,0xf,0xeb,-1,X86_OPCF_MODRM,X86_OPERAND_RXMM,X86_OPERAND_RMXMM);
-@@ -1780,7 +1782,8 @@ U0 UAsmInit() {
+ //  AO("PREFETCHNTA",-1,0xf,0x18,-1,X86_OPCF_MODRM,X86_OPERAND_M8,X86_OPERAND_EXT,0);
+@@ -1780,8 +1784,10 @@ U0 UAsmInit() {
  //PUSH FS
  //PUSH Gs
    AO("PUSHFQ,PUSHF",-1,-1,0x9c,-1,0);
 -  AO("PUSHFW,PUSHFD",-1,-1,0x9c,-1,0);
+-  AO("PUSHAW,PUSHAD",-1,-1,0x60,-1,0);
 +  AO("PUSHFW",-1,-1,0x9c,-1,X86_OPCF_OPSIZE16);
-+  AO("PUSHFD",-1,-1,0x9c,-1,0);
-   AO("PUSHAW,PUSHAD",-1,-1,0x60,-1,0);
++  AO("PUSHFD",-1,-1,0x9c,-1,X86_OPCF_OPSIZE32);
++  AO("PUSHAW",-1,-1,0x60,-1,X86_OPCF_OPSIZE16);
++  AO("PUSHAD",-1,-1,0x60,-1,X86_OPCF_OPSIZE32);
  
    AO("PXOR",-1,0xf,0xef,-1,X86_OPCF_MODRM,X86_OPERAND_RMM,X86_OPERAND_RMMM64);
+   AO("PXOR",0x66,0xf,0xef,-1,X86_OPCF_MODRM,X86_OPERAND_RXMM,X86_OPERAND_RMXMM128);
+diff --git a/Tests/Compiler/X86Aliases.HC b/Tests/Compiler/X86Aliases.HC
+new file mode 100644
+--- /dev/null
++++ b/Tests/Compiler/X86Aliases.HC
+@@ -0,0 +1,17 @@
++I64 opts=0,i;
++U8 expected[31]={0x9c,0x66,0x9c,0x9d,0x66,0x9d,0x60,0x66,0x60,0x61,0x66,0x61,
++      0x66,0x9c,0x9c,0x66,0x9d,0x9d,0x66,0x60,0x60,0x66,0x61,0x61,
++      0x9b,0x48,0xdf,0xe0,0x9b,0xdf,0xe0};
++DirMk("/Tmp");
++Bts(&opts,OPTf_RAW_AOT);
++if (Cmp("/Tests/Compiler/X86AliasesInput.HC",,"/Tmp/Aliases.BIN",0,opts))
++  throw('AsmError');
++CBinFile *bin=FileRead("/Tmp/Aliases.BIN");
++U8 *code=bin(U8 *)+sizeof(CBinFile);
++if (bin->patch_table_offset-sizeof(CBinFile)!=sizeof(expected))
++  throw('AsmSize');
++for (i=0;i<sizeof(expected);i++)
++  if (code[i]!=expected[i]) throw('AsmBytes');
++Free(bin);
++"PASS: x86 aliases\n";
++Exit;
+diff --git a/Tests/Compiler/X86AliasesInput.HC b/Tests/Compiler/X86AliasesInput.HC
+new file mode 100644
+--- /dev/null
++++ b/Tests/Compiler/X86AliasesInput.HC
+@@ -0,0 +1,24 @@
++asm {
++USE16
++  PUSHFW
++  PUSHFD
++  POPFW
++  POPFD
++  PUSHAW
++  PUSHAD
++  POPAW
++  POPAD
++USE32
++  PUSHFW
++  PUSHFD
++  POPFW
++  POPFD
++  PUSHAW
++  PUSHAD
++  POPAW
++  POPAD
++USE64
++  FSTSW AX
++  FSTSW
++END_ALIASES::
++}

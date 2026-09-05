@@ -1,0 +1,236 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 4bc553e..4b1aef5 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2275,6 +2275,9 @@ break;case IC_ASM:
+     if(cur->user_data2) I64SetDel(cur->user_data2);
+     if(cur->type==IC_ASM) {
+ //TODO AOT
++      if(cc->flags&CCF_AOT_COMPILE)
++        cur->ic_data(CAiwniosAOTBlob*)->final_start_rip=cc->aotc->rip+
++              (cur->ic_data(CAiwniosAOTBlob*)->final_start_addr-machine_code);
+       JITFixupAiwniosAOTBlob(cc,cur->ic_data,cur->ic_data(CAiwniosAOTBlob*)->final_start_addr);
+       AiwniosAOTBlobDel(cur->ic_data);
+     }
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index 5b29956..cbfdcb9 100644
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -1,3 +1,76 @@
++U0 AsmUnresolvedAdd(CCmpCtrl *cc,U8 *machine_code,I64 type,I64 rip,I64 rel_rip,
++      CAsmUndefHash *local_asm_undef_hash,CAsmUndefHash *glbl_asm_undef_hash,
++      I64 line_num,Bool U8_avail)
++{
++  CAsmUnresolvedRef *tmpu=MAlloc(sizeof(CAsmUnresolvedRef));
++  tmpu->machine_code=machine_code;
++  tmpu->type=type;
++  tmpu->rip=rip;
++  tmpu->rel_rip=rel_rip;
++  tmpu->aot=cc->aot;
++  tmpu->imm_flag=FALSE;
++  tmpu->line_num=line_num;
++  tmpu->U8_avail=U8_avail;
++  tmpu->str=NULL;
++  if (local_asm_undef_hash) {
++    tmpu->asm_undef_hash=local_asm_undef_hash;
++    tmpu->next=cc->aotc->local_unresolved;
++    cc->aotc->local_unresolved=tmpu;
++  } else {
++    tmpu->asm_undef_hash=glbl_asm_undef_hash;
++    tmpu->next=cc->aotc->glbl_unresolved;
++    cc->aotc->glbl_unresolved=tmpu;
++    if (glbl_asm_undef_hash->hash->type & HTF_IMPORT) {
++      tmpu->str=StrNew(glbl_asm_undef_hash->hash->str);
++      if (glbl_asm_undef_hash->hash->type & HTF_IMM)
++        tmpu->imm_flag=TRUE;
++    }
++  }
++}
++
++U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
++{
++  CAOTImportExport *tmpie;
++  CAsmUndefHash *tmpauh;
++  I64 (*machine_code)()=tmpu->machine_code;
++  I64 res=(*machine_code)();
++  if (undefined) {
++    tmpauh=tmpu->asm_undef_hash;
++    while (tmpauh) {
++      if (tmpauh->hash->type & HTF_UNRESOLVED) {
++        tmpie=CAlloc(sizeof(CAOTImportExport));
++        tmpie->next=tmpauh->hash->ie_lst;
++        tmpauh->hash->ie_lst=tmpie;
++        tmpie->rip=tmpu->rip;
++        tmpie->aot=cc->aot;
++        tmpie->type=tmpu->type;
++      }
++      tmpauh=tmpauh->next;
++    }
++  } else if (!(tmpu->type&IEF_IMM_NOT_REL)) {
++    res-=tmpu->rel_rip;
++    if (tmpu->type==IET_REL_I8 && !(I8_MIN<=res<=I8_MAX) ||
++          tmpu->type==IET_REL_I16 && !(I16_MIN<=res<=I16_MAX)) {
++      PrintErr("Branch out of range at line:%04d %s\n",
++            tmpu->line_num,label);
++      LexExcept(cc);
++    }
++    if (tmpu->U8_avail && tmpu->type>IET_IMM_U8 && -124<=res<=123)
++      PrintWarn("could use I8 displacement at line:%04d %s %s\n",
++            tmpu->line_num,cc->aotc->last_label,label);
++  }
++  AOTStoreCodeU8At(cc,tmpu->rip,res.u8[0]);
++  if (tmpu->type>=IET_REL_I16) {
++    AOTStoreCodeU8At(cc,tmpu->rip+1,res.u8[1]);
++    if (tmpu->type>=IET_REL_I32) {
++      AOTStoreCodeU8At(cc,tmpu->rip+2,res.u8[2],res.u8[3]);
++      if (tmpu->type>=IET_REL_I64)
++        AOTStoreCodeU8At(cc,tmpu->rip+4,res.u8[4],res.u8[5],
++              res.u8[6],res.u8[7]);
++    }
++  }
++}
++
+ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+ {
+   CAOTCtrl *aotc=cc->aotc;
+@@ -48,7 +121,7 @@ U0 AOTGlblsResolve(CCmpCtrl *cc,CAOT *tmpaot)
+ 	label=tmpauh->hash->str;
+       tmpauh=tmpauh->next;
+     }
+-    //AsmResolve(cc,tmpu,label,undefined); TODO restore ???
++    AsmResolve(cc,tmpu,label,undefined);
+     Free(tmpu->machine_code);
+     LinkedLstDel(tmpu->asm_undef_hash);
+     Free(tmpu);
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 13c7b24..933283a 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -10,7 +10,8 @@ class CAiwniosAOTBlob {
+   I64 len;
+   U8 *data;
+   //private,used when placing ->data into it's final location
+-  U8 **final_start_addr;
++  I64 final_start_rip;
++  U8 *final_start_addr;
+ };
+ U0 AiwniosAOTBlobDel(CAiwniosAOTBlob *b) {
+   QueDel(b->asm_patches);
+@@ -1123,15 +1124,17 @@ U0 AddBytesToBuf(U8 **_buf,I64 *len,I64 cnt,U8 *bytes) {
+ class CToFill:CQue {
+   CHashExport *h;
+ };
+-U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches) {
++U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches,CQue *to_fill) {
+   CAsmPatch *patch;
+   I64 b,i;
++  CToFill *tmp_to_fill;
+   CAsmUndefHash *tab,*cur;
+   CHashImport *h;
+   CMemberLst *mlst;
+   CHashExport *exp;
+   CCodeMisc *cm;
+   Bool local;
++  I64 (*machine_code)();
+   patch=patches->next;
+   while(patch!=patches) {
+     if(!patch->imm) goto nxt;
+@@ -1145,10 +1148,23 @@ U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches) {
+     if(!tab) goto nxt;
+     cur=tab;
+     while(cur) {
++      for(tmp_to_fill=to_fill->next;tmp_to_fill!=to_fill;
++            tmp_to_fill=tmp_to_fill->next) {
++        if(!StrCmp(tmp_to_fill->h->str,cur->hash->str)) {
++          exp=CAlloc(sizeof CHashExport);
++          exp->type=HTT_EXPORT_SYS_SYM|HTF_RESOLVE;
++          exp->str=StrNew(tmp_to_fill->h->str);
++          exp->val=tmp_to_fill->h->val;
++          HashAdd(exp,Fs->hash_table);
++          SysSymImportsResolve(cur->hash->str,0);
++          HashRemDel(exp,Fs->hash_table);
++          goto resolved;
++        }
++      }
+       if(cc->coc.coc_next_misc)
+         for(cm=cc->coc.coc_next_misc;cm!=&cc->coc.coc_next_misc;cm=cm->next) {
+ 	  if(cm->addr2!=INVALID_PTR&&
+-	        cm->type==CMT_GOTO_LABEL&&cm->str&&
++	        (cm->type==CMT_GOTO_LABEL||cm->type==CMT_ASM_LABEL)&&cm->str&&
+ 	        !StrCmp(cm->str,cur->hash->str)) {
+ 	    exp=CAlloc(sizeof CHashExport);
+ 	    exp->type=HTT_EXPORT_SYS_SYM|HTF_RESOLVE;
+@@ -1182,7 +1198,8 @@ U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches) {
+ resolved:
+       cur=cur->next;
+     }
+-    patch->imm->off=(*patch->imm->machine_code)();
++    machine_code=patch->imm->machine_code;
++    patch->imm->off=(*machine_code)();
+     Free(patch->imm->machine_code);
+     patch->imm->machine_code=NULL;
+     LinkedLstDel(tab);
+@@ -1201,14 +1218,36 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+     tmp_to_fill->h->val+=buf;
+     tmp_to_fill=tmp_to_fill->next;
+   }
+-  AsmResolvePatches(cc,blob->asm_patches);
+-//If our relocations are not realtive,add the ptr to result
+   patch=blob->asm_patches->next;
+   if(cc->flags&CCF_AOT_COMPILE) {
+-    if(patch!=blob->asm_patches)
+-      LexExcept(cc,"AOT assembler not implemented yet for relocs");
++    while(patch!=blob->asm_patches) {
++      next_patch=patch->next;
++      if(patch->imm&&(patch->imm->local_asm_undef_hash||
++            patch->imm->glbl_asm_undef_hash)) {
++        switch(patch->sz) {
++          break;case 1: sz=IET_REL_I8;
++          break;case 2: sz=IET_REL_I16;
++          break;case 4: sz=IET_REL_I32;
++          break;case 8: sz=IET_REL_I64;
++          default: LexExcept(cc,"Invalid AOT assembler relocation size");
++        }
++        AsmUnresolvedAdd(cc,patch->imm->machine_code,
++              sz+!patch->is_rel,blob->final_start_rip+patch->rip,
++              blob->final_start_rip+patch->rip+patch->sz,
++              patch->imm->local_asm_undef_hash,
++              patch->imm->glbl_asm_undef_hash,
++              cc->lex_include_stk->line_num,FALSE);
++        patch->imm->machine_code=NULL;
++        patch->imm->local_asm_undef_hash=NULL;
++        patch->imm->glbl_asm_undef_hash=NULL;
++      }
++      patch=next_patch;
++    }
+     return;
+   }
++  AsmResolvePatches(cc,blob->asm_patches,blob->to_fill);
++//If our relocations are not realtive,add the ptr to result
++  patch=blob->asm_patches->next;
+   while(patch!=blob->asm_patches) {
+     next_patch=patch->next;
+     if(patch->imm) {
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+index 4a3693b..27cf1b0 100644
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -6916,12 +6916,16 @@ class CAiwniosAOTBlob {
+   I64 len;
+   U8 *data;
+   //private,used when placing ->data into it's final location
+-  U8 **final_start_addr;
++  I64 final_start_rip;
++  U8 *final_start_addr;
+ };
+ extern U0 AiwniosAOTBlobDel(CAiwniosAOTBlob *b);
++extern U0 AsmUnresolvedAdd(CCmpCtrl *cc,U8 *machine_code,I64 type,I64 rip,
++      I64 rel_rip,CAsmUndefHash *local_asm_undef_hash,
++      CAsmUndefHash *glbl_asm_undef_hash,I64 line_num,Bool U8_avail);
+ extern U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf);
+ extern U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches);
+-extern I64 X86EncodeOpcode(I64 rip,U8 *opc,U8 **modes,U8 *to,CQue *asm_patches);
++extern I64 X86EncodeOpcode(I64 rip,I64 seg_size,U8 *opc,U8 **modes,U8 *to,CQue *asm_patches);
+ #ifdef TARGET_X86
+ extern U8 SSE_ShuffleByte(I64 a,I64 b,I64 c,I64 d);
+ #endif

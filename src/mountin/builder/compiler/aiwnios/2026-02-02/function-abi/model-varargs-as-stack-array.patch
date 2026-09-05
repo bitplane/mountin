@@ -1,4 +1,30 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index a6c568d..b58fb2b 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1563,7 +1563,9 @@ skip_convert:;
+         if(foff&(align-1))
+           foff+=align-(foff&(align-1)); //Align to 8
+         #else 
+-	if(IsFunArg(cc->htc.fun,mlst)&&!(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv"))) {
++	if(IsFunArg(cc->htc.fun,mlst) &&
++              (!(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv")) ||
++               Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))) {
+ 	  //Arguments are passed on stack so no need to mode
+ 	  foff_lookup[idx].i32[0]=mlst->offset;
+ 	  //16 to offset [PC,RBP] pair at base 
+@@ -1642,7 +1644,8 @@ found_offset:;;
+ #ifdef TARGET_X86
+ //Not yet implemented for AARCH64
+       if(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv")) {
+-        __HC_ICAdd_GetVargsPtr(cc2);
++        if (!Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++          __HC_ICAdd_GetVargsPtr(cc2);
+       } else
+         __HC_ICAdd_Arg(cc2,idx);
+ #endif
 diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
+index bf98708..cf04d06 100644
 --- a/Src/PrsVar.HC
 +++ b/Src/PrsVar.HC
 @@ -410,13 +410,22 @@ U0 PrsDotDotDot(CCmpCtrl *cc,CHashFun *tmpf,I64 _reg)
@@ -29,43 +55,3 @@ diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
    MemberAdd(cc,tmpm,tmpf,PRS1B_FUN_ARG);
  
    if (cc->token==')')
-diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
---- a/Src/AIWNIOS_CodeGen.HC
-+++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1563,7 +1563,9 @@ skip_convert:;
-         if(foff&(align-1))
-           foff+=align-(foff&(align-1)); //Align to 8
-         #else 
--	if(IsFunArg(cc->htc.fun,mlst)&&!(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv"))) {
-+	if(IsFunArg(cc->htc.fun,mlst) &&
-+              (!(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv")) ||
-+               Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))) {
- 	  //Arguments are passed on stack so no need to mode
- 	  foff_lookup[idx].i32[0]=mlst->offset;
- 	  //16 to offset [PC,RBP] pair at base 
-@@ -1642,7 +1644,8 @@ found_offset:;;
- #ifdef TARGET_X86
- //Not yet implemented for AARCH64
-       if(mlst->flags&MLF_DOT_DOT_DOT&&!StrCmp(mlst->str,"argv")) {
--        __HC_ICAdd_GetVargsPtr(cc2);
-+        if (!Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
-+          __HC_ICAdd_GetVargsPtr(cc2);
-       } else
-         __HC_ICAdd_Arg(cc2,idx);
- #endif
-diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
---- a/c/x86_64_backend.c
-+++ b/c/x86_64_backend.c
-@@ -5779,6 +5779,12 @@ static int64_t FuncProlog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
-   if (cctrl->cur_fun) {
-     lst = cctrl->cur_fun->base.members_lst;
-     for (i = 0; i != cctrl->cur_fun->argc; i++) {
-+      if ((cctrl->flags & CCF_NATIVE_SEGMENTS) &&
-+          (cctrl->cur_fun->base.flags & CLSF_VARGS) &&
-+          !strcmp("argv", lst->str)) {
-+        lst = lst->next;
-+        continue;
-+      }
-       fun_arg.mode = MD_INDIR_REG;
-       fun_arg.raw_type = lst->member_class->raw_type;
-       fun_arg.reg = RBP;

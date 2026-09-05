@@ -21,3 +21,10 @@
      sz=X86EncodeOpcode(len,seg_size,best,modes,dummy,asm_patches);
      AddBytesToBuf(&buf,&len,sz,dummy);
    } else if(cc->token==TK_IDENT&&cc->hash_entry&&cc->hash_entry->type&(HTT_ASM_KEYWORD|HTT_KEYWORD)) {
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -1534,2 +1534,3 @@
+ #define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
++#define OPTf_X86_SSE_RUNTIME 0x2B
+ 

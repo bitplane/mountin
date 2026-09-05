@@ -1,0 +1,33 @@
+diff --git a/Src/CInit.HC b/Src/CInit.HC
+index 96e8aa6..f2f36cd 100644
+--- a/Src/CInit.HC
++++ b/Src/CInit.HC
+@@ -5,9 +5,12 @@ class CInternalType
+   {RT_I0,0,"I0i"},{RT_I0,0,"I0"},{RT_U0,0,"U0i"},{RT_U0,0,"U0"},
+   {RT_I8,1,"I8i"},{RT_I8,1,"I8"},{RT_I8,1,"Bool"},
+   {RT_U8,1,"U8i"},{RT_U8,1,"U8"},
+-  {RT_I16,2,"I16i"},{RT_U16,2,"U16i"},
+-  {RT_I32,4,"I32i"},{RT_U32,4,"U32i"},
+-  {RT_I64,8,"I64i"},{RT_U64,8,"U64i"},
++  {RT_I16,2,"I16i"},{RT_I16,2,"I16"},
++  {RT_U16,2,"U16i"},{RT_U16,2,"U16"},
++  {RT_I32,4,"I32i"},{RT_I32,4,"I32"},
++  {RT_U32,4,"U32i"},{RT_U32,4,"U32"},
++  {RT_I64,8,"I64i"},{RT_I64,8,"I64"},
++  {RT_U64,8,"U64i"},{RT_U64,8,"U64"},
+   {RT_F64,8,"F64i"},{RT_F64,8,"F64"},
+ };
+ 
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+index 27cf1b0..a1383d4 100644
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -6933,7 +6933,7 @@ extern U8 SSE_ShuffleByte(I64 a,I64 b,I64 c,I64 d);
+ #define REGISTRY_FILENAME "~/Registry.HC.Z"
+ #define SE_NOISE	0
+ #define SE_SWEEP	1
+-#define INTERNAL_TYPES_NUM	17
++#define INTERNAL_TYPES_NUM	23
+ #define WIN_SCROLL_SIZE		8
+ #define WIN_SCROLL_BORDER_BONUS	4
+ #define VIEWANGLES_SPACING	22
