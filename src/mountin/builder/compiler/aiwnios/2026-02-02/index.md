@@ -2,6 +2,8 @@
 title: AIWNIOS 2026-02-02 Toolbox
 build_platforms:
   x86_64-linux: {}
+execution_env:
+  MOUNTIN_BUILD_JOBS: "2"
 requires:
   - docker:builder/compiler/aiwnios
 build_requires:

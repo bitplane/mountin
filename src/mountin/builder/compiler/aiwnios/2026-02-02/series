@@ -76,6 +76,9 @@ aot-relocations/write-aot-terminator-last.patch
 templeos-signature/place-data-globals-in-image.patch
 templeos-signature/write-templeos-import-records.patch
 templeos-signature/preserve-import-aliases.patch
+templeos-signature/write-templeos-map-files.patch
 runtime-compatibility/enable-sse-runtime.patch
 function-abi/reserve-call-scratch.patch
 function-abi/model-varargs-as-stack-array.patch
+function-abi/mark-variadic-functions.patch
+runtime-intrinsics/support-modu64-intrinsic.patch

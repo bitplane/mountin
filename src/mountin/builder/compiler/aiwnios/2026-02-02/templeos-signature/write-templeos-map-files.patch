@@ -1,0 +1,77 @@
+diff --git a/Src/Compiler.HC b/Src/Compiler.HC
+--- a/Src/Compiler.HC
++++ b/Src/Compiler.HC
+@@ -17,2 +17,3 @@
+ #include "AsmResolve.HC"
++#include "TempleOSMap.HC"
+ #include "CMain.HC"
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -188,6 +188,10 @@ CAOT *CmpJoin(CCmpCtrl *cc,I64 cmp_flags,U8 *map_name=NULL,U8 mapfile_drv_let=0)
+     res=NULL;
+   } else {
+-    if (map_name)
+-      DbgInfoWrite(cc->htc.glbl_hash_table,map_name);
++    if (map_name) {
++      if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++        TempleOSMapFileWrite(cc->htc.glbl_hash_table,map_name,mapfile_drv_let);
++      else
++        DbgInfoWrite(cc->htc.glbl_hash_table,map_name);
++    }
+     FillInShortCalls(cc);
+     HashTableDel(cc->htc.local_hash_table);
+diff --git a/Src/TempleOSMap.HC b/Src/TempleOSMap.HC
+new file mode 100644
+--- /dev/null
++++ b/Src/TempleOSMap.HC
+@@ -0,0 +1,49 @@
++U0 TempleOSMapFileWrite(CHashTable *h,U8 *map_name,U8 drv_let)
++{
++  CHashSrcSym *tmph;
++  I64 i,size;
++  U8 *src_link;
++  CDoc *doc;
++  CDocBin *tmpb;
++  CDbgInfo *dbg_info;
++
++  doc=DocNew(map_name);
++  doc->flags|=DOCF_NO_CURSOR;
++  for (i=0;i<=h->mask;i++) {
++    tmph=h->body[i];
++    while (tmph) {
++      if (tmph->src_link && !(tmph->type & (HTF_IMPORT | HTF_PRIVATE))) {
++        src_link=StrNew(tmph->src_link);
++        if (drv_let && StrLen(src_link)>=4)
++          src_link[3]=drv_let;
++        if (dbg_info=tmph->dbg_info) {
++          size=offset(CDbgInfo.body)+
++                sizeof(U32)*(dbg_info->max_line+2-dbg_info->min_line);
++          if (size>MSize(dbg_info)) {
++            "Corrupt Map Entry\n";
++            dbg_info=NULL;
++          } else if (dbg_info->min_line<=dbg_info->max_line) {
++            tmpb=CAlloc(sizeof(CDocBin));
++            tmpb->size=size;
++            tmpb->data=MAlloc(size);
++            MemCpy(tmpb->data,dbg_info,size);
++            tmpb->num=doc->cur_bin_num++;
++            tmpb->use_cnt=1;
++            QueIns(tmpb,doc->bin_head.last);
++          } else
++            dbg_info=NULL;
++        }
++        if (dbg_info)
++          DocPrint(doc,"$$LK,\"%s\",A=\"%s\",BI=%d$$\n",
++                tmph->str,src_link,tmpb->num);
++        else
++          DocPrint(doc,"$$LK,\"%s\",A=\"%s\"$$\n",tmph->str,src_link);
++        Free(src_link);
++      }
++      tmph=tmph->next;
++    }
++  }
++  DocBinsValidate(doc);
++  DocWrite(doc);
++  DocDel(doc);
++}

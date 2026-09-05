@@ -1,0 +1,95 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -6,6 +6,7 @@
+ #ifdef IMPORT_AIWNIOS_SYMS
+ import U0 __HC_CmpCtrl_SetRawAOTAsm(U8 *);
+ import U0 __HC_CmpCtrl_UseNativeSegments(U8 *);
++import U0 __HC_CmpCtrl_SetVargs(U8 *);
+ import U0 __HC_CmpCtrl_SetInterrupt(U8 *,Bool);
+ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of bytes before current RIP the symbol is located at)
+ import U8 *__HC_CmpCtrlDel(U8 *);
+@@ -201,6 +202,7 @@
+ extern U8 * __HC_ICAdd_XorEq(U8*);
+ extern U8 * __HC_ICAdd_ModEq(U8*);
+ extern U0 __HC_CmpCtrl_SetInterrupt(U8 *,Bool);
++extern U0 __HC_CmpCtrl_SetVargs(U8 *);
+ extern U8 * __HC_ICAdd_FReg(U8*,I64);
+ extern U8 * __HC_ICAdd_Ds(U8 *,I64);
+ extern U8 * __HC_ICAdd_IReg(U8*,I64 r,I64 rt,I64 ptrs);
+@@ -1475,6 +1477,8 @@
+       (Bt(&cc->opts,OPTf_RAW_AOT) ||
+        Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE)))
+     __HC_CmpCtrl_UseNativeSegments(acc);
++  if (cc->htc.fun && Bt(&cc->htc.fun->flags,Ff_DOT_DOT_DOT))
++    __HC_CmpCtrl_SetVargs(acc);
+   if(cc->flags&CCF_RAW_AOT_ASM)
+     __HC_CmpCtrl_SetRawAOTAsm(acc);
+   if(info) {
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -189,6 +189,7 @@
+ #define CCF_NATIVE_SEGMENTS          0x20
+ #define CCF_INTERRUPT                0x40
+ #define CCF_INTERRUPT_ERROR_CODE     0x80
++#define CCF_VARGS                    0x100
+   int64_t flags;
+   CHashFun *cur_fun;
+   CCodeCtrl *code_ctrl;
+@@ -816,6 +817,7 @@
+ void __HC_CmpCtrl_SetAOT(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetRawAOTAsm(CCmpCtrl *cc);
+ void __HC_CmpCtrl_UseNativeSegments(CCmpCtrl *cc);
++void __HC_CmpCtrl_SetVargs(CCmpCtrl *cc);
+ void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code);
+ 
+ CRPN *__HC_ICAdd_GetVargsPtr(CCodeCtrl *cc);
+diff --git a/c/main.c b/c/main.c
+--- a/c/main.c
++++ b/c/main.c
+@@ -928,6 +928,11 @@
+   return 0;
+ }
+ 
++static int64_t STK___HC_CmpCtrl_SetVargs(int64_t *stk) {
++  __HC_CmpCtrl_SetVargs((CCmpCtrl *)stk[0]);
++  return 0;
++}
++
+ static int64_t STK___HC_CmpCtrl_SetInterrupt(int64_t *stk) {
+   __HC_CmpCtrl_SetInterrupt((CCmpCtrl *)stk[0], stk[1]);
+   return 0;
+@@ -1814,6 +1819,7 @@
+     PrsAddSymbol("__HC_CmpCtrl_SetRawAOTAsm", STK___HC_CmpCtrl_SetRawAOTAsm, 1);
+     PrsAddSymbol("__HC_CmpCtrl_UseNativeSegments",
+                  STK___HC_CmpCtrl_UseNativeSegments, 1);
++    PrsAddSymbol("__HC_CmpCtrl_SetVargs", STK___HC_CmpCtrl_SetVargs, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetInterrupt", STK___HC_CmpCtrl_SetInterrupt,
+                  2);
+     PrsAddSymbol("__HC_ICAdd_Typecast", STK___HC_ICAdd_Typecast, 3);
+diff --git a/c/parser.c b/c/parser.c
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -5319,6 +5319,10 @@
+   cc->flags |= CCF_NATIVE_SEGMENTS;
+ }
+ 
++void __HC_CmpCtrl_SetVargs(CCmpCtrl *cc) {
++  cc->flags |= CCF_VARGS;
++}
++
+ void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code) {
+   cc->flags |= CCF_INTERRUPT;
+   if (has_error_code)
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -5867,6 +5867,7 @@
+     arg_cnt = cctrl->cur_fun->argc;
+     is_vargs = !!(cctrl->cur_fun->base.flags & CLSF_VARGS);
+   } else {
++    is_vargs = !!(cctrl->flags & CCF_VARGS);
+     fsz = 16;
+     for (rpn = cctrl->code_ctrl->ir_code->next;
+          rpn != cctrl->code_ctrl->ir_code; rpn = rpn->base.next) {
