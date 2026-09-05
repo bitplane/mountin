@@ -1,0 +1,246 @@
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -39,6 +39,7 @@ import U8 * __HC_ICAdd_PostInc(U8*,I64);
+ import U8 * __HC_ICAdd_Pow(U8 *);
+ import U8 * __HC_ICAdd_Lock(U8 *);
+ import U8 * __HC_ICAdd_Eq(U8*);
++import U8 * __HC_ICAdd_Swap(U8*,I64);
+ import U8 * __HC_ICAdd_Div(U8*);
+ import U8 * __HC_ICAdd_Sub(U8*);
+ import U8 * __HC_ICAdd_Mul(U8*);
+@@ -164,6 +165,7 @@ extern U8 * __HC_ICAdd_Lock(U8 *);
+ extern U8 * __HC_ICAdd_PostInc(U8*,I64);
+ extern U8 * __HC_ICAdd_Pow(U8 *);
+ extern U8 * __HC_ICAdd_Eq(U8*);
++extern U8 * __HC_ICAdd_Swap(U8*,I64);
+ extern U8 * __HC_ICAdd_Div(U8*);
+ extern U8 * __HC_ICAdd_Sub(U8*);
+ extern U8 * __HC_ICAdd_Mul(U8*);
+@@ -2187,6 +2189,14 @@ U8 *AIWNIOS_CodeGen(CCodeCtrl *cc,I64 *_type)
+     new=__HC_ICAdd_XorXor(cc2);
+     break;case IC_ASSIGN:
+     new=__HC_ICAdd_Eq(cc2);
++    break;case IC_SWAP_U8:
++    new=__HC_ICAdd_Swap(cc2,1);
++    break;case IC_SWAP_U16:
++    new=__HC_ICAdd_Swap(cc2,2);
++    break;case IC_SWAP_U32:
++    new=__HC_ICAdd_Swap(cc2,4);
++    break;case IC_SWAP_I64:
++    new=__HC_ICAdd_Swap(cc2,8);
+     //break;case IC_ASSIGN_PP //NOT USED BY AIWNIOS
+     //break;case IC_ASSIGN_MM //DITTO
+     break;case IC_SHL_EQU:
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -371,6 +371,7 @@ enum {
+   IC_TO_BOOL,
+   IC_TO_UPPER,
+   IC_SQRT,
++  IC_SWAP,
+   IC_CNT, // MUST BE THE LAST ITEM
+ };
+ typedef struct CICArg {
+@@ -760,5 +761,7 @@ HC_IC_BINDINGH(HC_ICAdd_ToBool)
+ HC_IC_BINDINGH(HC_ICAdd_ToUpper)
+ 
++CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width);
++
+ CRPN *__HC_ICAdd_FReg(CCodeCtrl *cc, int64_t r);
+ CRPN *__HC_ICAdd_IReg(CCodeCtrl *cc, int64_t r, int64_t rt, int64_t ptr_cnt);
+ CRPN *__HC_ICAdd_Frame(CCodeCtrl *cc, int64_t off, int64_t rt, int64_t ptr_cnt);
+diff --git a/c/main.c b/c/main.c
+--- a/c/main.c
++++ b/c/main.c
+@@ -1034,6 +1034,10 @@ static int64_t STK___HC_ICAdd_Eq(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_Eq((CCodeCtrl *)stk[0]);
+ }
+ 
++static int64_t STK___HC_ICAdd_Swap(int64_t *stk) {
++  return (int64_t)__HC_ICAdd_Swap((CCodeCtrl *)stk[0], stk[1]);
++}
++
+ static int64_t STK___HC_ICAdd_Div(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_Div((CCodeCtrl *)stk[0]);
+ }
+@@ -1828,6 +1832,7 @@ void LoadHCRT(const char *fn, int boot) {
+     PrsAddSymbol("__HC_ICAdd_PostInc", STK___HC_ICAdd_PostInc, 2);
+     PrsAddSymbol("__HC_ICAdd_Pow", STK___HC_ICAdd_Pow, 1);
+     PrsAddSymbol("__HC_ICAdd_Eq", STK___HC_ICAdd_Eq, 1);
++    PrsAddSymbol("__HC_ICAdd_Swap", STK___HC_ICAdd_Swap, 2);
+     PrsAddSymbol("__HC_ICAdd_Div", STK___HC_ICAdd_Div, 1);
+     PrsAddSymbol("__HC_ICAdd_Sub", STK___HC_ICAdd_Sub, 1);
+     PrsAddSymbol("__HC_ICAdd_Mul", STK___HC_ICAdd_Mul, 1);
+diff --git a/c/optpass.c b/c/optpass.c
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -649,6 +649,7 @@ static int64_t OptPassRefs(CCodeCtrl *cctrl, CRPN *rpn, int64_t idx) {
+       goto binop_next;
+       break;
+     case IC_EQ:
++    case IC_SWAP:
+       goto next1;
+       break;
+     case IC_SUB:
+@@ -1132,6 +1133,7 @@ static void OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn) {
+       continue;
+       break;
+     case IC_EQ:
++    case IC_SWAP:
+       continue;
+       break;
+     case IC_SUB:
+diff --git a/c/parser.c b/c/parser.c
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -375,6 +375,7 @@ static int64_t ICFwd(CRPN *rpn) {
+   case IC_LBTR:
+   case IC_LBTS:
+   case IC_LBTC:
++  case IC_SWAP:
+   case IC_EQ:
+     goto binop;
+     break;
+@@ -875,6 +876,10 @@ void DumpRPN(CRPN *rpn) {
+     printf("+");
+     goto binop;
+     break;
++  case IC_SWAP:
++    printf("SWAP");
++    goto binop;
++    break;
+   case IC_EQ:
+     printf("=");
+     goto binop;
+@@ -1436,6 +1441,10 @@ int64_t DumpRPN2(char *to, CRPN *rpn) {
+     len = AddBytes(to, len, "$PURPLE$+$FD$\n");
+     goto binop;
+     break;
++  case IC_SWAP:
++    len = AddBytes(to, len, "$PURPLE$SWAP$FD$\n");
++    goto binop;
++    break;
+   case IC_EQ:
+     len = AddBytes(to, len, "$PURPLE$=$FD$\n");
+     goto binop;
+@@ -3537,6 +3546,11 @@ int64_t AssignRawTypeToNode(CCompCtrl *ccmp, CRPN *rpn) {
+   if (rpn->raw_type)
+     return rpn->raw_type;
+   switch (rpn->type) {
++  case IC_SWAP:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
++    return rpn->raw_type = RT_U0;
++    break;
+   case IC_SQRT:
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     rpn->ic_class = HashFind("F64", Fs->hash_table, HTT_CLASS, 1);
+@@ -4809,5 +4823,16 @@ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+ HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
+ 
++CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width) {
++  CRPN *rpn;
++  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
++      .type = IC_SWAP,
++      .integer = width,
++      .raw_type = RT_U0,
++  };
++  QueIns(rpn, cc->ir_code);
++  return rpn;
++}
++
+ CRPN *__HC_ICAdd_SetFrameSize(CCodeCtrl *cc, int64_t arg) {
+   CRPN *rpn;
+   *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -2322,6 +2322,9 @@ static void SpillRegs(CCodeCtrl *cctrl, CRPN *rpn, int64_t start) {
+   case IC_ADD:
+     goto binop;
+     break;
++  case IC_SWAP:
++    goto binop;
++    break;
+   case IC_EQ:
+     goto binop;
+     break;
+@@ -3187,6 +3190,9 @@ static void PushTmp(CCodeCtrl *cctrl, CRPN *r) {
+     PopTmp(cctrl, ICArgN(r, 0));
+     goto fin;
+     break;
++  case IC_SWAP:
++    goto binop;
++    break;
+   case IC_SUB:
+     goto binop;
+     break;
+@@ -6341,6 +6347,7 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+     //   Lets just reutrn 0 to make things simpler.
+     break;
+   case IC_EQ:
++  case IC_SWAP:
+   case IC_ADD_EQ:
+   case IC_SUB_EQ:
+   case IC_MUL_EQ:
+@@ -6410,6 +6417,7 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_GOTO] = &&ic_goto,
+       [IC_GOTO_IF] = &&ic_goto_if,
+       [IC_TO_BOOL] = &&ic_to_bool,
++      [IC_SWAP] = &&ic_swap,
+       [IC_TO_UPPER] = &&ic_to_upper,
+       [IC_TO_I64] = &&ic_to_i64,
+       [IC_TO_F64] = &&ic_to_f64,
+@@ -8937,6 +8945,50 @@ static int64_t __OptPassFinal(CCodeCtrl *cctrl, CRPN *rpn, char *bin,
+   ic_set_static_data:
+     // TODO later
+     break;
++  ic_swap:
++    next = ICArgN(rpn, 1);
++    next2 = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    next2->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp = next->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_PTR, RAX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
++    tmp = next2->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_PTR, RDX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    AIWNIOS_ADD_CODE(X86PopReg, RDX);
++    AIWNIOS_ADD_CODE(X86PopReg, RAX);
++    switch (rpn->integer) {
++    case 1:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI8, RCX, -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI8, R8, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI8, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI8, R8, -1, -1, RAX, 0);
++      break;
++    case 2:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI16, RCX, -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI16, R8, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI16, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI16, R8, -1, -1, RAX, 0);
++      break;
++    case 4:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI32, RCX, -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI32, R8, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI32, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI32, R8, -1, -1, RAX, 0);
++      break;
++    case 8:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, RCX, -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, R8, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI64, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI64, R8, -1, -1, RAX, 0);
++      break;
++    default:
++      abort();
++    }
++    break;
+   ic_raw_bytes:
+     if (cctrl->code_ctrl->final_pass) {
+       memcpy(bin + code_off, rpn->raw_bytes, rpn->length);

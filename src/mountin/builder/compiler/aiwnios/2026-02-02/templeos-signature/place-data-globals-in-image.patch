@@ -1,0 +1,66 @@
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -265,10 +265,10 @@
+ 
+ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0,I64 opts=0)
+ {//AOT Compile HC or PRJ file a and output BIN file. Returns err_cnt.
+-  U8 *ptr,*fbuf=NULL,*fbuf2=NULL,*fbuf3=NULL,
++  U8 *ptr,*new_buf,*fbuf=NULL,*fbuf2=NULL,*fbuf3=NULL,
+ 	*patch_table=MAlloc(0x800000);
+   CAOT *tmpaot;
+-  I64 i,cnt,size=0,error_cnt=0,warning_cnt=0,aot_U8s=0;
++  I64 i,cnt,size=0,data_rip,error_cnt=0,warning_cnt=0,aot_U8s=0;
+   CBinFile *bfh;
+   CAOTImportExport *tmpie,*tmpie1;
+   CAOTAbsAddr *tmpa,*tmpa1;
+@@ -284,6 +284,50 @@
+ 
+   if (tmpaot=CmpBuf(fbuf2,fbuf3,&error_cnt,&warning_cnt,mapfile_drv_let,opts)) {
+     aot_U8s=tmpaot->aot_U8s;
++    if (Bt(&opts,OPTf_TEMPLEOS_BIN_SIGNATURE) && tmpaot->heap_glbls) {
++      size=aot_U8s;
++      for (tmphg=tmpaot->heap_glbls;tmphg;tmphg=tmphg->next)
++        size=((size+7)&-8)+tmphg->size;
++      new_buf=MAlloc(size);
++      MemCpy(new_buf,tmpaot->buf,aot_U8s);
++      MemSet(new_buf+aot_U8s,0,size-aot_U8s);
++      Free(tmpaot->buf);
++      tmpaot->buf=new_buf;
++      tmphg=tmpaot->heap_glbls;
++      while (tmphg) {
++        tmphg1=tmphg->next;
++        data_rip=(aot_U8s+7)&-8;
++        if (tmphg->data)
++          MemCpy(tmpaot->buf+data_rip,tmphg->data,tmphg->size);
++        if (tmphg->str) {
++          tmpie=CAlloc(sizeof(CAOTImportExport));
++          tmpie->type=IET_REL32_EXPORT;
++          tmpie->rip=data_rip;
++          tmpie->str=tmphg->str;
++          QueIns(tmpie,tmpaot->last_ie);
++          tmphg->str=NULL;
++        }
++        tmphgr=tmphg->references;
++        while (tmphgr) {
++          tmphgr1=tmphgr->next;
++          *(tmpaot->buf+tmphgr->rip)(I64 *)+=data_rip+tmphgr->offset;
++          tmpa=CAlloc(sizeof(CAOTAbsAddr));
++          tmpa->type=AAT_ADD_U64;
++          tmpa->rip=tmphgr->rip;
++          tmpa->next=tmpaot->abss;
++          tmpaot->abss=tmpa;
++          Free(tmphgr);
++          tmphgr=tmphgr1;
++        }
++        aot_U8s=data_rip+tmphg->size;
++        Free(tmphg->str);
++        Free(tmphg->data);
++        Free(tmphg);
++        tmphg=tmphg1;
++      }
++      tmpaot->heap_glbls=NULL;
++      tmpaot->aot_U8s=aot_U8s;
++    }
+     ptr=patch_table;
+ //See $LK,"Load",A="MN:Load"$()
+     cnt=0;

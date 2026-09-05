@@ -8,13 +8,7 @@ output=/host/build/guest/x86_64-templeos/5.03/templeos.iso
 if [ ! -d "$tree" ]; then
     cp -a /opt/aiwnios/source "$tree"
 fi
-
-# AIWNIOS-generated kernel code uses SSE. Enable OSFXSR and OSXMMEXCPT where
-# TempleOS enables the other required CR4 features.
-grep -q '^[[:space:]]*OR[[:space:]]*EAX,0xB0$' \
-    "$templeos_source/Kernel/KStart64.HC"
-sed -i '/^[[:space:]]*OR[[:space:]]*EAX,0xB0$/s/0xB0$/0x6B0/' \
-    "$templeos_source/Kernel/KStart64.HC"
+cp -a "$templeos_source/." "$tree/"
 
 cp /build/build-distro.HC "$tree/MountinBuildDistro.HC"
 cp /build/build-compiler.HC "$tree/MountinBuildCompiler.HC"

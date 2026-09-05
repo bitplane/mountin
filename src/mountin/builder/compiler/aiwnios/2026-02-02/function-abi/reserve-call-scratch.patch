@@ -1,0 +1,21 @@
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 9349636..4b89ac1 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -5770,6 +5770,8 @@ static int64_t FuncProlog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
+       AIWNIOS_ADD_CODE(X86MovIndirRegF64, flist[i], -1, -1, RSP, i * 8);
+     }
+   }
++  // TempleOS callees use two words above their final argument as scratch.
++  AIWNIOS_ADD_CODE(X86SubImm32, RSP, 16);
+   stk_arg_cnt = ireg_arg_cnt = freg_arg_cnt = 0;
+   if (cctrl->cur_fun) {
+     lst = cctrl->cur_fun->base.members_lst;
+@@ -5885,6 +5886,7 @@ static int64_t FuncEpilog(CCmpCtrl *cctrl, char *bin, int64_t code_off) {
+   //
+   fsave_area = -old_regs_start - 8 * i2;
+   off = 0;
++  AIWNIOS_ADD_CODE(X86AddImm32, RSP, 16);
+   for (i = 0; i != i3; i++) {
+     AIWNIOS_ADD_CODE(X86MovRegIndirF64, flist[i], -1, -1, RSP, off);
+     off += 8;

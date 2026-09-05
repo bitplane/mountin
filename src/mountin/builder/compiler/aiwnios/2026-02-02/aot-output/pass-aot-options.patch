@@ -1,0 +1,29 @@
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -266,5 +266,5 @@
+ 
+-I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0)
++I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0,I64 opts=0)
+ {//AOT Compile HC or PRJ file a and output BIN file. Returns err_cnt.
+   U8 *ptr,*fbuf=NULL,*fbuf2=NULL,*fbuf3=NULL,
+ 	*patch_table=MAlloc(0x800000);
+@@ -279,7 +279,7 @@
+   if (map_name)
+     fbuf3=ExtDft(map_name,"MAP.Z");
+ 
+-  if (tmpaot=CmpBuf(fbuf2,fbuf3,&error_cnt,&warning_cnt,mapfile_drv_let)) {
++  if (tmpaot=CmpBuf(fbuf2,fbuf3,&error_cnt,&warning_cnt,mapfile_drv_let,opts)) {
+     aot_U8s=tmpaot->aot_U8s;
+     ptr=patch_table;
+ //See $LK,"Load",A="MN:Load"$()
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -4141,5 +4141,5 @@
+ extern U0 FileWrite(U8 *filename,U8 *fbuf,I64 size,CDate cdt=0,I64 attr=0);
+ 
+-extern I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0);
++extern I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0,I64 opts=0);
+ 
+ //Forward declarations

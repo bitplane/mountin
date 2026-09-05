@@ -1,0 +1,17 @@
+diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
+--- a/Src/PrsVar.HC
++++ b/Src/PrsVar.HC
+@@ -44,10 +44,8 @@ U0 PrsVarInit(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,CArrayDim *tmpad,
+ 	    ~(CCF_AOT_COMPILE|CCF_HAS_MISC_DATA|CCF_NOT_CONST);
+       machine_code=LexExpression2Bin(cc,&type);
+-      if (old_flags&CCF_AOT_COMPILE
+-	    /*cc->flags&CCF_NOT_CONST && */ //Const-folding is done in the C end
+-	//Nroot forces all AOT globals to go on the heap for Apple hardedned runtime
+-	    /*!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)*/
+-	) {
++      if (old_flags&CCF_AOT_COMPILE &&
++            (!Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE) ||
++            cc->flags&CCF_NOT_CONST)) {
+ 	cc->flags=cc->flags&~CCF_NO_ABSS|CCF_AOT_COMPILE;
+ 	Free(machine_code);
+ 	if (pass==2) {

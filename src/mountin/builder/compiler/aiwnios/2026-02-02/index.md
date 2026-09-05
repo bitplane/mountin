@@ -42,6 +42,7 @@ are not yet translated. Interrupt functions follow TempleOS and do not save
 XMM state; handlers must not use floating-point values until that restriction
 is removed.
 
-The guest build separately changes TempleOS's CR4 initialization to enable the
-SSE state required by AIWNIOS-generated code. That operating-system policy is
-deliberately not hidden in the assembler.
+The x86 backend emits SSE instructions. An explicit compiler output option
+enables the corresponding CR4 state at the kernel's CR4 write, allowing an
+AIWNIOS-built kernel to retain the unmodified TempleOS source semantics while
+meeting the generated code's runtime requirements.

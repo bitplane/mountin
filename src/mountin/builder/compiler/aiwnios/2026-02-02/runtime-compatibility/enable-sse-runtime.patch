@@ -1,0 +1,23 @@
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1446,6 +1446,20 @@
+       Free(buf);
+       throw('Asm');
+     }
++    if (Bt(&cc->opts,OPTf_X86_SSE_RUNTIME) &&
++          best->_0f==0x0f && best->po==0x22 && best->so==0xe0) {
++      // AIWNIOS emits SSE instructions. Enable the architectural state its
++      // generated code requires immediately before installing CR4.
++      dummy[0]=0x0f;
++      dummy[1]=0xba;
++      dummy[2]=0xe8;
++      dummy[3]=9;
++      dummy[4]=0x0f;
++      dummy[5]=0xba;
++      dummy[6]=0xe8;
++      dummy[7]=10;
++      AddBytesToBuf(&buf,&len,8,dummy);
++    }
+     sz=X86EncodeOpcode(len,seg_size,best,modes,dummy,asm_patches);
+     AddBytesToBuf(&buf,&len,sz,dummy);
+   } else if(cc->token==TK_IDENT&&cc->hash_entry&&cc->hash_entry->type&(HTT_ASM_KEYWORD|HTT_KEYWORD)) {

@@ -1,0 +1,22 @@
+diff --git a/Src/AIWNIOS_PrsExp.HC b/Src/AIWNIOS_PrsExp.HC
+--- a/Src/AIWNIOS_PrsExp.HC
++++ b/Src/AIWNIOS_PrsExp.HC
+@@ -1862,11 +1862,18 @@ U8 *LexExpression2Bin(CCmpCtrl *cc,I64 *_type=NULL)
+ {//Compile cc expression. You call the code.
+   U8 *res;
+   I64 size;
++  CRPN *rpn;
+   CHashFun *old_fun;
+   Bool old_trace=LBtr(&cc->flags,CCf_PASS_TRACE_PRESENT);
+   COCPush(cc);
+   COCInit(cc);
+   if (PrsExpression(cc,NULL,PEF_NO_COMMA)) {
++    if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++      for (rpn=cc->coc.coc_head.next;rpn!=&cc->coc.coc_head;rpn=rpn->next)
++        if (intermediate_code_table[rpn->type].not_const) {
++          cc->flags|=CCF_NOT_CONST;
++          break;
++        }
+     RPNAddNew(cc,IC_RET,0,AssignRawTypeToNode(cc->coc.coc_head.next),FALSE);
+     old_fun=cc->htc.fun; //Changed by nroot
+     cc->htc.fun=NULL;

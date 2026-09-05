@@ -2,13 +2,15 @@ diff --git a/Src/KernelA.HH b/Src/KernelA.HH
 index 66b9dac..1f6752e 100644
 --- a/Src/KernelA.HH
 +++ b/Src/KernelA.HH
-@@ -1530,8 +1530,8 @@ public class CAutoCompleteDictGlbls
+@@ -1530,9 +1530,9 @@ public class CAutoCompleteDictGlbls
  #define OPTf_KEEP_RELOCATIONS 0x26 //Added by nroot,will keep the CHashImport's
  #define OPTf_BOUNDS_CHECK 0x27 //Added by nroot,Bounds checker
  #define OPTf_BYTE_CODE 0x28 //Added by nroot
 -#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
+-#define OPTf_X86_SSE_RUNTIME 0x2B
  #define OPTf_RAW_AOT 0x29
 +#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
++#define OPTf_X86_SSE_RUNTIME 0x2B
  
  #define OPTF_ECHO		(1<<OPTf_ECHO)
  

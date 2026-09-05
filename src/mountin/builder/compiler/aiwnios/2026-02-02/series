@@ -1,10 +1,13 @@
 interrupt-functions/default-iret-to-64-bit.patch
 x86-assembler/fix-x86-opcode-table.patch
 source-environment/source-drive.patch
+source-environment/avoid-fsize-symbol-collision.patch
 iso-generation/fix-dvd-image.patch
 aot-output/aot-without-wrapper.patch
 aot-output/raw-aot-starts-with-assembly.patch
 aot-output/avoid-padding-raw-aot.patch
+aot-output/inherit-aot-options.patch
+aot-output/pass-aot-options.patch
 templeos-signature/select-aot-signature.patch
 register-expressions/simplify-register-address.patch
 register-expressions/lower-register-address.patch
@@ -13,6 +16,9 @@ function-flags/preserve-function-flags.patch
 aot-static-data/preserve-aot-static-data.patch
 aot-static-data/clear-aot-static-reference.patch
 aot-static-data/emit-aot-character-array-data.patch
+aot-static-data/classify-aot-constant-expressions.patch
+aot-static-data/emit-aot-constant-data.patch
+aot-static-data/copy-aot-global-data.patch
 register-expressions/translate-x86-register-getters.patch
 current-pc/current-pc.patch
 x86-assembler/parse-asm-operand-prefixes.patch
@@ -64,5 +70,12 @@ aot-output/make-top-level-assembly-exclusive.patch
 aot-output/omit-expression-result-from-raw-assembly.patch
 aot-output/omit-tail-padding-from-raw-assembly.patch
 runtime-intrinsics/support-toupper-intrinsic.patch
+runtime-intrinsics/support-swap-intrinsics.patch
 aot-assembly-expressions/relocate-aot-global-expressions.patch
 aot-relocations/write-aot-terminator-last.patch
+templeos-signature/place-data-globals-in-image.patch
+templeos-signature/write-templeos-import-records.patch
+templeos-signature/preserve-import-aliases.patch
+runtime-compatibility/enable-sse-runtime.patch
+function-abi/reserve-call-scratch.patch
+function-abi/model-varargs-as-stack-array.patch

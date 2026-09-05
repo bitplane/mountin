@@ -60,11 +60,13 @@ diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
 index e0fefd7..65e0697 100644
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
-@@ -967,6 +967,31 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+@@ -967,6 +967,33 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
    lb_done =COCMiscNew(cc,CMT_LABEL);
    lb_untry=COCMiscNew(cc,CMT_LABEL);
  
-+  if (cc->flags&CCF_AOT_COMPILE && Bt(&cc->opts,OPTf_RAW_AOT)) {
++  if (cc->flags&CCF_AOT_COMPILE &&
++      (Bt(&cc->opts,OPTf_RAW_AOT) ||
++       Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))) {
 +    RPNAddNew(cc,IC_ADDR_IMPORT,tmp_try,tmpc,FALSE);
 +    RPNAddNew(cc,IC_GET_LABEL,lb_catch,tmpc,FALSE);
 +    RPNAddNew(cc,IC_GET_LABEL,lb_untry,tmpc,FALSE);
