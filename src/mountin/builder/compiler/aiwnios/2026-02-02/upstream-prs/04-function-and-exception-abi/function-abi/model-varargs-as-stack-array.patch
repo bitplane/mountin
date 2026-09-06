@@ -35,7 +35,7 @@ index bf98708..cf04d06 100644
 -  tmpm->member_class++;
 +  if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE)) {
 +    tmpm->member_class=cmp.internal_types[RT_I64];
-+    tmpm->dim.total_cnt=127;
++    tmpm->dim.total_cnt=127; //arbitrary
 +    tmpm->dim.next=MAlloc(sizeof(CArrayDim));
 +    tmpm->dim.next->next=NULL;
 +    tmpm->dim.next->cnt=127;

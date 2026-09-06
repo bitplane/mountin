@@ -36,12 +36,23 @@ The current groups provide:
 - host-directory and relative-include source access
 - DVD image generation needed by the guest build
 
-The directories group related changes, not independent PRs. AOT expression
-handling, symbol resolution and relocation generation depend on one another;
-the assembler's AOT support uses that machinery too. `binary-loader` contains
-module-record readers, `source-language` contains type aliases, and
-`source-environment` contains only host-file access changes. Import aliases
-belong to symbol resolution, independently of the output binary signature.
+The patches are arranged beneath `upstream-prs` as six proposed, cumulative
+review areas:
+
+1. x86 assembler and expression correctness
+2. AOT generation and TempleOS output
+3. compiler intrinsics
+4. function, interrupt and exception ABI compatibility
+5. host source environment
+6. source-language, binary-loader and image correctness
+
+The number is the stacking order, not merely presentation: later areas are
+reviewed against the preceding ones. Subdirectories separate concerns within
+an area, while individual patch files remain commit-sized. AOT expression
+handling, symbol resolution and relocation generation are one area because
+they share data structures and invariants; splitting them into nominally
+independent PRs would conceal those dependencies. Import aliases remain with
+symbol resolution rather than the output signature.
 
 The x86-only intrinsics fail compilation explicitly on other targets. The
 remaining TempleOS intrinsics not used by the compiler or kernel
@@ -50,26 +61,19 @@ are not yet translated. Interrupt functions follow TempleOS and do not save
 XMM state; handlers must not use floating-point values until that restriction
 is removed.
 
-## Review boundaries
+The former x86 stack-padding change masked an out-of-bounds write in
+`PrsArrayDims`: `&dim` was treated as a `CArrayDim`, so updating `total_cnt`
+wrote beyond the pointer parameter into its caller. The source now starts the
+walk at `dim`, and no compiler ABI padding is required.
 
-Two policies need further design before upstream submission:
+## Validation
 
-- `runtime-compatibility` changes the emitted CR4 write when
-  `OPTf_X86_SSE_RUNTIME` is selected. This enables SSE state for the generated
-  kernel, but it is an opt-in bootstrap transformation, not faithful assembly
-  of that instruction. Its option declaration lives with its implementation.
-- `function-abi/reserve-call-scratch.patch` reserves two stack words in x86
-  function frames. Its scope needs a calling-convention test covering hosted,
-  AOT and mixed calls before narrowing it or proposing it upstream. The output
-  file signature alone does not describe every callee used during bootstrap.
-
-Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. Captures of
-the rebuilt image reach the desktop, but intermediate captures also show heap
-checks and diagnostic windows. Uninterrupted boot stability and the cause of
-those diagnostics remain unproven. The `StrLen` emitter could clear a pointer
-allocated in `RDX`; fixing that defect alone does not establish the cause of
-the boot failures. Neither older physical CPUs nor non-x86 compiler backends
-have been validated.
+Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. After fixing
+the `StrLen` register collision and the reversed byte-load encoding, the rebuilt
+image completed three cold boots without the earlier heap checks or diagnostic
+windows: one was observed for 120 seconds and two for 75 seconds. All reached
+the graphical installer prompt and remained responsive. Neither older physical
+CPUs nor non-x86 compiler backends have been validated.
 
 ## Regression checks
 

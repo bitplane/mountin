@@ -207,15 +207,6 @@ index 8dce5a5..fd61d72 100644
        Free(patch->imm);
        patch->imm=NULL;
      }
-@@ -1565,6 +1538,8 @@ enter:
-           has_zero_arity=TRUE;
-       }
-     Lex(cc);
-+    //An opcode or keyword starts the next statement, so a zero-arity variant
-+    //wins without consuming it as an operand.
-     if(has_zero_arity && cc->hash_entry &&
-         cc->hash_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD|HTT_KEYWORD))
-       max_arity=0;
 diff --git a/Src/CMain.HC b/Src/CMain.HC
 index de434d1..cbf3d58 100644
 --- a/Src/CMain.HC

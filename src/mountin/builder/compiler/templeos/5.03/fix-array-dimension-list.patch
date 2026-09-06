@@ -1,0 +1,12 @@
+diff --git a/Compiler/PrsVar.HC b/Compiler/PrsVar.HC
+--- a/Compiler/PrsVar.HC
++++ b/Compiler/PrsVar.HC
+@@ -264,7 +264,7 @@ U0 PrsArrayDims(CCmpCtrl *cc,I64 mode,CArrayDim *dim)
+       }
+       tmpad=MAlloc(sizeof(CArrayDim));
+       tmpad->next=NULL;
+-      tmpad1=&dim;
++      tmpad1=dim;
+       do {
+ 	tmpad1->total_cnt*=j;
+ 	if (!tmpad1->next) {

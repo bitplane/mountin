@@ -10,10 +10,8 @@ diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
    CCodeMisc *cm;
    CHashExport *exp;
    CHashImport *imp;
-@@ -1545,9 +1545,17 @@ enter:
+@@ -1545,7 +1545,15 @@ enter:
      Lex(cc);
-     //An opcode or keyword starts the next statement, so a zero-arity variant
-     //wins without consuming it as an operand.
 -    if(has_zero_arity && cc->hash_entry &&
 -        cc->hash_entry->type&(HTT_OPCODE|HTT_ASM_KEYWORD|HTT_KEYWORD))
 -      max_arity=0;
@@ -31,29 +29,6 @@ diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
      for(arg_cnt=0;arg_cnt<max_arity;arg_cnt++) {
        if(arg_cnt) {
  	if(cc->token!=',')
-diff --git a/Src/KernelA.HH b/Src/KernelA.HH
---- a/Src/KernelA.HH
-+++ b/Src/KernelA.HH
-@@ -1530,8 +1530,8 @@ public class CAutoCompleteDictGlbls
- #define OPTf_KEEP_RELOCATIONS 0x26 //Added by nroot,will keep the CHashImport's
- #define OPTf_BOUNDS_CHECK 0x27 //Added by nroot,Bounds checker
- #define OPTf_BYTE_CODE 0x28 //Added by nroot
-+#define OPTf_RAW_AOT 0x29
- #define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
--#define OPTf_RAW_AOT 0x29
- 
- #define OPTF_ECHO		(1<<OPTf_ECHO)
- 
-@@ -2174,8 +2174,8 @@ class CLexHashTableContext
- #define CCF_PAREN		0x2000000000
- #define CCf_PAREN		37
- #define CCF_CLASS_DOL_OFFSET	0x4000000000
--#define CCF_RAW_AOT_ASM		0x10000000000
- #define CCF_DONT_MAKE_RES	0x8000000000
-+#define CCF_RAW_AOT_ASM		0x10000000000
- 
- public class CCmpCtrl
- {
 diff --git a/Src/UAsmX64.HC b/Src/UAsmX64.HC
 --- a/Src/UAsmX64.HC
 +++ b/Src/UAsmX64.HC

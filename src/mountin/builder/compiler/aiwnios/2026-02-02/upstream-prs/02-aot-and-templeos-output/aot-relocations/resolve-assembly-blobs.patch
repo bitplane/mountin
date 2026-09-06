@@ -170,7 +170,7 @@ index 13c7b24..933283a 100644
      Free(patch->imm->machine_code);
      patch->imm->machine_code=NULL;
      LinkedLstDel(tab);
-@@ -1201,14 +1218,36 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
+@@ -1201,14 +1218,35 @@ U0 JITFixupAiwniosAOTBlob(CCmpCtrl *cc,CAiwniosAOTBlob *blob,U8 *buf) {
      tmp_to_fill->h->val+=buf;
      tmp_to_fill=tmp_to_fill->next;
    }
@@ -206,7 +206,6 @@ index 13c7b24..933283a 100644
      return;
    }
 +  AsmResolvePatches(cc,blob->asm_patches,blob->to_fill);
-+//If our relocations are not realtive,add the ptr to result
 +  patch=blob->asm_patches->next;
    while(patch!=blob->asm_patches) {
      next_patch=patch->next;
