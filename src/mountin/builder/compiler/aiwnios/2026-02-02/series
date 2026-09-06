@@ -80,6 +80,7 @@ aot-output/omit-expression-result-from-raw-assembly.patch
 aot-output/omit-tail-padding-from-raw-assembly.patch
 runtime-intrinsics/support-toupper-intrinsic.patch
 runtime-intrinsics/support-swap-intrinsics.patch
+x86-codegen/fix-byte-load-direction.patch
 aot-assembly-expressions/relocate-aot-global-expressions.patch
 aot-relocations/write-aot-terminator-last.patch
 templeos-signature/place-data-globals-in-image.patch

@@ -188,7 +188,7 @@ index fca8a35..7395b93 100644
 +    tmp.raw_type = RT_PTR;
 +    tmp.reg = RAX;
 +    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
-+    AIWNIOS_ADD_CODE(X86XorReg, RDX, RDX);
++    AIWNIOS_ADD_CODE(X86XorReg, MIR(cctrl, RDX), RDX);
 +    misc = CodeMiscNew(cctrl, CMT_LABEL);
 +    misc->addr = bin + code_off;
 +    AIWNIOS_ADD_CODE(X86CmpSIB8Imm, 0, 1, RDX, RAX, 0);
@@ -211,7 +211,7 @@ diff --git a/Tests/Compiler/StrLen.HC b/Tests/Compiler/StrLen.HC
 new file mode 100644
 --- /dev/null
 +++ b/Tests/Compiler/StrLen.HC
-@@ -0,0 +1,11 @@
+@@ -0,0 +1,20 @@
 +public _intern IC_STRLEN I64 TestStrLen(U8 *text);
 +
 +U8 *TestText(I64 select)
@@ -222,5 +222,13 @@ new file mode 100644
 +}
 +
 +if (TestStrLen(TestText(0)) != 13) throw('StrLen');
++
++I64 LengthInRdx(U8 *input)
++{
++  U8 reg RDX *text=input;
++  return TestStrLen(text);
++}
++if (LengthInRdx("Hello, world!") != 13) throw('StrLen');
++if (LengthInRdx("") != 0) throw('StrLen');
 +"PASS: StrLen\n";
 +Exit;

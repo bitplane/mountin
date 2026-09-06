@@ -63,12 +63,13 @@ Two policies need further design before upstream submission:
   AOT and mixed calls before narrowing it or proposing it upstream. The output
   file signature alone does not describe every callee used during bootstrap.
 
-Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. A `StrLen`
-emitter bug could clear a string pointer allocated in `RDX`, producing delayed
-heap-check failures after the desktop appeared. Three independent boots of the
-corrected image remained healthy through their final 55- or 60-second capture;
-one was sampled every five seconds through startup. Neither older physical CPUs
-nor non-x86 compiler backends have been validated.
+Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. Captures of
+the rebuilt image reach the desktop, but intermediate captures also show heap
+checks and diagnostic windows. Uninterrupted boot stability and the cause of
+those diagnostics remain unproven. The `StrLen` emitter could clear a pointer
+allocated in `RDX`; fixing that defect alone does not establish the cause of
+the boot failures. Neither older physical CPUs nor non-x86 compiler backends
+have been validated.
 
 ## Regression checks
 
@@ -77,7 +78,11 @@ The owning patches add standalone HolyC checks under `Tests/Compiler`:
 - `ModU64.HC`: constant and function-call divisors, including unsigned values
   above the signed range.
 - `Queues.HC`: insert, reverse insert and remove, with function-call operands.
-- `StrLen.HC`: string-length lowering with a function-call operand.
+- `StrLen.HC`: function-call operands and a pointer explicitly assigned to RDX,
+  including an empty string.
+- `Swap.HC`: 8-, 16-, 32- and 64-bit swaps.
+- `X86Opcodes.HC`: direct assembler byte checks for corrected opcode-table
+  entries, without AOT or execution of privileged instructions.
 - `X86Aliases.HC`: AOT-only byte checks for 16/32-bit width aliases, both
   `FSTSW` forms, and a following label. It never executes the mixed-mode code.
 - `TempleOSMap.HC`: module-relative 32-bit map addresses from 64-bit debug
