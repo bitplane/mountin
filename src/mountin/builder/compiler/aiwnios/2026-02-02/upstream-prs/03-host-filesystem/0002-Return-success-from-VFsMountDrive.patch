@@ -1,7 +1,7 @@
 From 066300fa89755c9984c174bb581b2ae8f7abace4 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:55 +0100
-Subject: [PATCH 2/2] Return success from VFsMountDrive
+Subject: [PATCH 2/3] Return success from VFsMountDrive
 
 ---
  c/fs.c | 1 +
@@ -21,4 +21,3 @@ index d11675e..b9fdfd9 100644
  int64_t VFsFBlkRead(void *d, int64_t sz, int f) {
 -- 
 2.53.0
-
