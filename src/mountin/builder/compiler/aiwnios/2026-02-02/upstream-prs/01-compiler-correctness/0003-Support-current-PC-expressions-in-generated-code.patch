@@ -1,7 +1,12 @@
 From 6d56eb8f50315b17549813fe1f5bfe278109cca6 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:46 +0100
-Subject: [PATCH 3/4] Support current-PC expressions in generated code
+Subject: [PATCH 3/5] Support current-PC expressions in generated code
+
+Lower current-PC expressions on x86-64, AArch64, RISC-V and bytecode.
+The result is the address immediately following the address-producing
+sequence, before any move to its destination. PC-relative encodings keep
+the result valid when the generated code is relocated.
 
 ---
  Src/AIWNIOS_CodeGen.HC |  4 ++++
@@ -10,7 +15,11 @@ Subject: [PATCH 3/4] Support current-PC expressions in generated code
  c/main.c               |  4 ++++
  c/parser.c             | 12 ++++++++++++
  c/x86_64_backend.c     | 15 +++++++++++++++
- 6 files changed, 55 insertions(+)
+ c/arm_backend.c       | 10 ++++++++++
+ c/riscv_backend.c     | 11 +++++++++++
+ c/w_bytecode.c        |  5 +++--
+ Tests/Compiler/CurrentPC.HC | 31 +++++++++++++++++++++++++++++++
+ 10 files changed, 110 insertions(+), 2 deletions(-)
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
 index 09b8b18..a52e495 100644
@@ -181,6 +190,122 @@ index 4ca97f0..1ae5cef 100644
    ic_max_u64:
  #define IC_MXX_X64(OP)                                                         \
    {                                                                            \
+diff --git a/c/arm_backend.c b/c/arm_backend.c
+index 2b03bce..400d1c2 100644
+--- a/c/arm_backend.c
++++ b/c/arm_backend.c
+@@ -2853,6 +2853,15 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+     code_off += rpn->length;
+     break;
+ 
++  case IC_CURRENT_PC:
++    into_reg = rpn->res.mode == MD_REG ? rpn->res.reg : 8;
++    AIWNIOS_ADD_CODE(ARM_adrX(MIR(cctrl, into_reg), 4));
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = into_reg;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++
+     break;
+   case IC_LOCK:
+     cctrl->is_lock_expr = 1;
+@@ -4768,6 +4777,7 @@ static int64_t GetAddrModeParts(CCmpCtrl *cctrl, CRPN *r) {
+ // Returns 1 if we hit the bottom
+ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   switch (r->type) {
++  case IC_CURRENT_PC:
+   case __IC_STATIC_REF:
+   case IC_STATIC:
+   case IC_GLOBAL:
+diff --git a/c/riscv_backend.c b/c/riscv_backend.c
+index 8627ac8..a9c2c01 100644
+--- a/c/riscv_backend.c
++++ b/c/riscv_backend.c
+@@ -953,6 +953,7 @@ static int64_t IsCompare(int64_t c) {
+ // Returns 1 if we hit the bottom
+ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   switch (r->type) {
++  case IC_CURRENT_PC:
+   case __IC_STATIC_REF:
+   case IC_STATIC:
+   case IC_GLOBAL:
+@@ -2935,11 +2936,21 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_TAN] = &&ic_tan,
+       [IC_ATAN] = &&ic_atan,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
++      [IC_CURRENT_PC] = &&ic_current_pc,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
+   do {
++  ic_current_pc:
++    into_reg = rpn->res.mode == MD_REG ? rpn->res.reg : RISCV_IPOOP1;
++    AIWNIOS_ADD_CODE(RISCV_AUIPC(MIR(cctrl, into_reg), 0));
++    AIWNIOS_ADD_CODE(RISCV_ADDI(MIR(cctrl, into_reg), into_reg, 8));
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = into_reg;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
+   ic_max_u64:
+     // Integers only
+ #define IC_MXX_X64(OP)                                                         \
+diff --git a/c/w_bytecode.c b/c/w_bytecode.c
+index 8c62224..4d3495b 100644
+--- a/c/w_bytecode.c
++++ b/c/w_bytecode.c
+@@ -935,10 +935,11 @@ static int64_t CompileToBC0(CCmpCtrl *cc, ABC_PTR ptr, CRPN *rpn, int64_t len) {
+     len = AiwnBCAddCode(ptr, ABC_POS | (rpn->raw_type << 8), len);
+     break;
+   case IC_STR:
++  case IC_CURRENT_PC:
+     len = AiwnBCAddCode(ptr, ABC_PCREL, len);
++    len = AiwnBCAddCode(ptr, rpn->type == IC_CURRENT_PC ? 12 : 0, len);
+     len = AiwnBCAddCode(ptr, 0, len);
+-    len = AiwnBCAddCode(ptr, 0, len);
+-    if (ptr) {
++    if (ptr && rpn->type == IC_STR) {
+       cmr = CodeMiscAddRefBC(rpn->code_misc, (void *)(ptr + len - 8));
+       cmr->is_rel = 1;
+       cmr->offset = 4;
+diff --git a/Tests/Compiler/CurrentPC.HC b/Tests/Compiler/CurrentPC.HC
+new file mode 100644
+index 00000000..0f127716
+--- /dev/null
++++ b/Tests/Compiler/CurrentPC.HC
+@@ -0,0 +1,31 @@
++U8 *CurrentPCDirect()
++{
++  return $$;
++}
++
++U8 *CurrentPCStored()
++{
++  U8 *pc=$$;
++  return pc;
++}
++
++U8 *CurrentPCOffset()
++{
++  return $$+3;
++}
++
++U0 CheckCurrentPC(U8 *pc,U8 *start)
++{
++  if (pc<=start || pc>=start+4096)
++    throw('CurPC');
++}
++
++CheckCurrentPC(CurrentPCDirect(),&CurrentPCDirect);
++CheckCurrentPC(CurrentPCStored(),&CurrentPCStored);
++CheckCurrentPC(CurrentPCOffset()-3,&CurrentPCOffset);
++U8 *direct1=CurrentPCDirect(),*direct2=CurrentPCDirect();
++U8 *stored1=CurrentPCStored(),*stored2=CurrentPCStored();
++if (direct1!=direct2 || stored1!=stored2)
++  throw('CurPC');
++"PASS: CurrentPC\n";
++Exit;
 -- 
 2.53.0
-

@@ -65,6 +65,10 @@ walk at `dim`, and no compiler ABI padding is required.
 
 ## Validation
 
+The x86 spill-slot fix passes the source-built runtime bootstrap and all nine
+compiler regression checks below, including inline current-PC comparisons.
+The compiler-correctness group also applies independently with `git am`.
+
 Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. After fixing
 the `StrLen` register collision, the rebuilt image completed three cold boots
 without the earlier heap checks or diagnostic windows: one was observed for 120
@@ -76,6 +80,12 @@ have been validated.
 
 The owning patches add standalone HolyC checks under `Tests/Compiler`:
 
+- `CallCompare.HC`: spilled call results in comparisons and short-circuit
+  conditions, including floating-point results and stack-local preservation.
+- `CurrentPC.HC`: code addresses returned directly, stored locally and used in
+  expressions, with repeated calls. The x86 check passes; AArch64, RISC-V and
+  bytecode current-PC implementations have passed syntax checks, not runtime
+  validation.
 - `ModU64.HC`: constant and function-call divisors, including unsigned values
   above the signed range.
 - `Queues.HC`: insert, reverse insert and remove, with function-call operands.

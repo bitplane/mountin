@@ -2,6 +2,7 @@ upstream-prs/01-compiler-correctness/0001-Fix-array-dimension-list-traversal.pat
 upstream-prs/01-compiler-correctness/0002-Lower-register-address-expressions-consistently.patch
 upstream-prs/01-compiler-correctness/0003-Support-current-PC-expressions-in-generated-code.patch
 upstream-prs/01-compiler-correctness/0004-Read-native-module-records-using-their-encoded-width.patch
+upstream-prs/01-compiler-correctness/0005-Reserve-and-address-x86-temporary-spill-slots-consistently.patch
 upstream-prs/02-x86-assembler-correctness/0001-Correct-x86-instruction-aliases-and-opcode-definitio.patch
 upstream-prs/02-x86-assembler-correctness/0002-Parse-and-encode-x86-operand-prefixes.patch
 upstream-prs/02-x86-assembler-correctness/0003-Honor-explicit-x86-immediate-sizes.patch

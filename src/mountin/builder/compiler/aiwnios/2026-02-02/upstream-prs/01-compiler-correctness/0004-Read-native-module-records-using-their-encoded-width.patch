@@ -1,7 +1,7 @@
 From cde252bb2aff7e07d4294b2d5cf4909c10ba71bb Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:46 +0100
-Subject: [PATCH 4/4] Read native module records using their encoded widths
+Subject: [PATCH 4/5] Read native module records using their encoded widths
 
 ---
  Src/KLoadARM.HC | 34 ++++++++++++++++++++++++++++------
@@ -91,4 +91,3 @@ index 7ec3d03..075257b 100644
      throw('BinModul');
 -- 
 2.53.0
-

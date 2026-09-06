@@ -1,7 +1,7 @@
 From 2da0ee8d535e51e1028de95ffcbccadbefa78d25 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:46 +0100
-Subject: [PATCH 1/4] Fix array dimension list traversal
+Subject: [PATCH 1/5] Fix array dimension list traversal
 
 ---
  Src/PrsVar.HC | 8 +-------
@@ -29,4 +29,3 @@ index 5d74704..7893867 100644
  	  tmpad1->next=tmpad;
 -- 
 2.53.0
-
