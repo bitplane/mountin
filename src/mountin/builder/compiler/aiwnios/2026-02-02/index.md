@@ -98,11 +98,11 @@ AArch64. `FileSize`, `HostDrives`, `IncludeSearch`, `CallCompare`, and
 exercise x86 instructions or intrinsics whose lowering is explicitly absent
 from the AArch64 backend.
 
-RISC-V cross-compilation produces a valid RV64 executable. It starts and parses
-its command line in a full RISC-V Linux VM, but entering the HolyC runtime
-raises a signal before a regression check can print `PASS`. Without fast-fail,
-Aiwnios catches that signal and exits zero, so exit status alone is not runtime
-proof. RISC-V runtime support therefore remains unproven and currently broken.
+The complete series also cross-compiles and bootstraps `HCRT2.BIN` under a full
+RISC-V Linux VM. `FileSize`, `HostDrives`, `IncludeSearch`, `CallCompare`, and
+`CurrentPC` pass there in separate processes. As on AArch64, the remaining
+regression checks exercise x86 instructions or intrinsics whose lowering is
+explicitly absent from the RISC-V backend.
 
 ## Regression checks
 
@@ -117,9 +117,8 @@ The owning patches add standalone HolyC checks under `Tests/Compiler`:
 - `CallCompare.HC`: spilled call results in comparisons and short-circuit
   conditions, including floating-point results and stack-local preservation.
 - `CurrentPC.HC`: code addresses returned directly, stored locally and used in
-  expressions, with repeated calls. The x86 and AArch64 checks pass; RISC-V and
-  bytecode current-PC implementations have passed syntax checks, not runtime
-  validation.
+  expressions, with repeated calls. The x86, AArch64, and RISC-V checks pass;
+  the bytecode implementation has passed syntax checks, not runtime validation.
 - `ModU64.HC`: constant and function-call divisors, including unsigned values
   above the signed range.
 - `Queues.HC`: insert, reverse insert and remove, with function-call operands.
