@@ -11,6 +11,7 @@ upstream-prs/02-x86-assembler-correctness/0005-Widen-unresolved-x86-branches-saf
 upstream-prs/02-x86-assembler-correctness/0006-Encode-sign-extended-x86-immediates-correctly.patch
 upstream-prs/03-host-filesystem/0001-Add-an-optional-host-source-drive.patch
 upstream-prs/03-host-filesystem/0002-Return-success-from-VFsMountDrive.patch
+upstream-prs/04-templeos-support/0000-Retain-native-module-loading-with-TempleOS-headers.patch
 upstream-prs/04-templeos-support/0001-Avoid-FSize-symbol-collision.patch
 upstream-prs/04-templeos-support/0002-Resolve-assembly-blobs.patch
 upstream-prs/04-templeos-support/0003-Track-assembly-expression-symbols.patch
