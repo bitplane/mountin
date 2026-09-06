@@ -56,6 +56,11 @@ integer register types, DVD sizing, AOT modules and raw images, exception/
 interrupt/variadic ABIs, kernel intrinsics, and debug maps. The consolidated
 series produces the same source tree as the incremental patches.
 
+`OPTf_TEMPLEOS` selects the TempleOS x86-64 ABI and module format, including
+native segment access, variadic stack arguments, data placement and import
+records. It is not just a signature override. `OPTf_RAW_AOT` independently
+selects unwrapped output for boot code; the kernel build enables both.
+
 The x86-only intrinsics fail compilation explicitly on other targets. The
 remaining TempleOS intrinsics not used by the compiler or kernel
 (`Carry`, integer square/sign/absolute, and `ClFlush`)

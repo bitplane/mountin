@@ -38,7 +38,7 @@ index 40f5c2c..b2a9c33 100644
 -    if (map_name)
 -      DbgInfoWrite(cc->htc.glbl_hash_table,map_name);
 +    if (map_name) {
-+      if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++      if (Bt(&cc->opts,OPTf_TEMPLEOS))
 +        TempleOSMapFileWrite(cc->htc.glbl_hash_table,map_name,mapfile_drv_let);
 +      else
 +        DbgInfoWrite(cc->htc.glbl_hash_table,map_name);

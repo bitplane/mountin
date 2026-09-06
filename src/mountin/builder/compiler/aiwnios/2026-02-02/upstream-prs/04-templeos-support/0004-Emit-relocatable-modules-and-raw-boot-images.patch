@@ -371,7 +371,7 @@ index 447fb4c..1653670 100644
    COCPush(cc);
    COCInit(cc);
    if (PrsExpression(cc,NULL,PEF_NO_COMMA)) {
-+    if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++    if (Bt(&cc->opts,OPTf_TEMPLEOS))
 +      for (rpn=cc->coc.coc_head.next;rpn!=&cc->coc.coc_head;rpn=rpn->next)
 +        if (intermediate_code_table[rpn->type].not_const) {
 +          cc->flags|=CCF_NOT_CONST;
@@ -962,7 +962,7 @@ index 065d87b..40f5c2c 100644
 -  if (tmpaot=CmpBuf(fbuf2,fbuf3,&error_cnt,&warning_cnt,mapfile_drv_let)) {
 +  if (tmpaot=CmpBuf(fbuf2,fbuf3,&error_cnt,&warning_cnt,mapfile_drv_let,opts)) {
      aot_U8s=tmpaot->aot_U8s;
-+    if (Bt(&opts,OPTf_TEMPLEOS_BIN_SIGNATURE) && tmpaot->heap_glbls) {
++    if (Bt(&opts,OPTf_TEMPLEOS) && tmpaot->heap_glbls) {
 +      size=aot_U8s;
 +      for (tmphg=tmpaot->heap_glbls;tmphg;tmphg=tmphg->next)
 +        size=((size+7)&-8)+tmphg->size;
@@ -1031,7 +1031,7 @@ index 065d87b..40f5c2c 100644
 -      switch(tmpie->type) {
 -      case IET_REL_I0 ... IET_REL_RISCV:
 -		*ptr(I32 *)++=tmpie->offset;
-+      if (!Bt(&opts,OPTf_TEMPLEOS_BIN_SIGNATURE)) {
++      if (!Bt(&opts,OPTf_TEMPLEOS)) {
 +        switch(tmpie->type) {
 +        case IET_REL_I0 ... IET_REL_RISCV:
 +          *ptr(I32 *)++=tmpie->offset;
@@ -1051,7 +1051,7 @@ index 065d87b..40f5c2c 100644
  #ifdef TARGET_RISCV
      bfh->bin_signature='RV64';
  #endif
-+    if (Bt(&opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++    if (Bt(&opts,OPTf_TEMPLEOS))
 +      bfh->bin_signature=BIN_SIGNATURE_VAL;
      MemCpy(bfh(U8 *)+sizeof(CBinFile),tmpaot->buf,aot_U8s);
      MemCpy(bfh(U8 *)+sizeof(CBinFile)+aot_U8s,patch_table,
@@ -1203,7 +1203,7 @@ index 2b0c63f..e255af6 100644
  #define OPTf_KEEP_RELOCATIONS 0x26 //Added by nroot,will keep the CHashImport's
  #define OPTf_BOUNDS_CHECK 0x27 //Added by nroot,Bounds checker
  #define OPTf_BYTE_CODE 0x28 //Added by nroot
-+#define OPTf_TEMPLEOS_BIN_SIGNATURE 0x2A
++#define OPTf_TEMPLEOS 0x2A //TempleOS x86-64 ABI and module format
 +#define OPTf_RAW_AOT 0x29
  
  #define OPTF_ECHO		(1<<OPTf_ECHO)
@@ -1261,7 +1261,7 @@ index 7d8c9f7..0a6f2f6 100644
  	PrsGlblInit(cc,tmpg,2);
  	if (cc->flags&CCF_AOT_COMPILE) {
  	  if (!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)) {
-+	    if (Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE))
++	    if (Bt(&cc->opts,OPTf_TEMPLEOS))
 +	      for (k=0;k<tmpg->size;k++)
 +		AOTStoreCodeU8At(cc,tmpg->data_addr_rip+k,tmpg->data_addr[k]);
  	  } else
@@ -1335,7 +1335,7 @@ index 7893867..6af5374 100644
 -	    /*!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)*/
 -	) {
 +      if (old_flags&CCF_AOT_COMPILE &&
-+            (!Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE) ||
++            (!Bt(&cc->opts,OPTf_TEMPLEOS) ||
 +            cc->flags&CCF_NOT_CONST)) {
  	cc->flags=cc->flags&~CCF_NO_ABSS|CCF_AOT_COMPILE;
  	Free(machine_code);

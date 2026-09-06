@@ -12,7 +12,7 @@ DirMk("/Tmp");
 DirMk("/Home");
 
 I64 mountin_compiler_opts=0;
-Bts(&mountin_compiler_opts,OPTf_TEMPLEOS_BIN_SIGNATURE);
+Bts(&mountin_compiler_opts,OPTf_TEMPLEOS);
 if (Cmp("/MountinBuildCompiler.HC", "Compiler",
       "/Compiler/Compiler", ':',mountin_compiler_opts))
   throw('Compiler');
