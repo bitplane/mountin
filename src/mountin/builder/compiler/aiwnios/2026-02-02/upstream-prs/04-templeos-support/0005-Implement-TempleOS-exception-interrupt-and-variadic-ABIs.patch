@@ -1,4 +1,4 @@
-From 3f4ba7c6912c05fb54ec8fb1e3bbd417ff349a97 Mon Sep 17 00:00:00 2001
+From 4460efafd6aababfab4cc5fc3f0b2269eab96339 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:05 +0100
 Subject: [PATCH 5/7] Implement TempleOS exception interrupt and variadic ABIs
@@ -20,7 +20,7 @@ Select the matching try/untry interface, preserve interrupt function flags and n
  12 files changed, 203 insertions(+), 27 deletions(-)
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
-index 57f4d4c..bd79f3c 100644
+index 57f4d4c..5fd1161 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -5,6 +5,9 @@
@@ -158,7 +158,7 @@ index 57f4d4c..bd79f3c 100644
      new=__HC_ICAdd_SubRet(cc2);
      break;case IC_SUB_CALL:
 diff --git a/Src/AIWNIOS_PrsExp.HC b/Src/AIWNIOS_PrsExp.HC
-index 1653670..823cbc1 100644
+index 28be815..2f8372a 100644
 --- a/Src/AIWNIOS_PrsExp.HC
 +++ b/Src/AIWNIOS_PrsExp.HC
 @@ -86,8 +86,7 @@ CHashClass *AssignRawTypeToNode(CRPN *r) {
@@ -185,7 +185,7 @@ index f2f36cd..3c0806d 100644
    CmpAddKw(cmp.asm_hash,"argpop",46);
    CmpAddKw(cmp.asm_hash,"noargpop",47);
 diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
-index 0a6f2f6..e312cde 100644
+index b863526..7a3962f 100644
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
 @@ -103,10 +103,10 @@ CHashFun *PrsFunJoin(CCmpCtrl *cc,CHashClass *tmp_return,
@@ -263,7 +263,7 @@ index 0a6f2f6..e312cde 100644
    RPNAddNew(cc,IC_ADDR_IMPORT,tmp_a_ent,tmpc,FALSE);
    RPNAddNew(cc,IC_ADDR_IMPORT,tmp_try,tmpc,FALSE);
 diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
-index 6af5374..ee1ddb8 100644
+index ea72454..cb470d7 100644
 --- a/Src/PrsVar.HC
 +++ b/Src/PrsVar.HC
 @@ -404,13 +404,22 @@ U0 PrsDotDotDot(CCmpCtrl *cc,CHashFun *tmpf,I64 _reg)
@@ -343,7 +343,7 @@ index 11ee9fc..400d1c2 100644
     * saved regs
     * wiggle room
 diff --git a/c/main.c b/c/main.c
-index a8d39cb..1294dc8 100644
+index a1814b7..61fd110 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -923,6 +923,21 @@ static int64_t STK___HC_CmpCtrl_SetRawAOTAsm(int64_t *stk) {

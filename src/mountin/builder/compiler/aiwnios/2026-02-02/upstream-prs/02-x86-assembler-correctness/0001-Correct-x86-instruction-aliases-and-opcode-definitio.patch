@@ -1,8 +1,14 @@
-From cfb40e0ff35c0ba83d82606e3bfd2d30077c386a Mon Sep 17 00:00:00 2001
+From 0e4e91f3a110be97d95ba638d67a73ac05d3a9c4 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:51 +0100
 Subject: [PATCH 1/6] Correct x86 instruction aliases and opcode definitions
 
+Correct opcode entries, operand classes and width aliases used by the x86
+assembler. Add the missing instruction forms and accept the implicit AX
+operand of bare FSTSW.
+
+Check emitted bytes directly for the corrected opcode and alias forms,
+including USE16 and USE32 width changes.
 ---
  Src/AsmX64.HC                | 237 ++++++++++++++++++++++++++++-------
  Src/CInit.HC                 |  23 +++-
@@ -839,4 +845,3 @@ index 0000000..2667eba
 +Exit;
 -- 
 2.53.0
-

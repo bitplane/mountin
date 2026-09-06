@@ -1,8 +1,11 @@
-From 2da0ee8d535e51e1028de95ffcbccadbefa78d25 Mon Sep 17 00:00:00 2001
+From c4c4fd2a816937f938b1ab370c2bde54f342de0a Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:46 +0100
-Subject: [PATCH 1/5] Fix array dimension list traversal
+Subject: [PATCH 1/6] Fix array dimension list traversal
 
+Start the dimension walk at the supplied CArrayDim. Taking the address of
+the pointer parameter treats a stack slot as a dimension record and writes
+outside it while updating total_cnt.
 ---
  Src/PrsVar.HC | 8 +-------
  1 file changed, 1 insertion(+), 7 deletions(-)

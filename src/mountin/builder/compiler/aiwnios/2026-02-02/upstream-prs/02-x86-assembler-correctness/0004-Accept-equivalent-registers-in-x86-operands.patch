@@ -1,8 +1,11 @@
-From 95f85fc038aa611ee1e6435f2194221139534945 Mon Sep 17 00:00:00 2001
+From b10f62d1c6e1ab5684688ad0b9fdc6a565b8913e Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:51 +0100
 Subject: [PATCH 4/6] Accept equivalent registers in x86 operands
 
+Encode IMUL2 with an immediate by using its destination register as the
+implicit source. Represent that repeated operand in the opcode table
+without consuming another source-language argument.
 ---
  Src/AsmX64.HC  | 14 ++++++++++++--
  Src/UAsmX64.HC |  6 +++++-
@@ -80,4 +83,3 @@ index 525c025..89749fc 100644
    AO("IN",-1,-1,0xe5,-1,X86_OPCF_OPSIZE32,X86_OPERAND_CONST_R32,REG_RAX,X86_OPERAND_IMM8);
 -- 
 2.53.0
-

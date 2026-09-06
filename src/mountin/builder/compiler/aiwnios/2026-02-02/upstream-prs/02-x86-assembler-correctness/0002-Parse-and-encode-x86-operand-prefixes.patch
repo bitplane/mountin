@@ -1,8 +1,11 @@
-From 8eefcf5cdbda79bee252f8029c3410d577a0df6d Mon Sep 17 00:00:00 2001
+From 96f87999c795f12be3d1561455f39eab3d361086 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:51 +0100
 Subject: [PATCH 2/6] Parse and encode x86 operand prefixes
 
+Carry operand and address widths through instruction selection and prefix
+emission. Mark fixed-width instruction forms explicitly so their encoding
+uses the requested width in each assembly mode.
 ---
  Src/AsmX64.HC  | 29 ++++++++++++++++++++++-------
  Src/UAsmX64.HC | 30 +++++++++++++++---------------
@@ -197,4 +200,3 @@ index 8a61628..2e802df 100644
  //STR
 -- 
 2.53.0
-

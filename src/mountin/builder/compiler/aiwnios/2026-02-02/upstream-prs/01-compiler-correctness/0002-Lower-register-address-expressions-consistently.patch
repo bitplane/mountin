@@ -1,8 +1,14 @@
-From c1c8348e435388acfe34dc7c96c4fbdc2f4aa8b3 Mon Sep 17 00:00:00 2001
+From 978764f659f606b1127f0a62fcbbd49229f800d0 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:46 +0100
-Subject: [PATCH 2/5] Lower register address expressions consistently
+Subject: [PATCH 2/6] Lower register address expressions consistently
 
+Handle register operands when lowering address expressions on each native
+backend. Collapse dereference/address pairs for registers as well as frame
+operands, restarting traversal after removing nodes.
+
+Expose the x86 register expressions through HolyC code generation and report
+an unsupported operation when they are requested on another target.
 ---
  Src/AIWNIOS_CodeGen.HC | 14 ++++++++++++++
  c/arm_backend.c        |  6 ++++++

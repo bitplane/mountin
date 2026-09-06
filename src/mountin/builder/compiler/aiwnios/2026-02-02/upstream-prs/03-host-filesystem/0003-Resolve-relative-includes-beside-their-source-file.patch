@@ -1,7 +1,8 @@
-From cfc7abb24cccd833dd0e8f4e773cf67009fc6e0d Mon Sep 17 00:00:00 2001
+From dce46b881a9e17d4f8777583765d85ce72b8f08e Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:51:47 +0100
-Subject: [PATCH 3/3] Resolve missing relative includes beside their source file
+Subject: [PATCH 3/3] Resolve missing relative includes beside their source
+ file
 
 Preserve current-directory lookup precedence. If that lookup fails for a relative include, search beside the including file. Cover nested includes, parent paths and competing names.
 ---

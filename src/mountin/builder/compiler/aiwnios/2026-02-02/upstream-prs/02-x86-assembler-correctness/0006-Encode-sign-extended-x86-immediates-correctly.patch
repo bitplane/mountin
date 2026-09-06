@@ -1,8 +1,11 @@
-From b5d159b507500c2131beea2524067fa6c0d64377 Mon Sep 17 00:00:00 2001
+From c1765666d773fcebadfdbb0a4c0545a8c3f94af0 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:51 +0100
 Subject: [PATCH 6/6] Encode sign-extended x86 immediates correctly
 
+The byte-immediate forms of arithmetic, PUSH and IMUL sign-extend their
+operand. Restrict these forms to -128 through 127; accepting 128 through
+255 changes the value at execution. Keep ordinary byte immediates separate.
 ---
  Src/AsmX64.HC  | 12 ++++++++++++
  Src/UAsmX64.HC | 23 ++++++++++++-----------
@@ -155,4 +158,3 @@ index 89749fc..18d4c1b 100644
    AO("REPNE,REPNZ",-1,-1,0xf2,-1,0);
 -- 
 2.53.0
-

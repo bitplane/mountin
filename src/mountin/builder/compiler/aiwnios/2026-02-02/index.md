@@ -51,6 +51,9 @@ prerequisites have landed. Its AOT expression handling, symbol resolution and
 relocation generation remain together because they share data structures and
 invariants.
 
+The TempleOS branch must be based on the combined compiler, assembler and
+host-filesystem changes. The other three branches each start at upstream.
+
 TempleOS support contains seven feature commits: file-size interfaces,
 integer register types, DVD sizing, AOT modules and raw images, exception/
 interrupt/variadic ABIs, kernel intrinsics, and debug maps. The consolidated
@@ -79,6 +82,12 @@ The consolidated patch set passes the source-built x86 runtime bootstrap and
 all twelve regression checks below. Host-drive registration passes both with
 and without `--host-drive`. A separate compile check enables `OPTf_TEMPLEOS`
 and verifies the emitted module signature.
+
+The compiler-correctness group also rejects missing or incomplete native
+module headers before allocating a code heap. Startup without `HCRT2.BIN`
+reports the missing runtime and exits with status 1; source bootstrap and all
+twelve runtime checks pass after this change. This checks header presence,
+not the contents of every relocation record.
 
 The compiler-correctness, x86-assembler and host-filesystem groups each apply
 independently to upstream with `git am`. The complete series applies with zero

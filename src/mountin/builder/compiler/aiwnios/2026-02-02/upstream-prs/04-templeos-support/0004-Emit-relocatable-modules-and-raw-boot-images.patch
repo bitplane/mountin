@@ -1,4 +1,4 @@
-From 0d18e6b10cf1624502c1fbbe7cc546b31fcc59b7 Mon Sep 17 00:00:00 2001
+From e01cbf021ae5bed7141e87569ba136f4065dbf5e Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:05 +0100
 Subject: [PATCH 4/7] Emit relocatable TempleOS modules and raw boot images
@@ -1419,7 +1419,7 @@ index 50dc82d..11ee9fc 100644
        cctrl->statics_label->addr = code_off + bin;
        for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
 diff --git a/c/main.c b/c/main.c
-index a885228..a8d39cb 100644
+index 86a6841..a1814b7 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -918,6 +918,11 @@ static int64_t STK___HC_CmpCtrl_SetAOT(int64_t *stk) {

@@ -1,4 +1,4 @@
-From c3e4cb6412b21694a4575e56c795e292b9e29407 Mon Sep 17 00:00:00 2001
+From 1cbaef4ed913702fd684b453dc4cb3ed46871985 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:04 +0100
 Subject: [PATCH 1/7] Keep pathname and open-file size interfaces distinct
@@ -48,7 +48,7 @@ index 0000000..410305b
 +"PASS: FileSize\n";
 +Exit;
 diff --git a/c/main.c b/c/main.c
-index ac2f1ba..a885228 100644
+index 129f3fc..86a6841 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -1838,7 +1838,6 @@ static void BootAiwnios(char *bootstrap_text) {

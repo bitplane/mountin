@@ -1,4 +1,4 @@
-From 59b1ce15bcb4558705c58b51dab9823c45a4247e Mon Sep 17 00:00:00 2001
+From ee0bb0be54c19083636ada6df0509079c4f86ec7 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:05 +0100
 Subject: [PATCH 6/7] Lower TempleOS kernel intrinsics
@@ -24,7 +24,7 @@ Include focused checks for queue mutation, string length, swaps and unsigned rem
  create mode 100644 Tests/Compiler/Swap.HC
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
-index bd79f3c..b0caf3c 100644
+index 5fd1161..209b957 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -40,6 +40,7 @@ import U8 * __HC_ICAdd_PostInc(U8*,I64);
@@ -391,7 +391,7 @@ index 56ea885..9ef1cc7 100644
  CRPN *__HC_ICAdd_FReg(CCodeCtrl *cc, int64_t r);
  CRPN *__HC_ICAdd_IReg(CCodeCtrl *cc, int64_t r, int64_t rt, int64_t ptr_cnt);
 diff --git a/c/main.c b/c/main.c
-index 1294dc8..a5641ba 100644
+index 61fd110..903547a 100644
 --- a/c/main.c
 +++ b/c/main.c
 @@ -1039,6 +1039,10 @@ static int64_t STK___HC_ICAdd_Eq(int64_t *stk) {

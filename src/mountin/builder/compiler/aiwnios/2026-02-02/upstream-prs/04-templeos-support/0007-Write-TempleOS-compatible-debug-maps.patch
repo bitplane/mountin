@@ -1,4 +1,4 @@
-From 5f4df244a155c07ecc29aed8927b083ad3ddee9e Mon Sep 17 00:00:00 2001
+From a553ad4f070ca20b8bca3899defdd607afc16ce4 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:06 +0100
 Subject: [PATCH 7/7] Write TempleOS-compatible debug maps
@@ -15,7 +15,7 @@ Convert Aiwnios debug entries into module-relative TempleOS map records. Validat
  create mode 100644 Tests/Compiler/TempleOSMap.HC
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
-index b0caf3c..ca3ee11 100644
+index 209b957..ebaf0cf 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
 @@ -1485,7 +1485,7 @@ skip_convert:;
@@ -28,7 +28,7 @@ index b0caf3c..ca3ee11 100644
      info[0]->max_line=cc->max_line;
    }
 diff --git a/Src/CMain.HC b/Src/CMain.HC
-index 40f5c2c..b2a9c33 100644
+index 6766b53..7dde4f0 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
 @@ -188,8 +188,12 @@ CAOT *CmpJoin(CCmpCtrl *cc,I64 cmp_flags,U8 *map_name=NULL,U8 mapfile_drv_let=0)

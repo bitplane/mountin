@@ -1,4 +1,4 @@
-From 5e71be6bc0c8df05875b064e1c8bf5bb9ade4297 Mon Sep 17 00:00:00 2001
+From bff77dc67e401c7a66a97f3a359415a75269c5b0 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:05 +0100
 Subject: [PATCH 3/7] Size DVD images from their volume

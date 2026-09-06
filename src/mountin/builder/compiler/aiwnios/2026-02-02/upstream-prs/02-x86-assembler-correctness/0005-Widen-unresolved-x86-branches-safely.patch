@@ -1,8 +1,11 @@
-From a412a3a171c0c90825808e4ba08b1ae10372a5a3 Mon Sep 17 00:00:00 2001
+From d46a294e649752adfde89a04a0aebc6d02bd9b3b Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 08:48:51 +0100
 Subject: [PATCH 5/6] Widen unresolved x86 branches safely
 
+An unresolved branch destination cannot be assumed to fit a signed byte.
+Prefer a wider relative form when one is available, while retaining the
+shortest encoding for resolved operands.
 ---
  Src/AsmX64.HC | 21 +++++++++++++++++++--
  1 file changed, 19 insertions(+), 2 deletions(-)
@@ -61,4 +64,3 @@ index 0dacbdb..f08ca2c 100644
          }
 -- 
 2.53.0
-
