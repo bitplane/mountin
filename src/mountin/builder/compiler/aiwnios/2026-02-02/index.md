@@ -75,11 +75,18 @@ walk at `dim`, and no compiler ABI padding is required.
 
 ## Validation
 
-The x86 spill-slot fix passes the source-built runtime bootstrap and all nine
-compiler regression checks below, including inline current-PC comparisons.
-The compiler-correctness group also applies independently with `git am`.
+The consolidated patch set passes the source-built x86 runtime bootstrap and
+all twelve regression checks below. Host-drive registration passes both with
+and without `--host-drive`. A separate compile check enables `OPTf_TEMPLEOS`
+and verifies the emitted module signature.
 
-Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. After fixing
+The compiler-correctness, x86-assembler and host-filesystem groups each apply
+independently to upstream with `git am`. The complete series applies with zero
+fuzz. Consolidation preserved the resulting source tree; the subsequent mode
+rename changes its identifier and documentation, not its value or behaviour.
+
+The earlier graphical boot checks used QEMU TCG, `-cpu max`, one CPU and 512 MiB
+RAM; they have not been repeated after consolidation. After fixing
 the `StrLen` register collision, the rebuilt image completed three cold boots
 without the earlier heap checks or diagnostic windows: one was observed for 120
 seconds and two for 75 seconds. All reached the graphical installer prompt and
@@ -90,6 +97,12 @@ have been validated.
 
 The owning patches add standalone HolyC checks under `Tests/Compiler`:
 
+- `FileSize.HC`: open-file and pathname sizes agree; a null file handle returns
+  zero.
+- `HostDrives.HC`: registered drives match mounted host drives, with and without
+  the optional U drive.
+- `IncludeSearch.HC`: current-directory precedence and source-relative fallback,
+  including nested includes and parent paths.
 - `CallCompare.HC`: spilled call results in comparisons and short-circuit
   conditions, including floating-point results and stack-local preservation.
 - `CurrentPC.HC`: code addresses returned directly, stored locally and used in

@@ -41,11 +41,11 @@ index bb6aeff..fe9262d 100644
  	      LexAttachDoc(cc,,,buf2);
 diff --git a/Tests/Compiler/IncludeSearch.HC b/Tests/Compiler/IncludeSearch.HC
 new file mode 100644
-index 0000000..21ce17f
+index 0000000..bf6b737
 --- /dev/null
 +++ b/Tests/Compiler/IncludeSearch.HC
 @@ -0,0 +1,6 @@
-+Cd("/Tests/Compiler/IncludeSearch/cwd");
++#exe { Cd("/Tests/Compiler/IncludeSearch/cwd"); }
 +#include "IncludeSearch/parent.HC"
 +if (INCLUDE_PRECEDENCE!=22 || INCLUDE_RELATIVE!=33)
 +  throw('Include');
