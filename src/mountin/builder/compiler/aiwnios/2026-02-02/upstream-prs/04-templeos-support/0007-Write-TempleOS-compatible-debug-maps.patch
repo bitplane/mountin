@@ -1,8 +1,9 @@
-From bc751099508be37b37bb2cc9d9fe4564cda6a97e Mon Sep 17 00:00:00 2001
+From 5f4df244a155c07ecc29aed8927b083ad3ddee9e Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
-Date: Sun, 6 Sep 2026 10:50:52 +0100
-Subject: [PATCH 68/71] Write TempleOS map files
+Date: Sun, 6 Sep 2026 16:57:06 +0100
+Subject: [PATCH 7/7] Write TempleOS-compatible debug maps
 
+Convert Aiwnios debug entries into module-relative TempleOS map records. Validate sparse line information, line ranges and representable addresses, with focused map-output checks.
 ---
  Src/AIWNIOS_CodeGen.HC        |  2 +-
  Src/CMain.HC                  |  8 +++-
@@ -14,10 +15,10 @@ Subject: [PATCH 68/71] Write TempleOS map files
  create mode 100644 Tests/Compiler/TempleOSMap.HC
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
-index 9cb72ab..138c9f8 100644
+index b0caf3c..ca3ee11 100644
 --- a/Src/AIWNIOS_CodeGen.HC
 +++ b/Src/AIWNIOS_CodeGen.HC
-@@ -1479,7 +1479,7 @@ skip_convert:;
+@@ -1485,7 +1485,7 @@ skip_convert:;
      __HC_CmpCtrl_SetRawAOTAsm(acc);
    if(info) {
      idx=cc->max_line-cc->min_line;
@@ -180,4 +181,3 @@ index 0000000..673a94b
 +Exit;
 -- 
 2.53.0
-

@@ -51,6 +51,11 @@ prerequisites have landed. Its AOT expression handling, symbol resolution and
 relocation generation remain together because they share data structures and
 invariants.
 
+TempleOS support contains seven feature commits: file-size interfaces,
+integer register types, DVD sizing, AOT modules and raw images, exception/
+interrupt/variadic ABIs, kernel intrinsics, and debug maps. The consolidated
+series produces the same source tree as the incremental patches.
+
 The x86-only intrinsics fail compilation explicitly on other targets. The
 remaining TempleOS intrinsics not used by the compiler or kernel
 (`Carry`, integer square/sign/absolute, and `ClFlush`)

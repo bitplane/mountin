@@ -1,0 +1,1671 @@
+From 59b1ce15bcb4558705c58b51dab9823c45a4247e Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 16:57:05 +0100
+Subject: [PATCH 6/7] Lower TempleOS kernel intrinsics
+
+Provide the integer, memory, queue and CPU operations used by the kernel. Track scratch registers and preserve operands across calls; reject x86-only operations on other targets.
+
+Include focused checks for queue mutation, string length, swaps and unsigned remainder. Privileged operations are compiled but are not executed in the host regression tests.
+---
+ Src/AIWNIOS_CodeGen.HC   | 133 ++++++++++-
+ Tests/Compiler/ModU64.HC |  13 ++
+ Tests/Compiler/Queues.HC |  20 ++
+ Tests/Compiler/StrLen.HC |  20 ++
+ Tests/Compiler/Swap.HC   |  17 ++
+ c/aiwn_lexparser.h       |  47 ++++
+ c/main.c                 |  93 ++++++++
+ c/optpass.c              |  30 +++
+ c/parser.c               | 237 ++++++++++++++++++-
+ c/x86_64_backend.c       | 492 +++++++++++++++++++++++++++++++++++++++
+ 10 files changed, 1099 insertions(+), 3 deletions(-)
+ create mode 100644 Tests/Compiler/ModU64.HC
+ create mode 100644 Tests/Compiler/Queues.HC
+ create mode 100644 Tests/Compiler/StrLen.HC
+ create mode 100644 Tests/Compiler/Swap.HC
+
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index bd79f3c..b0caf3c 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -40,6 +40,7 @@ import U8 * __HC_ICAdd_PostInc(U8*,I64);
+ import U8 * __HC_ICAdd_Pow(U8 *);
+ import U8 * __HC_ICAdd_Lock(U8 *);
+ import U8 * __HC_ICAdd_Eq(U8*);
++import U8 * __HC_ICAdd_Swap(U8*,I64);
+ import U8 * __HC_ICAdd_Div(U8*);
+ import U8 * __HC_ICAdd_Sub(U8*);
+ import U8 * __HC_ICAdd_Mul(U8*);
+@@ -48,6 +49,7 @@ import U8 * __HC_ICAdd_Deref(U8*,I64 rt,I64 ptrs);
+ import U8 * __HC_ICAdd_Comma(U8*);
+ import U0 __HC_ICSetLock(U8*);
+ import U8 * __HC_ICAdd_ToBool(U8*);
++import U8 * __HC_ICAdd_ToUpper(U8*);
+ import U8 * __HC_ICAdd_Addr(U8*);
+ import U8 * __HC_ICAdd_Xor(U8*);
+ import U8 * __HC_ICAdd_Mod(U8*);
+@@ -95,6 +97,27 @@ import U8 *__HC_ICAdd_Goto(U8*,U8*);
+ import U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ import U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+ import U8 *__HC_ICAdd_Neg(U8*);
++import U8 *__HC_ICAdd_Bsf(U8*);
++import U8 *__HC_ICAdd_Bsr(U8*);
++import U8 *__HC_ICAdd_Rdtsc(U8*);
++import U8 *__HC_ICAdd_GetRFlags(U8*);
++import U8 *__HC_ICAdd_SetRFlags(U8*);
++import U8 *__HC_ICAdd_SetRAX(U8*);
++import U8 *__HC_ICAdd_SetRBP(U8*);
++import U8 *__HC_ICAdd_SetRSP(U8*);
++import U8 *__HC_ICAdd_InU8(U8*);
++import U8 *__HC_ICAdd_InU16(U8*);
++import U8 *__HC_ICAdd_InU32(U8*);
++import U8 *__HC_ICAdd_OutU8(U8*);
++import U8 *__HC_ICAdd_OutU16(U8*);
++import U8 *__HC_ICAdd_OutU32(U8*);
++import U8 *__HC_ICAdd_QueInit(U8*);
++import U8 *__HC_ICAdd_QueIns(U8*);
++import U8 *__HC_ICAdd_QueInsRev(U8*);
++import U8 *__HC_ICAdd_QueRem(U8*);
++import U8 *__HC_ICAdd_InvlPg(U8*);
++import U8 *__HC_ICAdd_StrLen(U8*);
++import U8 *__HC_ICAdd_ModU64(U8*);
+ import U8 *__HC_ICAdd_Ret(U8*);
+ import U8 *__HC_ICAdd_Arg(U8*,I64);
+ import U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -144,6 +167,7 @@ extern U8 * __HC_ICAdd_PostDec(U8*,I64);
+ extern U8 * __HC_ICAdd_PostInc(U8*,I64);
+ extern U8 * __HC_ICAdd_Pow(U8 *);
+ extern U8 * __HC_ICAdd_Eq(U8*);
++extern U8 * __HC_ICAdd_Swap(U8*,I64);
+ extern U8 * __HC_ICAdd_Div(U8*);
+ extern U8 * __HC_ICAdd_Sub(U8*);
+ extern U8 * __HC_ICAdd_Mul(U8*);
+@@ -200,6 +224,27 @@ extern U8 *__HC_ICAdd_Goto(U8*,U8*);
+ extern U8 *__HC_ICAdd_GotoIf(U8*,U8*)
+ extern U8 *__HC_ICAdd_Str(U8*,U8*); //Takes a AIWNIOS code misc
+ extern U8 *__HC_ICAdd_Neg(U8*);
++extern U8 *__HC_ICAdd_Bsf(U8*);
++extern U8 *__HC_ICAdd_Bsr(U8*);
++extern U8 *__HC_ICAdd_Rdtsc(U8*);
++extern U8 *__HC_ICAdd_GetRFlags(U8*);
++extern U8 *__HC_ICAdd_SetRFlags(U8*);
++extern U8 *__HC_ICAdd_SetRAX(U8*);
++extern U8 *__HC_ICAdd_SetRBP(U8*);
++extern U8 *__HC_ICAdd_SetRSP(U8*);
++extern U8 *__HC_ICAdd_InU8(U8*);
++extern U8 *__HC_ICAdd_InU16(U8*);
++extern U8 *__HC_ICAdd_InU32(U8*);
++extern U8 *__HC_ICAdd_OutU8(U8*);
++extern U8 *__HC_ICAdd_OutU16(U8*);
++extern U8 *__HC_ICAdd_OutU32(U8*);
++extern U8 *__HC_ICAdd_QueInit(U8*);
++extern U8 *__HC_ICAdd_QueIns(U8*);
++extern U8 *__HC_ICAdd_QueInsRev(U8*);
++extern U8 *__HC_ICAdd_QueRem(U8*);
++extern U8 *__HC_ICAdd_InvlPg(U8*);
++extern U8 *__HC_ICAdd_StrLen(U8*);
++extern U8 *__HC_ICAdd_ModU64(U8*);
+ extern U8 *__HC_ICAdd_Ret(U8*);
+ extern U8 *__HC_ICAdd_Arg(U8*,I64);
+ extern U8 *__HC_ICAdd_SetFrameSize(U8*,I64);
+@@ -1993,7 +2038,8 @@ break;case IC_RIP:
+     new=__HC_ICAdd_ToF64(cc2);
+     break;case IC_TO_BOOL:
+     new=__HC_ICAdd_ToBool(cc2);
+-    break;case IC_TOUPPER:  //TODO
++    break;case IC_TOUPPER:
++    new=__HC_ICAdd_ToUpper(cc2);
+     break;case IC_HOLYC_TYPECAST:
+     new=__HC_ICAdd_Typecast(cc2,cur->ic_class->raw_type,0);
+     break;case IC_ADDR:
+@@ -2008,6 +2054,74 @@ break;case IC_RIP:
+     new=__HC_ICAdd_LNot(cc2);
+     break;case IC_UNARY_MINUS:
+     new=__HC_ICAdd_Neg(cc2);
++#ifdef TARGET_X86
++    break;case IC_BSF:
++    new=__HC_ICAdd_Bsf(cc2);
++    break;case IC_BSR:
++    new=__HC_ICAdd_Bsr(cc2);
++    break;case IC_RDTSC:
++    new=__HC_ICAdd_Rdtsc(cc2);
++    break;case IC_GET_RFLAGS:
++    new=__HC_ICAdd_GetRFlags(cc2);
++    break;case IC_SET_RFLAGS:
++    new=__HC_ICAdd_SetRFlags(cc2);
++    break;case IC_SET_RAX:
++    new=__HC_ICAdd_SetRAX(cc2);
++    break;case IC_SET_RBP:
++    new=__HC_ICAdd_SetRBP(cc2);
++    break;case IC_SET_RSP:
++    new=__HC_ICAdd_SetRSP(cc2);
++    break;case IC_IN_U8:
++    new=__HC_ICAdd_InU8(cc2);
++    break;case IC_IN_U16:
++    new=__HC_ICAdd_InU16(cc2);
++    break;case IC_IN_U32:
++    new=__HC_ICAdd_InU32(cc2);
++    break;case IC_OUT_U8:
++    new=__HC_ICAdd_OutU8(cc2);
++    break;case IC_OUT_U16:
++    new=__HC_ICAdd_OutU16(cc2);
++    break;case IC_OUT_U32:
++    new=__HC_ICAdd_OutU32(cc2);
++    break;case IC_QUE_INIT:
++    new=__HC_ICAdd_QueInit(cc2);
++    break;case IC_QUE_INS:
++    new=__HC_ICAdd_QueIns(cc2);
++    break;case IC_QUE_INS_REV:
++    new=__HC_ICAdd_QueInsRev(cc2);
++    break;case IC_QUE_REM:
++    new=__HC_ICAdd_QueRem(cc2);
++    break;case IC_INVLPG:
++    new=__HC_ICAdd_InvlPg(cc2);
++    break;case IC_STRLEN:
++    new=__HC_ICAdd_StrLen(cc2);
++    break;case IC_MOD_U64:
++    new=__HC_ICAdd_ModU64(cc2);
++#else
++    break;case IC_BSF:
++    case IC_BSR:
++    case IC_RDTSC:
++    case IC_GET_RFLAGS:
++    case IC_SET_RFLAGS:
++    case IC_SET_RAX:
++    case IC_SET_RBP:
++    case IC_SET_RSP:
++    case IC_IN_U8:
++    case IC_IN_U16:
++    case IC_IN_U32:
++    case IC_OUT_U8:
++    case IC_OUT_U16:
++    case IC_OUT_U32:
++    case IC_QUE_INIT:
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
++    case IC_QUE_REM:
++    case IC_INVLPG:
++    case IC_STRLEN:
++    case IC_MOD_U64:
++      PrintErr("Intrinsic is not implemented for this target\n");
++      throw('Compiler');
++#endif
+     break;case IC_SQRT:
+     new=__HC_ICAdd_Sqrt(cc2);
+     break;case IC_DEREF:
+@@ -2087,6 +2201,23 @@ break;case IC_RIP:
+     new=__HC_ICAdd_XorXor(cc2);
+     break;case IC_ASSIGN:
+     new=__HC_ICAdd_Eq(cc2);
++#ifdef TARGET_X86
++    break;case IC_SWAP_U8:
++    new=__HC_ICAdd_Swap(cc2,1);
++    break;case IC_SWAP_U16:
++    new=__HC_ICAdd_Swap(cc2,2);
++    break;case IC_SWAP_U32:
++    new=__HC_ICAdd_Swap(cc2,4);
++    break;case IC_SWAP_I64:
++    new=__HC_ICAdd_Swap(cc2,8);
++#else
++    break;case IC_SWAP_U8:
++    case IC_SWAP_U16:
++    case IC_SWAP_U32:
++    case IC_SWAP_I64:
++      PrintErr("Intrinsic is not implemented for this target\n");
++      throw('Compiler');
++#endif
+     //break;case IC_ASSIGN_PP //NOT USED BY AIWNIOS
+     //break;case IC_ASSIGN_MM //DITTO
+     break;case IC_SHL_EQU:
+diff --git a/Tests/Compiler/ModU64.HC b/Tests/Compiler/ModU64.HC
+new file mode 100644
+index 0000000..9c709b4
+--- /dev/null
++++ b/Tests/Compiler/ModU64.HC
+@@ -0,0 +1,13 @@
++public _intern IC_MOD_U64 U64 TestMod(U64 *q,U64 d);
++U64 TestDivisor() {return 7;}
++U64 q=100,r;
++r=TestMod(&q,7);
++if (q!=14 || r!=2) throw('ModConst');
++q=100;
++r=TestMod(&q,TestDivisor());
++if (q!=14 || r!=2) throw('ModCall');
++q=U64_MAX;
++r=TestMod(&q,16);
++if (q!=0x0FFFFFFFFFFFFFFF || r!=15) throw('ModWide');
++"PASS: ModU64\n";
++Exit;
+diff --git a/Tests/Compiler/Queues.HC b/Tests/Compiler/Queues.HC
+new file mode 100644
+index 0000000..6aa3846
+--- /dev/null
++++ b/Tests/Compiler/Queues.HC
+@@ -0,0 +1,20 @@
++public _intern IC_QUE_INIT U0 TestInit(CQue *q);
++public _intern IC_QUE_INS U0 TestInsert(CQue *a,CQue *b);
++public _intern IC_QUE_INS_REV U0 TestInsertRev(CQue *a,CQue *b);
++public _intern IC_QUE_REM U0 TestRemove(CQue *q);
++CQue head,one,two;
++CQue *TestOne() {return &one;}
++CQue *TestHead() {return &head;}
++TestInit(&head);
++TestInsert(TestOne(),TestHead());
++if (head.next!=&one || one.last!=&head ||
++      one.next!=&head || head.last!=&one) throw('QueueIns');
++TestInsertRev(&two,TestHead());
++if (head.last!=&two || two.next!=&head ||
++      two.last!=&one || one.next!=&two) throw('QueueRev');
++TestRemove(TestOne());
++if (head.next!=&two || two.last!=&head) throw('QueueRem');
++TestRemove(&two);
++if (head.next!=&head || head.last!=&head) throw('QueueEnd');
++"PASS: queues\n";
++Exit;
+diff --git a/Tests/Compiler/StrLen.HC b/Tests/Compiler/StrLen.HC
+new file mode 100644
+index 0000000..f612b06
+--- /dev/null
++++ b/Tests/Compiler/StrLen.HC
+@@ -0,0 +1,20 @@
++public _intern IC_STRLEN I64 TestStrLen(U8 *text);
++
++U8 *TestText(I64 select)
++{
++  if (select)
++    return "wrong";
++  return "Hello, world!";
++}
++
++if (TestStrLen(TestText(0)) != 13) throw('StrLen');
++
++I64 LengthInRdx(U8 *input)
++{
++  U8 reg RDX *text=input;
++  return TestStrLen(text);
++}
++if (LengthInRdx("Hello, world!") != 13) throw('StrLen');
++if (LengthInRdx("") != 0) throw('StrLen');
++"PASS: StrLen\n";
++Exit;
+diff --git a/Tests/Compiler/Swap.HC b/Tests/Compiler/Swap.HC
+new file mode 100644
+index 0000000..308d0a3
+--- /dev/null
++++ b/Tests/Compiler/Swap.HC
+@@ -0,0 +1,17 @@
++public _intern IC_SWAP_U8 U0 TestSwapU8(U8 *a,U8 *b);
++public _intern IC_SWAP_U16 U0 TestSwapU16(U16 *a,U16 *b);
++public _intern IC_SWAP_U32 U0 TestSwapU32(U32 *a,U32 *b);
++public _intern IC_SWAP_I64 U0 TestSwapI64(I64 *a,I64 *b);
++U8 a8=1,b8=255;
++U16 a16=1,b16=65535;
++U32 a32=1,b32=0xffffffff;
++I64 a64=1,b64=0x123456789abcdef0;
++TestSwapU8(&a8,&b8);
++TestSwapU16(&a16,&b16);
++TestSwapU32(&a32,&b32);
++TestSwapI64(&a64,&b64);
++if (a8!=255 || b8!=1 || a16!=65535 || b16!=1 ||
++    a32!=0xffffffff || b32!=1 || a64!=0x123456789abcdef0 || b64!=1)
++  throw('Swap');
++"PASS: Swap widths\n";
++Exit;
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index 56ea885..9ef1cc7 100644
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -242,6 +242,26 @@ enum {
+   IC_NOP,
+   IC_PAREN,
+   IC_NEG,
++  IC_BSF,
++  IC_BSR,
++  IC_RDTSC,
++  IC_GET_RFLAGS,
++  IC_SET_RFLAGS,
++  IC_SET_RAX,
++  IC_SET_RBP,
++  IC_SET_RSP,
++  IC_IN_U8,
++  IC_IN_U16,
++  IC_IN_U32,
++  IC_OUT_U8,
++  IC_OUT_U16,
++  IC_OUT_U32,
++  IC_QUE_INIT,
++  IC_QUE_INS,
++  IC_QUE_INS_REV,
++  IC_QUE_REM,
++  IC_INVLPG,
++  IC_STRLEN,
+   IC_POS,
+   IC_NAME,
+   IC_STR, //->code_misc
+@@ -350,7 +370,10 @@ enum {
+   IC_FS,
+   IC_GS,
+   IC_TO_BOOL,
++  IC_TO_UPPER,
+   IC_SQRT,
++  IC_SWAP,
++  IC_MOD_U64,
+   IC_CNT, // MUST BE THE LAST ITEM
+ };
+ typedef struct CICArg {
+@@ -685,6 +708,26 @@ HC_IC_BINDINGH(HC_ICAdd_OrEq)
+ HC_IC_BINDINGH(HC_ICAdd_XorEq)
+ HC_IC_BINDINGH(HC_ICAdd_ModEq)
+ HC_IC_BINDINGH(HC_ICAdd_Neg)
++HC_IC_BINDINGH(HC_ICAdd_Bsf)
++HC_IC_BINDINGH(HC_ICAdd_Bsr)
++HC_IC_BINDINGH(HC_ICAdd_Rdtsc)
++HC_IC_BINDINGH(HC_ICAdd_GetRFlags)
++HC_IC_BINDINGH(HC_ICAdd_SetRFlags)
++HC_IC_BINDINGH(HC_ICAdd_SetRAX)
++HC_IC_BINDINGH(HC_ICAdd_SetRBP)
++HC_IC_BINDINGH(HC_ICAdd_SetRSP)
++HC_IC_BINDINGH(HC_ICAdd_InU8)
++HC_IC_BINDINGH(HC_ICAdd_InU16)
++HC_IC_BINDINGH(HC_ICAdd_InU32)
++HC_IC_BINDINGH(HC_ICAdd_OutU8)
++HC_IC_BINDINGH(HC_ICAdd_OutU16)
++HC_IC_BINDINGH(HC_ICAdd_OutU32)
++HC_IC_BINDINGH(HC_ICAdd_QueInit)
++HC_IC_BINDINGH(HC_ICAdd_QueIns)
++HC_IC_BINDINGH(HC_ICAdd_QueInsRev)
++HC_IC_BINDINGH(HC_ICAdd_QueRem)
++HC_IC_BINDINGH(HC_ICAdd_InvlPg)
++HC_IC_BINDINGH(HC_ICAdd_StrLen)
+ HC_IC_BINDINGH(HC_ICAdd_And)
+ HC_IC_BINDINGH(HC_ICAdd_EqEq)
+ HC_IC_BINDINGH(HC_ICAdd_Ret)
+@@ -717,6 +760,10 @@ HC_IC_BINDINGH(HC_ICAdd_ATAN)
+ HC_IC_BINDINGH(HC_ICAdd_Fs)
+ HC_IC_BINDINGH(HC_ICAdd_Gs)
+ HC_IC_BINDINGH(HC_ICAdd_ToBool)
++HC_IC_BINDINGH(HC_ICAdd_ToUpper)
++
++CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width);
++CRPN *__HC_ICAdd_ModU64(CCodeCtrl *cc);
+ 
+ CRPN *__HC_ICAdd_FReg(CCodeCtrl *cc, int64_t r);
+ CRPN *__HC_ICAdd_IReg(CCodeCtrl *cc, int64_t r, int64_t rt, int64_t ptr_cnt);
+diff --git a/c/main.c b/c/main.c
+index 1294dc8..a5641ba 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -1039,6 +1039,10 @@ static int64_t STK___HC_ICAdd_Eq(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_Eq((CCodeCtrl *)stk[0]);
+ }
+ 
++static int64_t STK___HC_ICAdd_Swap(int64_t *stk) {
++  return (int64_t)__HC_ICAdd_Swap((CCodeCtrl *)stk[0], stk[1]);
++}
++
+ static int64_t STK___HC_ICAdd_Div(int64_t *stk) {
+   return (int64_t)__HC_ICAdd_Div((CCodeCtrl *)stk[0]);
+ }
+@@ -1208,6 +1212,69 @@ static int64_t STK___HC_ICAdd_EqEq(int64_t *stk) {
+ static int64_t STK___HC_ICAdd_Neg(int64_t *stk) {
+   return __HC_ICAdd_Neg(stk[0]);
+ }
++static int64_t STK___HC_ICAdd_Bsf(int64_t *stk) {
++  return __HC_ICAdd_Bsf(stk[0]);
++}
++static int64_t STK___HC_ICAdd_Bsr(int64_t *stk) {
++  return __HC_ICAdd_Bsr(stk[0]);
++}
++static int64_t STK___HC_ICAdd_Rdtsc(int64_t *stk) {
++  return __HC_ICAdd_Rdtsc(stk[0]);
++}
++static int64_t STK___HC_ICAdd_GetRFlags(int64_t *stk) {
++  return __HC_ICAdd_GetRFlags(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRFlags(int64_t *stk) {
++  return __HC_ICAdd_SetRFlags(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRAX(int64_t *stk) {
++  return __HC_ICAdd_SetRAX(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRBP(int64_t *stk) {
++  return __HC_ICAdd_SetRBP(stk[0]);
++}
++static int64_t STK___HC_ICAdd_SetRSP(int64_t *stk) {
++  return __HC_ICAdd_SetRSP(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU8(int64_t *stk) {
++  return __HC_ICAdd_InU8(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU16(int64_t *stk) {
++  return __HC_ICAdd_InU16(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InU32(int64_t *stk) {
++  return __HC_ICAdd_InU32(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU8(int64_t *stk) {
++  return __HC_ICAdd_OutU8(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU16(int64_t *stk) {
++  return __HC_ICAdd_OutU16(stk[0]);
++}
++static int64_t STK___HC_ICAdd_OutU32(int64_t *stk) {
++  return __HC_ICAdd_OutU32(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueInit(int64_t *stk) {
++  return __HC_ICAdd_QueInit(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueIns(int64_t *stk) {
++  return __HC_ICAdd_QueIns(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueInsRev(int64_t *stk) {
++  return __HC_ICAdd_QueInsRev(stk[0]);
++}
++static int64_t STK___HC_ICAdd_QueRem(int64_t *stk) {
++  return __HC_ICAdd_QueRem(stk[0]);
++}
++static int64_t STK___HC_ICAdd_InvlPg(int64_t *stk) {
++  return __HC_ICAdd_InvlPg(stk[0]);
++}
++static int64_t STK___HC_ICAdd_StrLen(int64_t *stk) {
++  return __HC_ICAdd_StrLen(stk[0]);
++}
++static int64_t STK___HC_ICAdd_ModU64(int64_t *stk) {
++  return __HC_ICAdd_ModU64(stk[0]);
++}
+ static int64_t STK___HC_ICAdd_Ret(int64_t *stk) {
+   return __HC_ICAdd_Ret(stk[0]);
+ }
+@@ -1538,6 +1605,9 @@ int64_t CmdLineBootFileCnt(int64_t *) {
+ static int64_t STK__HC_ICAdd_ToBool(int64_t *stk) {
+   return __HC_ICAdd_ToBool(stk[0]);
+ }
++static int64_t STK__HC_ICAdd_ToUpper(int64_t *stk) {
++  return __HC_ICAdd_ToUpper(stk[0]);
++}
+ static int64_t STK_WriteProtectMemCpy(int64_t *stk) {
+   char *ptr = (void *)stk[0];
+   int64_t r = (int64_t)WriteProtectMemCpy(ptr, (char *)stk[1], stk[2]);
+@@ -1749,6 +1819,7 @@ static void BootAiwnios(char *bootstrap_text) {
+                           //(this is for parser.c checks)
+     */
+     PrsAddSymbol("__HC_ICAdd_ToBool", STK__HC_ICAdd_ToBool, 1);
++    PrsAddSymbol("__HC_ICAdd_ToUpper", STK__HC_ICAdd_ToUpper, 1);
+     PrsAddSymbol("__HC_ICAdd_GetVargsPtr", STK___HC_ICAdd_GetVargsPtr, 1);
+     PrsAddSymbol("IsValidPtr", STK_IsValidPtr, 1);
+     PrsAddSymbol("__HC_CmpCtrl_SetAOT", STK___HC_CmpCtrl_SetAOT, 1);
+@@ -1774,6 +1845,7 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("__HC_ICAdd_PostInc", STK___HC_ICAdd_PostInc, 2);
+     PrsAddSymbol("__HC_ICAdd_Pow", STK___HC_ICAdd_Pow, 1);
+     PrsAddSymbol("__HC_ICAdd_Eq", STK___HC_ICAdd_Eq, 1);
++    PrsAddSymbol("__HC_ICAdd_Swap", STK___HC_ICAdd_Swap, 2);
+     PrsAddSymbol("__HC_ICAdd_Div", STK___HC_ICAdd_Div, 1);
+     PrsAddSymbol("__HC_ICAdd_Sub", STK___HC_ICAdd_Sub, 1);
+     PrsAddSymbol("__HC_ICAdd_Mul", STK___HC_ICAdd_Mul, 1);
+@@ -1829,6 +1901,27 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("__HC_ICAdd_Gs", STK___HC_ICAdd_Gs, 1);
+     PrsAddSymbol("__HC_ICAdd_EqEq", STK___HC_ICAdd_EqEq, 1);
+     PrsAddSymbol("__HC_ICAdd_Neg", STK___HC_ICAdd_Neg, 1);
++    PrsAddSymbol("__HC_ICAdd_Bsf", STK___HC_ICAdd_Bsf, 1);
++    PrsAddSymbol("__HC_ICAdd_Bsr", STK___HC_ICAdd_Bsr, 1);
++    PrsAddSymbol("__HC_ICAdd_Rdtsc", STK___HC_ICAdd_Rdtsc, 1);
++    PrsAddSymbol("__HC_ICAdd_GetRFlags", STK___HC_ICAdd_GetRFlags, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRFlags", STK___HC_ICAdd_SetRFlags, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRAX", STK___HC_ICAdd_SetRAX, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRBP", STK___HC_ICAdd_SetRBP, 1);
++    PrsAddSymbol("__HC_ICAdd_SetRSP", STK___HC_ICAdd_SetRSP, 1);
++    PrsAddSymbol("__HC_ICAdd_InU8", STK___HC_ICAdd_InU8, 1);
++    PrsAddSymbol("__HC_ICAdd_InU16", STK___HC_ICAdd_InU16, 1);
++    PrsAddSymbol("__HC_ICAdd_InU32", STK___HC_ICAdd_InU32, 1);
++    PrsAddSymbol("__HC_ICAdd_OutU8", STK___HC_ICAdd_OutU8, 1);
++    PrsAddSymbol("__HC_ICAdd_OutU16", STK___HC_ICAdd_OutU16, 1);
++    PrsAddSymbol("__HC_ICAdd_OutU32", STK___HC_ICAdd_OutU32, 1);
++    PrsAddSymbol("__HC_ICAdd_QueInit", STK___HC_ICAdd_QueInit, 1);
++    PrsAddSymbol("__HC_ICAdd_QueIns", STK___HC_ICAdd_QueIns, 1);
++    PrsAddSymbol("__HC_ICAdd_QueInsRev", STK___HC_ICAdd_QueInsRev, 1);
++    PrsAddSymbol("__HC_ICAdd_QueRem", STK___HC_ICAdd_QueRem, 1);
++    PrsAddSymbol("__HC_ICAdd_InvlPg", STK___HC_ICAdd_InvlPg, 1);
++    PrsAddSymbol("__HC_ICAdd_StrLen", STK___HC_ICAdd_StrLen, 1);
++    PrsAddSymbol("__HC_ICAdd_ModU64", STK___HC_ICAdd_ModU64, 1);
+     PrsAddSymbol("__HC_ICAdd_Ret", STK___HC_ICAdd_Ret, 1);
+     PrsAddSymbol("__HC_ICAdd_Arg", STK___HC_ICAdd_Arg, 2);
+     PrsAddSymbol("__HC_ICAdd_SetFrameSize", STK___HC_ICAdd_SetFrameSize, 2);
+diff --git a/c/optpass.c b/c/optpass.c
+index 65637f7..881ac56 100644
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -649,6 +649,8 @@ loop:
+       goto binop_next;
+       break;
+     case IC_EQ:
++    case IC_SWAP:
++    case IC_MOD_U64:
+       goto next1;
+       break;
+     case IC_SUB:
+@@ -703,6 +705,20 @@ loop:
+       goto binop_next;
+       break;
+     case IC_DEREF:
++    case IC_QUE_INIT:
++    case IC_QUE_REM:
++    case IC_INVLPG:
++    case IC_STRLEN:
++    case IC_IN_U8:
++    case IC_IN_U16:
++    case IC_IN_U32:
++    case IC_OUT_U8:
++    case IC_OUT_U16:
++    case IC_OUT_U32:
++      goto next1;
++      break;
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
+       goto next1;
+       break;
+     case IC_AND:
+@@ -1118,6 +1134,8 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
+       continue;
+       break;
+     case IC_EQ:
++    case IC_SWAP:
++    case IC_MOD_U64:
+       continue;
+       break;
+     case IC_SUB:
+@@ -1130,6 +1148,18 @@ void OptPassRegAlloc(CCmpCtrl *cctrl) {
+       continue;
+       break;
+     case IC_DEREF:
++    case IC_QUE_INIT:
++    case IC_QUE_INS:
++    case IC_QUE_INS_REV:
++    case IC_QUE_REM:
++    case IC_INVLPG:
++    case IC_STRLEN:
++    case IC_IN_U8:
++    case IC_IN_U16:
++    case IC_IN_U32:
++    case IC_OUT_U8:
++    case IC_OUT_U16:
++    case IC_OUT_U32:
+       continue;
+       break;
+     case IC_AND:
+diff --git a/c/parser.c b/c/parser.c
+index c7ec9fa..711efc4 100644
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -219,6 +219,8 @@ CRPN *ICFwd(CRPN *rpn) {
+     goto unop;
+   case IC_LOCK:
+   case IC_CURRENT_PC:
++  case IC_RDTSC:
++  case IC_GET_RFLAGS:
+   case IC_RAW_BYTES:
+   case __IC_STATICS_SIZE:
+   case __IC_SET_STATIC_DATA:
+@@ -232,6 +234,7 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_GET_VARGS_PTR:
+   case IC_TO_F64:
+   case IC_TO_I64:
++  case IC_TO_UPPER:
+   case IC_TO_BOOL:
+     goto unop;
+     break;
+@@ -242,8 +245,23 @@ CRPN *ICFwd(CRPN *rpn) {
+     return rpn->base.next;
+     break;
+   case IC_TYPECAST:
++  case IC_QUE_INIT:
++  case IC_QUE_REM:
++  case IC_INVLPG:
++  case IC_STRLEN:
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
+     goto unop;
+     break;
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    goto binop;
++    break;
+   case IC_COMMA:
+   case IC_MAX_F64:
+   case IC_MAX_U64:
+@@ -251,6 +269,9 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_MIN_F64:
+   case IC_MIN_U64:
+   case IC_MIN_I64:
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
+     goto binop;
+     break;
+   case __IC_VARGS:
+@@ -322,6 +343,8 @@ CRPN *ICFwd(CRPN *rpn) {
+     abort();
+     break;
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   case IC_SQRT:
+   unop:
+     return ICFwd(rpn->base.next);
+@@ -329,7 +352,6 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_SQR:
+   case IC_POS:
+     goto unop;
+-    break;
+   case IC_NAME:
+     return rpn->base.next;
+     break;
+@@ -353,6 +375,8 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_LBTR:
+   case IC_LBTS:
+   case IC_LBTC:
++  case IC_SWAP:
++  case IC_MOD_U64:
+   case IC_EQ:
+     goto binop;
+     break;
+@@ -628,6 +652,9 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+   case IC_TO_BOOL:
+     printf("TO_BOOL\n");
+     goto unop;
++  case IC_TO_UPPER:
++    printf("TO_UPPER\n");
++    goto unop;
+   case IC_GET_VARGS_PTR:
+     printf("GET_VARGS_PTR:\n");
+     return ParserDumpIR(rpn->base.next, indent + 1);
+@@ -795,6 +822,49 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+     printf("NOP\n");
+     goto ret;
+     break;
++  case IC_RDTSC:
++    printf("RDTSC\n");
++    goto ret;
++    break;
++  case IC_GET_RFLAGS:
++    printf("GET_RFLAGS\n");
++    goto ret;
++    break;
++  case IC_QUE_INIT:
++    printf("QUE_INIT\n");
++    goto unop;
++    break;
++  case IC_QUE_INS:
++    printf("QUE_INS\n");
++    goto binop;
++  case IC_QUE_INS_REV:
++    printf("QUE_INS_REV\n");
++    goto binop;
++  case IC_QUE_REM:
++    printf("QUE_REM\n");
++    goto unop;
++  case IC_INVLPG:
++    printf("INVLPG\n");
++    goto unop;
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
++    printf("IN\n");
++    goto unop;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    printf("SET_REG\n");
++    goto unop;
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
++    printf("OUT\n");
++    goto binop;
++  case IC_STRLEN:
++    printf("STRLEN\n");
++    goto unop;
+   case IC_NAME:
+     printf("NAME:%s\n", rpn->string);
+     goto ret;
+@@ -807,6 +877,14 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+     printf("+");
+     goto binop;
+     break;
++  case IC_SWAP:
++    printf("SWAP");
++    goto binop;
++    break;
++  case IC_MOD_U64:
++    printf("MOD_U64");
++    goto binop;
++    break;
+   case IC_EQ:
+     printf("=");
+     goto binop;
+@@ -990,6 +1068,12 @@ CRPN *ParserDumpIR(CRPN *rpn, int64_t indent) {
+     printf("SQRT");
+     goto unop;
+     break;
++  case IC_BSF:
++    printf("BSF");
++    goto unop;
++  case IC_BSR:
++    printf("BSR");
++    goto unop;
+   case IC_NEG:
+     printf("-");
+     goto unop;
+@@ -1148,6 +1232,9 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+   case IC_TO_BOOL:
+     len = AddBytes(to, len, "$PURPLE$TO_BOOL$FD$\n");
+     goto unop;
++  case IC_TO_UPPER:
++    len = AddBytes(to, len, "$PURPLE$TO_UPPER$FD$\n");
++    goto unop;
+   case IC_GET_VARGS_PTR:
+     len = AddBytes(to, len, "$PURPLE$GET_VARGS_PTR$FD$\n");
+     return len;
+@@ -1311,6 +1398,43 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+   case IC_NOP:
+     goto ret;
+     break;
++  case IC_RDTSC:
++    len = AddBytes(to, len, "$PURPLE$RDTSC$FD$\n");
++    goto ret;
++    break;
++  case IC_GET_RFLAGS:
++    len = AddBytes(to, len, "$PURPLE$GET_RFLAGS$FD$\n");
++    goto ret;
++    break;
++  case IC_QUE_INIT:
++    len = AddBytes(to, len, "$PURPLE$QUE_INIT$FD$\n");
++    goto unop;
++    break;
++  case IC_QUE_INS:
++    len = AddBytes(to, len, "$PURPLE$QUE_INS$FD$\n");
++    goto binop;
++  case IC_QUE_INS_REV:
++    len = AddBytes(to, len, "$PURPLE$QUE_INS_REV$FD$\n");
++    goto binop;
++  case IC_QUE_REM:
++    len = AddBytes(to, len, "$PURPLE$QUE_REM$FD$\n");
++    goto unop;
++  case IC_INVLPG:
++    len = AddBytes(to, len, "$PURPLE$INVLPG$FD$\n");
++    goto unop;
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
++    len = AddBytes(to, len, "$PURPLE$IN$FD$\n");
++    goto unop;
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
++    len = AddBytes(to, len, "$PURPLE$OUT$FD$\n");
++    goto binop;
++  case IC_STRLEN:
++    len = AddBytes(to, len, "$PURPLE$STRLEN$FD$\n");
++    goto unop;
+   case IC_NAME:
+     goto ret;
+     break;
+@@ -1322,6 +1446,14 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+     len = AddBytes(to, len, "$PURPLE$+$FD$\n");
+     goto binop;
+     break;
++  case IC_SWAP:
++    len = AddBytes(to, len, "$PURPLE$SWAP$FD$\n");
++    goto binop;
++    break;
++  case IC_MOD_U64:
++    len = AddBytes(to, len, "$PURPLE$MOD_U64$FD$\n");
++    goto binop;
++    break;
+   case IC_EQ:
+     len = AddBytes(to, len, "$PURPLE$=$FD$\n");
+     goto binop;
+@@ -1506,6 +1638,12 @@ int64_t DolDocDumpIR(char *to, int64_t len, CRPN *rpn) {
+     len = AddBytes(to, len, "$PURPLE$SQR$FD$\n");
+     goto unop;
+     break;
++  case IC_BSF:
++    len = AddBytes(to, len, "$PURPLE$BSF$FD$\n");
++    goto unop;
++  case IC_BSR:
++    len = AddBytes(to, len, "$PURPLE$BSR$FD$\n");
++    goto unop;
+   case IC_NEG:
+     len = AddBytes(to, len, "$PURPLE$-a$FD$\n");
+     goto unop;
+@@ -1539,6 +1677,8 @@ static int64_t IsRightAssoc(int64_t ic) {
+   case IC_LNOT:
+   case IC_POS:
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   case IC_SQRT:
+   case IC_EQ:
+   case IC_ADD_EQ:
+@@ -3415,6 +3555,17 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+   if (rpn->raw_type)
+     return rpn->raw_type;
+   switch (rpn->type) {
++  case IC_SWAP:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_MOD_U64:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
++    rpn->ic_class = HashFind("U64i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_U64i;
++    break;
+   case IC_SQRT:
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     rpn->ic_class = HashFind("F64", Fs->hash_table, HTT_CLASS, 1);
+@@ -3443,6 +3594,8 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     break;
+   case IC_FS:
+   case IC_GS:
++  case IC_RDTSC:
++  case IC_GET_RFLAGS:
+     rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
+     return rpn->raw_type = RT_I64i;
+     break;
+@@ -3451,6 +3604,51 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
+     return rpn->raw_type = RT_U0; // dummy
+     break;
++  case IC_QUE_INIT:
++  case IC_QUE_REM:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_INVLPG:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++    break;
++  case IC_IN_U8:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    rpn->ic_class = HashFind("U8i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_U8i;
++  case IC_IN_U16:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    rpn->ic_class = HashFind("U16i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_U16i;
++  case IC_IN_U32:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    rpn->ic_class = HashFind("U32i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_U32i;
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 1));
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    return rpn->raw_type = RT_U0;
++  case IC_STRLEN:
++    AssignRawTypeToNode(ccmp, ICArgN(rpn, 0));
++    rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
++    return rpn->raw_type = RT_I64i;
++    break;
+   case IC_BT:
+   case IC_BTR:
+   case IC_BTS:
+@@ -3474,6 +3672,7 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     return rpn->raw_type = RT_I64i;
+     break;
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+     AssignRawTypeToNode(ccmp, rpn->base.next);
+   case IC_TO_I64:
+     rpn->ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1);
+@@ -3566,6 +3765,8 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     return rpn->raw_type = rpn->ic_class->raw_type;
+     break;
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
+   unop:
+     AssignRawTypeToNode(ccmp, rpn->base.next);
+     if (BETWEEN(((CRPN *)rpn->base.next)->raw_type, RT_I8i, RT_U32i)) {
+@@ -3581,7 +3782,6 @@ int64_t AssignRawTypeToNode(CCmpCtrl *ccmp, CRPN *rpn) {
+     break;
+   case IC_POS:
+     goto unop;
+-    break;
+   case IC_NAME:
+     abort();
+     break;
+@@ -4614,9 +4814,41 @@ HC_IC_BINDING(HC_ICAdd_Ne, IC_NE);
+ HC_IC_BINDING(HC_ICAdd_Lsh, IC_LSH);
+ HC_IC_BINDING(HC_ICAdd_Rsh, IC_RSH);
+ HC_IC_BINDING(HC_ICAdd_Neg, IC_NEG);
++HC_IC_BINDING(HC_ICAdd_Bsf, IC_BSF);
++HC_IC_BINDING(HC_ICAdd_Bsr, IC_BSR);
++HC_IC_BINDING(HC_ICAdd_Rdtsc, IC_RDTSC);
++HC_IC_BINDING(HC_ICAdd_GetRFlags, IC_GET_RFLAGS);
++HC_IC_BINDING(HC_ICAdd_SetRFlags, IC_SET_RFLAGS);
++HC_IC_BINDING(HC_ICAdd_SetRAX, IC_SET_RAX);
++HC_IC_BINDING(HC_ICAdd_SetRBP, IC_SET_RBP);
++HC_IC_BINDING(HC_ICAdd_SetRSP, IC_SET_RSP);
++HC_IC_BINDING(HC_ICAdd_InU8, IC_IN_U8);
++HC_IC_BINDING(HC_ICAdd_InU16, IC_IN_U16);
++HC_IC_BINDING(HC_ICAdd_InU32, IC_IN_U32);
++HC_IC_BINDING(HC_ICAdd_OutU8, IC_OUT_U8);
++HC_IC_BINDING(HC_ICAdd_OutU16, IC_OUT_U16);
++HC_IC_BINDING(HC_ICAdd_OutU32, IC_OUT_U32);
++HC_IC_BINDING(HC_ICAdd_QueInit, IC_QUE_INIT);
++HC_IC_BINDING(HC_ICAdd_QueIns, IC_QUE_INS);
++HC_IC_BINDING(HC_ICAdd_QueInsRev, IC_QUE_INS_REV);
++HC_IC_BINDING(HC_ICAdd_QueRem, IC_QUE_REM);
++HC_IC_BINDING(HC_ICAdd_InvlPg, IC_INVLPG);
++HC_IC_BINDING(HC_ICAdd_StrLen, IC_STRLEN);
+ HC_IC_BINDING(HC_ICAdd_And, IC_AND);
+ HC_IC_BINDING(HC_ICAdd_Ret, IC_RET);
+ 
++CRPN *__HC_ICAdd_Swap(CCodeCtrl *cc, int64_t width) {
++  CRPN *rpn;
++  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
++      .type = IC_SWAP,
++      .integer = width,
++      .raw_type = RT_U0,
++  };
++  QueIns(rpn, cc->ir_code);
++  return rpn;
++}
++HC_IC_BINDING(HC_ICAdd_ModU64, IC_MOD_U64);
++
+ CRPN *__HC_ICAdd_SetFrameSize(CCodeCtrl *cc, int64_t arg) {
+   CRPN *rpn;
+   *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
+@@ -5113,6 +5345,7 @@ void __HC_CmpCtrl_SetInterrupt(CCmpCtrl *cc, int64_t has_error_code) {
+     cc->flags |= CCF_INTERRUPT_ERROR_CODE;
+ }
+ HC_IC_BINDING(HC_ICAdd_ToBool, IC_TO_BOOL);
++HC_IC_BINDING(HC_ICAdd_ToUpper, IC_TO_UPPER);
+ HC_IC_BINDING(HC_ICAdd_BT, IC_BT);
+ HC_IC_BINDING(HC_ICAdd_BTC, IC_BTC);
+ HC_IC_BINDING(HC_ICAdd_BTS, IC_BTS);
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 0907eb1..5fcc65c 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -1356,6 +1356,84 @@ static int64_t X86IMul2Reg(char *to, int64_t a, int64_t b) {
+   return len;
+ }
+ 
++static int64_t X86BitScanRegReg(char *to, int64_t dst, int64_t src,
++                                int64_t reverse) {
++  int64_t len = 0;
++  char buf[16];
++  if (!to)
++    to = buf;
++  ADD_U8(ErectREX(1, dst, 0, src));
++  ADD_U8(0x0f);
++  ADD_U8(reverse ? 0xbd : 0xbc);
++  ADD_U8(MODRMRegReg(dst, src));
++  return len;
++}
++
++static int64_t X86Rdtsc(char *to, int64_t unused) {
++  int64_t len = 0;
++  char buf[16];
++  (void)unused;
++  if (!to)
++    to = buf;
++  ADD_U8(0x0f);
++  ADD_U8(0x31);
++  return len;
++}
++
++static int64_t X86PushFQ(char *to, int64_t unused) {
++  int64_t len = 0;
++  char buf[16];
++  (void)unused;
++  if (!to)
++    to = buf;
++  ADD_U8(0x9c);
++  return len;
++}
++static int64_t X86PopFQ(char *to, int64_t unused) {
++  int64_t len = 0;
++  char buf[16];
++  (void)unused;
++  if (!to)
++    to = buf;
++  ADD_U8(0x9d);
++  return len;
++}
++
++static int64_t X86InPort(char *to, int64_t width) {
++  int64_t len = 0;
++  char buf[16];
++  if (!to)
++    to = buf;
++  if (width == 16)
++    ADD_U8(0x66);
++  ADD_U8(width == 8 ? 0xec : 0xed);
++  return len;
++}
++
++static int64_t X86OutPort(char *to, int64_t width) {
++  int64_t len = 0;
++  char buf[16];
++  if (!to)
++    to = buf;
++  if (width == 16)
++    ADD_U8(0x66);
++  ADD_U8(width == 8 ? 0xee : 0xef);
++  return len;
++}
++
++static int64_t X86InvlPg(char *to, int64_t scale, int64_t index,
++                         int64_t base, int64_t off) {
++  int64_t len = 0;
++  char buf[16];
++  if (!to)
++    to = buf;
++  SIB_BEGIN(1, 7, scale, index, base, off);
++  ADD_U8(0x0f);
++  ADD_U8(0x01);
++  SIB_END();
++  return len;
++}
++
+ static int64_t X86IMul2SIB64(char *to, int64_t r, int64_t s, int64_t i,
+                              int64_t b, int64_t off) {
+   int64_t len = 0;
+@@ -2184,6 +2262,19 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   if (rpn->flags & ICF_DOESNT_SPILL_TMP_REGS)
+     return 0;
+   switch (rpn->type) {
++  case IC_RDTSC:
++  case IC_GET_RFLAGS:
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    goto pass;
+   case IC_FS:
+   case IC_GS:
+     goto fail;
+@@ -2199,8 +2290,15 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   case IC_TO_F64:
+   case IC_TO_I64:
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
++  case IC_QUE_INIT:
++  case IC_QUE_REM:
++  case IC_INVLPG:
++  case IC_STRLEN:
+   case IC_SQRT:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   unop:
+     if (SpillsTmpRegs(rpn->base.next))
+       goto pass;
+@@ -2212,6 +2310,9 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+     break;
+   case IC_POW:
+     goto pass; // calls pow
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++    goto binop;
+   binop:
+     if (SpillsTmpRegs(rpn->base.next))
+       goto pass;
+@@ -2221,6 +2322,10 @@ static int64_t SpillsTmpRegs(CRPN *rpn) {
+   case IC_ADD:
+     goto binop;
+     break;
++  case IC_SWAP:
++  case IC_MOD_U64:
++    goto binop;
++    break;
+   case IC_EQ:
+     goto binop;
+     break;
+@@ -2818,6 +2923,8 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   case IC_FREG:
+   case IC_BASE_PTR:
+   case IC_CURRENT_PC:
++  case IC_RDTSC:
++  case IC_GET_RFLAGS:
+   case IC_STR:
+   case IC_CHR:
+   case IC_FS:
+@@ -2851,6 +2958,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+     break;
+   case IC_TO_I64:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   unop:
+     PushTmpDepthFirst(cctrl, r->base.next, 0);
+     PopTmp(cctrl, r->base.next);
+@@ -2864,6 +2972,15 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+     break;
+   case IC_SQRT:
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
++  case IC_QUE_INIT:
++  case IC_QUE_REM:
++  case IC_INVLPG:
++  case IC_STRLEN:
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
+     goto unop;
+     break;
+   case IC_POS:
+@@ -2873,6 +2990,8 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   case IC_GT:
+   case IC_GE:
+   case IC_LE:
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
+   cmp_binop:
+     arg = ICArgN(r, 1);
+     arg2 = ICArgN(r, 0);
+@@ -2916,6 +3035,9 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   case IC_LBTR:
+   case IC_LBTS:
+   case IC_POW:
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
+   binop:
+     arg = ICArgN(r, 1);
+     arg2 = ICArgN(r, 0);
+@@ -2924,6 +3046,14 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+     PopTmp(cctrl, arg2);
+     PopTmp(cctrl, arg);
+     goto fin;
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
++    arg = ICArgN(r, 0);
++    PushTmpDepthFirst(cctrl, arg, 0);
++    PopTmp(cctrl, arg);
++    goto fin;
+     break;
+   case IC_ADD:
+     orig = r;
+@@ -3050,6 +3180,10 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+     PopTmp(cctrl, ICArgN(r, 0));
+     goto fin;
+     break;
++  case IC_SWAP:
++  case IC_MOD_U64:
++    goto binop;
++    break;
+   case IC_SUB:
+     goto binop;
+     break;
+@@ -6092,6 +6226,8 @@ static void SetKeepTmps(CRPN *rpn) {
+   int64_t idx;
+   CRPN *left, *right, *last;
+   switch (rpn->type) {
++  case IC_RDTSC:
++  case IC_GET_RFLAGS:
+   case IC_FS:
+   case IC_GS:
+     return;
+@@ -6121,10 +6257,20 @@ static void SetKeepTmps(CRPN *rpn) {
+   case IC_TO_I64:
+   case IC_SQRT:
+   case IC_NEG:
++  case IC_BSF:
++  case IC_BSR:
++  case IC_QUE_INIT:
++  case IC_QUE_REM:
++  case IC_INVLPG:
++  case IC_STRLEN:
++  case IC_IN_U8:
++  case IC_IN_U16:
++  case IC_IN_U32:
+   case IC_LNOT:
+   case IC_BNOT:
+   case IC_POS:
+   case IC_TO_BOOL:
++  case IC_TO_UPPER:
+   case IC_DEREF:
+   case IC_ADDR_OF:
+     right = ICArgN(rpn, 0);
+@@ -6146,6 +6292,15 @@ static void SetKeepTmps(CRPN *rpn) {
+   case IC_LBTR:
+   case IC_LBTC:
+   case IC_STORE:
++  case IC_QUE_INS:
++  case IC_QUE_INS_REV:
++  case IC_OUT_U8:
++  case IC_OUT_U16:
++  case IC_OUT_U32:
++  case IC_SET_RFLAGS:
++  case IC_SET_RAX:
++  case IC_SET_RBP:
++  case IC_SET_RSP:
+   case IC_AND_AND:
+   case IC_OR_OR:
+   case IC_XOR_XOR:
+@@ -6184,6 +6339,8 @@ static void SetKeepTmps(CRPN *rpn) {
+     //   Lets just reutrn 0 to make things simpler.
+     break;
+   case IC_EQ:
++  case IC_SWAP:
++  case IC_MOD_U64:
+   case IC_ADD_EQ:
+   case IC_SUB_EQ:
+   case IC_MUL_EQ:
+@@ -6253,6 +6410,9 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_GOTO] = &&ic_goto,
+       [IC_GOTO_IF] = &&ic_goto_if,
+       [IC_TO_BOOL] = &&ic_to_bool,
++      [IC_SWAP] = &&ic_swap,
++      [IC_MOD_U64] = &&ic_mod_u64,
++      [IC_TO_UPPER] = &&ic_to_upper,
+       [IC_TO_I64] = &&ic_to_i64,
+       [IC_TO_F64] = &&ic_to_f64,
+       [IC_LABEL] = &&ic_label,
+@@ -6260,6 +6420,8 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_GLOBAL] = &&ic_global,
+       [IC_NOP] = &&ic_nop,
+       [IC_NEG] = &&ic_neg,
++      [IC_BSF] = &&ic_bsf,
++      [IC_BSR] = &&ic_bsr,
+       [IC_SQRT] = &&ic_sqrt,
+       [IC_POS] = &&ic_pos,
+       [IC_STR] = &&ic_str,
+@@ -6346,12 +6508,214 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_TAN] = &&ic_tan,
+       [IC_ATAN] = &&ic_atan,
+       [IC_CURRENT_PC] = &&ic_current_pc,
++      [IC_RDTSC] = &&ic_rdtsc,
++      [IC_GET_RFLAGS] = &&ic_get_rflags,
++      [IC_SET_RFLAGS] = &&ic_set_rflags,
++      [IC_SET_RAX] = &&ic_set_rax,
++      [IC_SET_RBP] = &&ic_set_rbp,
++      [IC_SET_RSP] = &&ic_set_rsp,
++      [IC_IN_U8] = &&ic_in_u8,
++      [IC_IN_U16] = &&ic_in_u16,
++      [IC_IN_U32] = &&ic_in_u32,
++      [IC_OUT_U8] = &&ic_out_u8,
++      [IC_OUT_U16] = &&ic_out_u16,
++      [IC_OUT_U32] = &&ic_out_u32,
++      [IC_QUE_INIT] = &&ic_que_init,
++      [IC_QUE_INS] = &&ic_que_ins,
++      [IC_QUE_INS_REV] = &&ic_que_ins_rev,
++      [IC_QUE_REM] = &&ic_que_rem,
++      [IC_INVLPG] = &&ic_invlpg,
++      [IC_STRLEN] = &&ic_strlen,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
++  // These intrinsic lowerings may use RCX, RDX and R8 as scratch registers.
++  // Keep them distinct from the backend temporaries (R9 and RBX).
+   do {
++  ic_in_u8:
++    i = 8;
++    goto ic_in_port;
++  ic_in_u16:
++    i = 16;
++    goto ic_in_port;
++  ic_in_u32:
++    i = 32;
++  ic_in_port:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_U16i;
++    tmp.reg = RDX;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86XorReg, RAX, RAX);
++    AIWNIOS_ADD_CODE(X86InPort, i);
++    tmp.mode = MD_REG;
++    tmp.raw_type = rpn->raw_type;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++
++  ic_out_u8:
++    i = 8;
++    goto ic_out_port;
++  ic_out_u16:
++    i = 16;
++    goto ic_out_port;
++  ic_out_u32:
++    i = 32;
++  ic_out_port:
++    a = ICArgN(rpn, 1);
++    b = ICArgN(rpn, 0);
++    a->res.keep_in_tmp = 1;
++    b->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, a, bin, code_off);
++    code_off = __OptPassFinal(cctrl, b, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_U16i;
++    tmp.reg = RDX;
++    code_off = ICMov(cctrl, &tmp, &a->res, bin, code_off);
++    tmp.raw_type = i == 8 ? RT_U8i : i == 16 ? RT_U16i : RT_U32i;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &tmp, &b->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86OutPort, i);
++    break;
++
++  ic_strlen:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_PTR;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86XorReg, MIR(cctrl, RDX), RDX);
++    misc = CodeMiscNew(cctrl, CMT_LABEL);
++    misc->addr = bin + code_off;
++    AIWNIOS_ADD_CODE(X86CmpSIB8Imm, 0, 1, RDX, RAX, 0);
++    misc2 = CodeMiscNew(cctrl, CMT_LABEL);
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_Z, 0);
++    CodeMiscAddRef(misc2, bin + code_off - 4);
++    AIWNIOS_ADD_CODE(X86IncReg, RDX);
++    AIWNIOS_ADD_CODE(X86Jmp, (char *)misc->addr - (bin + code_off));
++    misc2->addr = bin + code_off;
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = RDX;
++    rpn->tmp_res = tmp;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++  ic_invlpg:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86InvlPg, -1, -1, MIR(cctrl, next->res.reg), 0);
++    break;
++
++  ic_que_init:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, RAX, bin, code_off);
++    into_reg = next->res.reg;
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
++                     MIR(cctrl, into_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, into_reg), -1, -1,
++                     MIR(cctrl, into_reg), 8);
++    break;
++  ic_que_ins:
++  ic_que_ins_rev:
++    next = ICArgN(rpn, 1);
++    next2 = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    next2->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PushToStack(cctrl, &next->res, bin, code_off);
++    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
++    code_off = PushToStack(cctrl, &next2->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RDX));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RAX));
++    a_reg = RAX;
++    b_reg = RDX;
++    if (rpn->type == IC_QUE_INS_REV) {
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
++                       MIR(cctrl, b_reg), 8);
++    } else {
++      AIWNIOS_ADD_CODE(X86MovRegReg, MIR(cctrl, RCX), MIR(cctrl, b_reg));
++    }
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, R8), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, a_reg), 8);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, R8), -1, -1,
++                     MIR(cctrl, a_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, a_reg), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, a_reg), -1, -1,
++                     MIR(cctrl, R8), 8);
++    break;
++  ic_que_rem:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_PTR;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    into_reg = RAX;
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RDX), -1, -1,
++                     MIR(cctrl, into_reg), 0);
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, into_reg), 8);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RDX), -1, -1,
++                     MIR(cctrl, RCX), 0);
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RCX), -1, -1,
++                     MIR(cctrl, RDX), 8);
++    break;
++  ic_get_rflags:
++    AIWNIOS_ADD_CODE(X86PushFQ, 0);
++    AIWNIOS_ADD_CODE(X86PopReg, RAX);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++  ic_set_rflags:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PushToStack(cctrl, &next->res, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PopFQ, 0);
++    break;
++  ic_set_rax:
++    i = RAX;
++    goto ic_set_register;
++  ic_set_rbp:
++    i = RBP;
++    goto ic_set_register;
++  ic_set_rsp:
++    i = RSP;
++  ic_set_register:
++    next = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = i;
++    code_off = ICMov(cctrl, &tmp, &next->res, bin, code_off);
++    break;
++  ic_rdtsc:
++    AIWNIOS_ADD_CODE(X86Rdtsc, 0);
++    AIWNIOS_ADD_CODE(X86ShlImm, RDX, 32);
++    AIWNIOS_ADD_CODE(X86OrReg, RAX, RDX);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    tmp.reg = RAX;
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
+   ic_current_pc:
+     if (rpn->res.mode == MD_REG)
+       into_reg = rpn->res.reg;
+@@ -6762,6 +7126,35 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+     }
+     code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
+     break;
++  ic_to_upper: {
++    char *below_a, *above_z;
++
++    into_reg = 0;
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_I64i;
++    if (rpn->res.mode == MD_REG)
++      into_reg = rpn->res.reg;
++    tmp.reg = into_reg;
++    next = rpn->base.next;
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_I64i, into_reg, bin,
++                               code_off);
++    tmp.reg = next->res.reg;
++    AIWNIOS_ADD_CODE(X86CmpRegImm, tmp.reg, 'a');
++    below_a = bin + code_off;
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_L, 0);
++    AIWNIOS_ADD_CODE(X86CmpRegImm, tmp.reg, 'z');
++    above_z = bin + code_off;
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_G, 0);
++    AIWNIOS_ADD_CODE(X86AddImm32, tmp.reg, -('a' - 'A'));
++    if (bin) {
++      X86Jcc(below_a, X86_COND_L, bin + code_off - below_a);
++      X86Jcc(above_z, X86_COND_G, bin + code_off - above_z);
++    }
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++  }
+     // These both do the same thing,only thier type detirmines what happens
+   ic_to_i64:
+   ic_to_f64:
+@@ -6878,6 +7271,30 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+     tmp.raw_type = RT_F64;
+     code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
+     break;
++  ic_bsf:
++  ic_bsr:
++    next = rpn->base.next;
++    next->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    into_reg = rpn->res.mode == MD_REG ? rpn->res.reg : RAX;
++    code_off = PutICArgIntoReg(cctrl, &next->res, RT_I64i,
++                               into_reg == RAX ? RDX : RAX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86BitScanRegReg, MIR(cctrl, into_reg), next->res.reg,
++                     rpn->type == IC_BSR);
++    misc = CodeMiscNew(cctrl, CMT_LABEL);
++    AIWNIOS_ADD_CODE(X86Jcc, X86_COND_Z | 1, 0);
++    CodeMiscAddRef(misc, bin + code_off - 4);
++    tmp.mode = MD_I64;
++    tmp.raw_type = RT_I64i;
++    tmp.integer = -1;
++    derefed.mode = MD_REG;
++    derefed.raw_type = RT_I64i;
++    derefed.reg = into_reg;
++    code_off = ICMov(cctrl, &derefed, &tmp, bin, code_off);
++    misc->addr = bin + code_off;
++    rpn->tmp_res = derefed;
++    code_off = ICMov(cctrl, &rpn->res, &derefed, bin, code_off);
++    break;
+   ic_neg:
+ #define BACKEND_UNOP(flt_op, int_op)                                           \
+   next = rpn->base.next;                                                       \
+@@ -8530,6 +8947,81 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+   ic_set_static_data:
+     // TODO later
+     break;
++  ic_mod_u64:
++    next = ICArgN(rpn, 1);
++    next2 = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    next2->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp = next->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_PTR, R8, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
++    tmp = next2->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_U64i, RCX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RCX));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, R8));
++    AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RAX), -1, -1,
++                     MIR(cctrl, R8), 0);
++    AIWNIOS_ADD_CODE(X86XorReg, MIR(cctrl, RDX), RDX);
++    AIWNIOS_ADD_CODE(X86DivReg, MIR(cctrl, RCX));
++    AIWNIOS_ADD_CODE(X86MovIndirRegI64, MIR(cctrl, RAX), -1, -1,
++                     MIR(cctrl, R8), 0);
++    tmp.mode = MD_REG;
++    tmp.raw_type = RT_U64i;
++    tmp.reg = RDX;
++    rpn->tmp_res = tmp;
++    if (rpn->res.keep_in_tmp) {
++      rpn->res = tmp;
++      rpn->res.keep_in_tmp = 1;
++    }
++    code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    break;
++  ic_swap:
++    next = ICArgN(rpn, 1);
++    next2 = ICArgN(rpn, 0);
++    next->res.keep_in_tmp = 1;
++    next2->res.keep_in_tmp = 1;
++    code_off = __OptPassFinal(cctrl, next, bin, code_off);
++    tmp = next->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_PTR, RAX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    code_off = __OptPassFinal(cctrl, next2, bin, code_off);
++    tmp = next2->res;
++    code_off = PutICArgIntoReg(cctrl, &tmp, RT_PTR, RDX, bin, code_off);
++    AIWNIOS_ADD_CODE(X86PushReg, MIR(cctrl, tmp.reg));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RDX));
++    AIWNIOS_ADD_CODE(X86PopReg, MIR(cctrl, RAX));
++    switch (rpn->integer) {
++    case 1:
++      AIWNIOS_ADD_CODE(X86MovZXRegIndirI8, MIR(cctrl, RCX), -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovZXRegIndirI8, MIR(cctrl, R8), -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI8, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI8, R8, -1, -1, RAX, 0);
++      break;
++    case 2:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI16, MIR(cctrl, RCX), -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI16, MIR(cctrl, R8), -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI16, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI16, R8, -1, -1, RAX, 0);
++      break;
++    case 4:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI32, MIR(cctrl, RCX), -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI32, MIR(cctrl, R8), -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI32, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI32, R8, -1, -1, RAX, 0);
++      break;
++    case 8:
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, RCX), -1, -1, RAX, 0);
++      AIWNIOS_ADD_CODE(X86MovRegIndirI64, MIR(cctrl, R8), -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI64, RCX, -1, -1, RDX, 0);
++      AIWNIOS_ADD_CODE(X86MovIndirRegI64, R8, -1, -1, RAX, 0);
++      break;
++    default:
++      abort();
++    }
++    break;
+   ic_raw_bytes:
+     if (cctrl->code_ctrl->final_pass) {
+       memcpy(bin + code_off, rpn->raw_bytes, rpn->length);
+-- 
+2.53.0

@@ -1,8 +1,9 @@
-From afb8db361c90e9077115b07ca41bb2cf34892461 Mon Sep 17 00:00:00 2001
+From 5e71be6bc0c8df05875b064e1c8bf5bb9ade4297 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
-Date: Sun, 6 Sep 2026 10:50:47 +0100
-Subject: [PATCH 06/71] Use volume size for DVD image
+Date: Sun, 6 Sep 2026 16:57:05 +0100
+Subject: [PATCH 3/7] Size DVD images from their volume
 
+Use the declared volume size when allocating the DVD image, including space that is not represented by the final file entry.
 ---
  Src/MakeISOFile.HC | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -22,4 +23,3 @@ index dadfbd3..4238bae 100644
  
 -- 
 2.53.0
-
