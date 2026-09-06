@@ -1,0 +1,24 @@
+From fdaab46c14faa6ba6b57301841575ef7cdc10115 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:52 +0100
+Subject: [PATCH 59/71] Omit expression result from raw assembly
+
+---
+ Src/CMain.HC | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 2c78a20..f97ae7a 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -11,6 +11,7 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
+   if (!PrsStmt(cc,,,cmp_flags)) {
+     if (cc->coc.coc_head.next!=&cc->coc.coc_head) {
+       rpn=cc->coc.coc_head.next;
++      if (!(cc->flags&CCF_RAW_AOT_ASM))
+       switch(rpn->type) {
+         case IC_TO_I64:
+         case IC_TO_F64:
+-- 
+2.53.0
+

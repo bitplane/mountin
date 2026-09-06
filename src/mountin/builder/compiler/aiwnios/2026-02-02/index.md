@@ -36,23 +36,20 @@ The current groups provide:
 - host-directory and relative-include source access
 - DVD image generation needed by the guest build
 
-The patches are arranged beneath `upstream-prs` as six proposed, cumulative
-review areas:
+The patches are arranged beneath `upstream-prs` as four proposed changes:
 
-1. x86 assembler and expression correctness
-2. AOT generation and TempleOS output
-3. compiler intrinsics
-4. function, interrupt and exception ABI compatibility
-5. host source environment
-6. source-language, binary-loader and image correctness
+1. general compiler correctness
+2. x86 assembler correctness
+3. host filesystem integration
+4. TempleOS support
 
-The number is the stacking order, not merely presentation: later areas are
-reviewed against the preceding ones. Subdirectories separate concerns within
-an area, while individual patch files remain commit-sized. AOT expression
-handling, symbol resolution and relocation generation are one area because
-they share data structures and invariants; splitting them into nominally
-independent PRs would conceal those dependencies. Import aliases remain with
-symbol resolution rather than the output signature.
+The first three apply independently to the unmodified upstream source. Each
+patch is the formatted form of one proposed commit and contains one fix, class
+of related fixes, or complete required feature. TempleOS support is the full
+integration change retained by Mountin; it can be submitted after its general
+prerequisites have landed. Its AOT expression handling, symbol resolution and
+relocation generation remain together because they share data structures and
+invariants.
 
 The x86-only intrinsics fail compilation explicitly on other targets. The
 remaining TempleOS intrinsics not used by the compiler or kernel
@@ -69,11 +66,11 @@ walk at `dim`, and no compiler ABI padding is required.
 ## Validation
 
 Graphical boot uses QEMU TCG, `-cpu max`, one CPU and 512 MiB RAM. After fixing
-the `StrLen` register collision and the reversed byte-load encoding, the rebuilt
-image completed three cold boots without the earlier heap checks or diagnostic
-windows: one was observed for 120 seconds and two for 75 seconds. All reached
-the graphical installer prompt and remained responsive. Neither older physical
-CPUs nor non-x86 compiler backends have been validated.
+the `StrLen` register collision, the rebuilt image completed three cold boots
+without the earlier heap checks or diagnostic windows: one was observed for 120
+seconds and two for 75 seconds. All reached the graphical installer prompt and
+remained responsive. Neither older physical CPUs nor non-x86 compiler backends
+have been validated.
 
 ## Regression checks
 
@@ -87,8 +84,8 @@ The owning patches add standalone HolyC checks under `Tests/Compiler`:
 - `Swap.HC`: 8-, 16-, 32- and 64-bit swaps.
 - `X86Opcodes.HC`: direct assembler byte checks for corrected opcode-table
   entries, without AOT or execution of privileged instructions.
-- `X86Aliases.HC`: AOT-only byte checks for 16/32-bit width aliases, both
-  `FSTSW` forms, and a following label. It never executes the mixed-mode code.
+- `X86Aliases.HC`: direct assembler byte checks for 16/32-bit width aliases,
+  both `FSTSW` forms, and a following label.
 - `TempleOSMap.HC`: module-relative 32-bit map addresses from 64-bit debug
   entries, sparse lines, invalid line ranges and unrepresentable addresses.
 

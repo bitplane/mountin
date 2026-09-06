@@ -1,0 +1,94 @@
+From cde252bb2aff7e07d4294b2d5cf4909c10ba71bb Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 08:48:46 +0100
+Subject: [PATCH 4/4] Read native module records using their encoded widths
+
+---
+ Src/KLoadARM.HC | 34 ++++++++++++++++++++++++++++------
+ 1 file changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/Src/KLoadARM.HC b/Src/KLoadARM.HC
+index 7ec3d03..075257b 100644
+--- a/Src/KLoadARM.HC
++++ b/Src/KLoadARM.HC
+@@ -113,7 +113,7 @@ U0 SysSymImportsResolve(U8 *st_ptr,I64 ld_flags)
+ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ {
+   U8 *ptr2,*ptr3,*st_ptr;
+-  I64 i,j,cnt,etype;
++  I64 i,j,cnt,etype,ref_offset;
+   CHashExport *tmpex=NULL;
+   while (etype=*src++) {
+     i=*src(U32 *)++;
+@@ -140,11 +140,11 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ 	break;
+       case IET_ABS_ADDR:
+ 	if (ld_flags & LDF_NO_ABSS)
+-	  src+=i*sizeof(U64);
++	  src+=i*sizeof(U32);
+ 	else {
+ 	  cnt=i;
+ 	  for (j=0;j<cnt;j++) {
+-	    ptr2=module_base+*src(U64 *)++;
++	    ptr2=module_base+*src(U32 *)++;
+ 	    *ptr2(U64 *)+=module_base;
+ 	  }
+ 	}
+@@ -190,13 +190,35 @@ U0 LoadPass1(U8 *src,U8 *module_base,I64 ld_flags)
+ 	cnt=i;
+ 	for (j=0;j<cnt;j++) {
+ 	  ptr2=module_base+*src(U32 *)++;
+-	  *ptr2(I64 *)+=ptr3;
++	  ref_offset=*src(U32 *)++;
++	  *ptr2(I64 *)+=ptr3+ref_offset;
+ 	}
+ 	break;
+     }
+   }
+ }
+ 
++Bool BinSignatureValid(U32 signature)
++{
++  if (signature==BIN_SIGNATURE_VAL)
++    return TRUE;
++#ifdef TARGET_BYTECODE
++  return signature=='BYTC';
++#endif
++#ifdef TARGET_X86
++  if (HOST_ABI=='OpenBSD')
++    return signature=='OX86';
++  return signature=='X86';
++#endif
++#ifdef TARGET_AARCH64
++  return signature=='ARM';
++#endif
++#ifdef TARGET_RISCV
++  return signature=='RV64';
++#endif
++  return FALSE;
++}
++
+ U0 LoadPass2(U8 *src,U8 *module_base,I64)
+ {
+   U8 *st_ptr;
+@@ -216,7 +238,7 @@ U0 LoadPass2(U8 *src,U8 *module_base,I64)
+ 	(*code)();
+         break;
+       case IET_ABS_ADDR:
+-        src+=sizeof(U64)*i;
++        src+=sizeof(U32)*i;
+         break;
+       case IET_CODE_HEAP:
+       case IET_ZEROED_CODE_HEAP:
+@@ -249,7 +271,7 @@ CBinFile *Load(U8 *filename,I64 ld_flags=0,CBinFile *bfh_addr=INVALID_PTR)
+ 
+   //See $$LK,"Patch Table Generation",A="FF:::/Compiler/CMain.HC,IET_ABS_ADDR"$$
+   module_align=1<<bfh->module_align_bits;
+-  if (!module_align || bfh->bin_signature!=BIN_SIGNATURE_VAL) {
++  if (!module_align || !BinSignatureValid(bfh->bin_signature)) {
+     Free(bfh);
+     Free(fbuf);
+     throw('BinModul');
+-- 
+2.53.0
+

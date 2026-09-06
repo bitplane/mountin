@@ -1,0 +1,43 @@
+From 9ba6f1686dba22b6fb3da8fc57ae19d1423e72b0 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:52 +0100
+Subject: [PATCH 58/71] Make top-level assembly exclusive
+
+---
+ Src/PrsStmt.HC | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index edb3ed3..e312cde 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -1078,7 +1078,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+@@ -1094,7 +1094,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+@@ -1110,7 +1110,7 @@ CmpFixUpJITAsm(cc,tmpaot);
+ 		      // to avoid running it
+ 		      if (!cc->htc.fun && Bt(&cc->opts,OPTf_RAW_AOT))
+ 			cc->flags|=CCF_RAW_AOT_ASM;
+-		      if(!cc->htc.fun && !Bt(&cc->opts,OPTf_RAW_AOT)) {
++		      else if(!cc->htc.fun) {
+ 		        g_lb=COCMiscNew(cc,CMT_LABEL);
+ 		        RPNAddNew(cc,IC_JMP,g_lb,NULL,FALSE);
+ 		      }
+-- 
+2.53.0
+

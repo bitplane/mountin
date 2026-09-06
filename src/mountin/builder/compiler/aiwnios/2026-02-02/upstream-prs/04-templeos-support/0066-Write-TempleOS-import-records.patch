@@ -1,0 +1,31 @@
+From dae1e17135278c4c513ed5ff39fb46f033b9b58b Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:52 +0100
+Subject: [PATCH 66/71] Write TempleOS import records
+
+---
+ Src/CMain.HC | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index c48d179..40f5c2c 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -417,9 +417,11 @@ I64 Cmp(U8 *filename,U8 *map_name=NULL,U8 *out_name=NULL,U8 mapfile_drv_let=0,I6
+       if (tmpie->aot)
+ 	tmpie->rip+=tmpie->aot->rip2;
+       *ptr(U32 *)++=tmpie->rip;
+-      switch(tmpie->type) {
+-      case IET_REL_I0 ... IET_REL_RISCV:
+-		*ptr(I32 *)++=tmpie->offset;
++      if (!Bt(&opts,OPTf_TEMPLEOS_BIN_SIGNATURE)) {
++        switch(tmpie->type) {
++        case IET_REL_I0 ... IET_REL_RISCV:
++          *ptr(I32 *)++=tmpie->offset;
++        }
+       }
+       if (tmpie->str) {
+ 	i=StrLen(tmpie->str);
+-- 
+2.53.0
+

@@ -1,0 +1,143 @@
+From c1c8348e435388acfe34dc7c96c4fbdc2f4aa8b3 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 08:48:46 +0100
+Subject: [PATCH 2/4] Lower register address expressions consistently
+
+---
+ Src/AIWNIOS_CodeGen.HC | 14 ++++++++++++++
+ c/arm_backend.c        |  6 ++++++
+ c/optpass.c            | 31 +++++++++++++++++--------------
+ c/riscv_backend.c      |  6 ++++++
+ c/x86_64_backend.c     |  6 ++++++
+ 5 files changed, 49 insertions(+), 14 deletions(-)
+
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 4bc553e..09b8b18 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1817,6 +1817,20 @@ break;case IC_ASM:
+   __HC_ICAdd_Label(cc2,__HC_CodeMiscLabelNew(acc,&cur->ic_data(CAiwniosAOTBlob*)->final_start_addr));
+    new=__HC_ICAdd_RawBytes(cc2,cur->ic_data(CAiwniosAOTBlob*)->data,cur->ic_data(CAiwniosAOTBlob*)->len);
+             
++#ifdef TARGET_X86
++break;case IC_GET_RAX:
++  new=__HC_ICAdd_IReg(cc2,REG_RAX,RT_I64,0);
++break;case IC_GET_RBP:
++  new=__HC_ICAdd_IReg(cc2,REG_RBP,RT_U8,1);
++break;case IC_GET_RSP:
++  new=__HC_ICAdd_IReg(cc2,REG_RSP,RT_U8,1);
++#else
++break;case IC_GET_RAX:
++break;case IC_GET_RBP:
++break;case IC_GET_RSP:
++  PrintErr("x86 register operation is unavailable for this target.\n");
++  throw('Compiler');
++#endif
+ //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
+     //break;case IC_CALL_END:
+     //break;case IC_CALL_END2:
+diff --git a/c/arm_backend.c b/c/arm_backend.c
+index fefed25..9fdc06c 100644
+--- a/c/arm_backend.c
++++ b/c/arm_backend.c
+@@ -3698,6 +3698,12 @@ static int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       code_off = PutICArgIntoReg(cctrl, &next->res, RT_PTR, 1, bin, code_off);
+       code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
+       break;
++    case IC_IREG:
++      code_off = __OptPassFinal(cctrl, next, bin, code_off);
++      tmp = next->res;
++      tmp.raw_type = RT_PTR;
++      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++      break;
+     case IC_BASE_PTR:
+       if (rpn->res.mode == MD_REG)
+         into_reg = rpn->res.reg;
+diff --git a/c/optpass.c b/c/optpass.c
+index 662e0f3..47057dd 100644
+--- a/c/optpass.c
++++ b/c/optpass.c
+@@ -1585,7 +1585,7 @@ static void OptPassRemoveUselessTypecasts(CCmpCtrl *cctrl) {
+ }
+ static void OptPassMergeAddressOffsets(CCmpCtrl *cctrl) {
+   CRPN *r, *arg, *next, *base, *off;
+-  int64_t run;
++  int64_t run, changed;
+   for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
+        r = next) {
+     next = r->base.next;
+@@ -1623,21 +1623,24 @@ static void OptPassMergeAddressOffsets(CCmpCtrl *cctrl) {
+     }
+   nxt:;
+   }
+-  // When we do "cd3.z" we have *(base_ptr+16). Turn *(base+16) into a frame ptr
+-  for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
+-       r = next) {
+-    next = r->base.next;
+-    if (r->type == IC_DEREF && next->type == IC_ADDR_OF) {
+-      base = next->base.next;
+-      if (base->type == IC_BASE_PTR) {
+-        // Set the raw type of the IC_DEREF to the base_ptr
+-        base->raw_type = r->raw_type;
+-        ICFree(r);
+-        ICFree(next);
+-        next = base;
++  // Collapse DEREF(ADDR_OF(x)) for direct frame and register operands.
++  do {
++    changed = 0;
++    for (r = cctrl->code_ctrl->ir_code->next; r != cctrl->code_ctrl->ir_code;
++         r = r->base.next) {
++      next = r->base.next;
++      if (r->type == IC_DEREF && next->type == IC_ADDR_OF) {
++        base = next->base.next;
++        if (base->type == IC_BASE_PTR || base->type == IC_IREG) {
++          base->raw_type = r->raw_type;
++          ICFree(r);
++          ICFree(next);
++          changed = 1;
++          break;
++        }
+       }
+     }
+-  }
++  } while (changed);
+ }
+ 
+ char *Compile(CCmpCtrl *cctrl, int64_t *res_sz, char **dbg_info,
+diff --git a/c/riscv_backend.c b/c/riscv_backend.c
+index 1add0fd..9d45e33 100644
+--- a/c/riscv_backend.c
++++ b/c/riscv_backend.c
+@@ -3749,6 +3749,12 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+                                  code_off);
+       code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
+       break;
++    case IC_IREG:
++      code_off = __OptPassFinal(cctrl, next, bin, code_off);
++      tmp = next->res;
++      tmp.raw_type = RT_PTR;
++      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++      break;
+     case IC_BASE_PTR:
+       if (rpn->res.mode == MD_REG)
+         into_reg = rpn->res.reg;
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index b5a3e81..4ca97f0 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -7469,6 +7469,12 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+                                  AIWNIOS_TMP_IREG_POOP2, bin, code_off);
+       code_off = ICMov(cctrl, &rpn->res, &next->res, bin, code_off);
+       break;
++    case IC_IREG:
++      code_off = __OptPassFinal(cctrl, next, bin, code_off);
++      tmp = next->res;
++      tmp.raw_type = RT_PTR;
++      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++      break;
+     case IC_BASE_PTR:
+       if (rpn->res.mode == MD_REG)
+         into_reg = rpn->res.reg;
+-- 
+2.53.0
+

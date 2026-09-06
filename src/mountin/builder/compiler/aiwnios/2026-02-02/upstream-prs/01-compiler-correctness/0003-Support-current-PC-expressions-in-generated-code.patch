@@ -1,0 +1,186 @@
+From 6d56eb8f50315b17549813fe1f5bfe278109cca6 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 08:48:46 +0100
+Subject: [PATCH 3/4] Support current-PC expressions in generated code
+
+---
+ Src/AIWNIOS_CodeGen.HC |  4 ++++
+ Src/AIWNIOS_PrsExp.HC  | 18 ++++++++++++++++++
+ c/aiwn_lexparser.h     |  2 ++
+ c/main.c               |  4 ++++
+ c/parser.c             | 12 ++++++++++++
+ c/x86_64_backend.c     | 15 +++++++++++++++
+ 6 files changed, 55 insertions(+)
+
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index 09b8b18..a52e495 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -8,6 +8,7 @@ import U0 __HC_SetAOTRelocBeforeRIP(U8 *,I64); //See aiwn.h(TAKES number of byte
+ import U8 *__HC_CmpCtrlDel(U8 *);
+ import U8 *__HC_ICAdd_Sqr(U8 *);
+ import U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
++import U8 *__HC_ICAdd_CurrentPC(U8*);
+ import U8 *__HC_ICAdd_GetVargsPtr(U8*);
+ import U8 *__HC_ICAdd_ToF64(U8 *);
+ import U8 *__HC_ICAdd_ToI64(U8 *);
+@@ -118,6 +119,7 @@ extern U8 *__HC_ICAdd_Max_F64(U8 *);
+ extern U8 *__HC_ICAdd_Min_F64(U8 *);
+ extern U8 *__HC_ICAdd_GetVargsPtr(U8*);
+ extern U8 *__HC_ICAdd_RawBytes(U8*,U8*,I64);
++extern U8 *__HC_ICAdd_CurrentPC(U8*);
+ extern U0 __HC_CodeMiscInterateThroughRefs(U8 *,U0(*fptr)(U8*addr,U8*ud),U8*user_data);
+ extern U8 * __HC_ICAdd_ToF64(U8 *);
+ extern U8 * __HC_ICAdd_ToI64(U8 *);
+@@ -1831,6 +1833,8 @@ break;case IC_GET_RSP:
+   PrintErr("x86 register operation is unavailable for this target.\n");
+   throw('Compiler');
+ #endif
++break;case IC_RIP:
++  new=__HC_ICAdd_CurrentPC(cc2);
+ //break;case IC_CALL_START: AIWNIOS DOESNT USE THESE
+     //break;case IC_CALL_END:
+     //break;case IC_CALL_END2:
+diff --git a/Src/AIWNIOS_PrsExp.HC b/Src/AIWNIOS_PrsExp.HC
+index 5adeb1a..447fb4c 100644
+--- a/Src/AIWNIOS_PrsExp.HC
++++ b/Src/AIWNIOS_PrsExp.HC
+@@ -1425,6 +1425,24 @@ found_end_square:
+         break;start:
+         if(!last_consumes_right)
+ 	  finish=TRUE;
++        case '\d':
++	  if(finish) break;
++	  if(cc->flags&CCF_ASM_EXPRESSIONS) {
++	    cc->abs_cnts.abs_addres++;
++	    if(cc->flags&CCF_AOT_COMPILE)
++	      RPNAddNew(cc,IC_ABS_ADDR,cc->aotc->rip,
++	        cmp.internal_types[RT_PTR]);
++	    else
++	      RPNAddNew(cc,IC_IMM_I64,cc->aotc->rip,
++	        cmp.internal_types[RT_PTR]);
++	  } else if(cc->flags&CCF_CLASS_DOL_OFFSET)
++	    RPNAddNew(cc,IC_IMM_I64,cc->class_dol_offset,
++	      cmp.internal_types[RT_I64]);
++	  else
++	    RPNAddNew(cc,IC_RIP,0,cmp.internal_types[RT_PTR]);
++	  last_consumes_right=0;
++	  Lex(cc);
++	  break;
+         case TK_STR:
+ 	  if(finish) break;
+ 	  cc->flags|=CCF_HAS_MISC_DATA;
+diff --git a/c/aiwn_lexparser.h b/c/aiwn_lexparser.h
+index f64294c..75013d2 100644
+--- a/c/aiwn_lexparser.h
++++ b/c/aiwn_lexparser.h
+@@ -337,6 +337,7 @@ enum {
+   IC_COS,
+   IC_TAN,
+   IC_ATAN,
++  IC_CURRENT_PC,
+   IC_RAW_BYTES,
+   IC_GET_VARGS_PTR, // Doing this sets the function as a VARGS function
+   IC_LOCK, // Lock means "lock EXPRESSION;",it operates on expressions as a
+@@ -634,6 +635,7 @@ CRPN *__HC_ICAdd_PreDec(CCodeCtrl *cc, int64_t amt);
+ CRPN *__HC_ICAdd_PostDec(CCodeCtrl *cc, int64_t amt);
+ CRPN *__HC_ICAdd_PostInc(CCodeCtrl *cc, int64_t amt);
+ CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt);
++CRPN *__HC_ICAdd_CurrentPC(CCodeCtrl *cc);
+ void __HC_ICSetLock(CRPN *l);
+ CRPN *__HC_ICAdd_RelocUnqiue(CCmpCtrl *, CCodeCtrl *, int64_t *, char *,
+                              int64_t, int64_t);
+diff --git a/c/main.c b/c/main.c
+index f7f74b6..2386c5e 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -1199,6 +1199,9 @@ static int64_t STK___HC_ICAdd_Reloc(int64_t *stk) {
+ static int64_t STK___HC_ICAdd_RelocUnique(int64_t *stk) {
+   return __HC_ICAdd_RelocUnqiue(stk[0], stk[1], stk[2], stk[3], stk[4], stk[5]);
+ }
++static int64_t STK___HC_ICAdd_CurrentPC(int64_t *stk) {
++  return __HC_ICAdd_CurrentPC(stk[0]);
++}
+ 
+ static int64_t STK___HC_ICSetLine(int64_t *stk) {
+   __HC_ICSetLine(stk[0], stk[1]);
+@@ -1587,6 +1590,7 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("MakeContext", STK_AIWNIOS_makecontext, 3);
+ #endif
+     PrsAddSymbol("__HC_ICAdd_RawBytes", STK__HC_ICAdd_RawBytes, 3);
++    PrsAddSymbol("__HC_ICAdd_CurrentPC", STK___HC_ICAdd_CurrentPC, 1);
+     PrsAddSymbol("__HC_SetAOTRelocBeforeRIP", STK___HC_SetAOTRelocBeforeRIP, 2);
+     PrsAddSymbol("__HC_CodeMiscIsUsed", STK___HC_CodeMiscIsUsed, 1);
+     PrsAddSymbol("AiwniosSetClipboard", STK_AiwniosSetClipboard, 1);
+diff --git a/c/parser.c b/c/parser.c
+index 284727a..9acea7e 100644
+--- a/c/parser.c
++++ b/c/parser.c
+@@ -218,6 +218,7 @@ CRPN *ICFwd(CRPN *rpn) {
+   case IC_FS:
+     goto unop;
+   case IC_LOCK:
++  case IC_CURRENT_PC:
+   case IC_RAW_BYTES:
+   case __IC_STATICS_SIZE:
+   case __IC_SET_STATIC_DATA:
+@@ -4954,6 +4955,17 @@ CRPN *__HC_ICAdd_RawBytes(CCodeCtrl *cc, char *bytes, int64_t cnt) {
+   return rpn;
+ }
+ 
++CRPN *__HC_ICAdd_CurrentPC(CCodeCtrl *cc) {
++  CRPN *rpn;
++  *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
++      .type = IC_CURRENT_PC,
++      .raw_type = RT_I64i,
++      .ic_class = HashFind("I64i", Fs->hash_table, HTT_CLASS, 1),
++  };
++  QueIns(rpn, cc->ir_code);
++  return rpn;
++}
++
+ CRPN *__HC_ICAdd_Vargs(CCodeCtrl *cc, int64_t arity) {
+   CRPN *rpn;
+   *(rpn = A_CALLOC(sizeof(CRPN), cc->hc)) = (CRPN){
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 4ca97f0..1ae5cef 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -2818,6 +2818,7 @@ static int64_t PushTmpDepthFirst(CCmpCtrl *cctrl, CRPN *r, int64_t spilled) {
+   case IC_IREG:
+   case IC_FREG:
+   case IC_BASE_PTR:
++  case IC_CURRENT_PC:
+   case IC_STR:
+   case IC_CHR:
+   case IC_FS:
+@@ -6331,12 +6332,26 @@ int64_t __OptPassFinal(CCmpCtrl *cctrl, CRPN *rpn, char *bin,
+       [IC_COS] = &&ic_cos,
+       [IC_TAN] = &&ic_tan,
+       [IC_ATAN] = &&ic_atan,
++      [IC_CURRENT_PC] = &&ic_current_pc,
+       [IC_RAW_BYTES] = &&ic_raw_bytes,
+   };
+   if (!poop_ants[rpn->type])
+     goto ret;
+   goto *poop_ants[rpn->type];
+   do {
++  ic_current_pc:
++    if (rpn->res.mode == MD_REG)
++      into_reg = rpn->res.reg;
++    else
++      into_reg = AIWNIOS_TMP_IREG_POOP;
++    AIWNIOS_ADD_CODE(X86LeaSIB, MIR(cctrl, into_reg), -1, -1, RIP, 0);
++    if (rpn->res.mode != MD_REG) {
++      tmp.mode = MD_REG;
++      tmp.raw_type = RT_I64i;
++      tmp.reg = AIWNIOS_TMP_IREG_POOP;
++      code_off = ICMov(cctrl, &rpn->res, &tmp, bin, code_off);
++    }
++    break;
+   ic_max_u64:
+ #define IC_MXX_X64(OP)                                                         \
+   {                                                                            \
+-- 
+2.53.0
+

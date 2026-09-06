@@ -1,0 +1,101 @@
+From 772adc8f8e8ce5e12b781757d485cd1517bbaa40 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:50 +0100
+Subject: [PATCH 34/71] Relocate AOT function values
+
+---
+ Src/CExts.HC |  1 +
+ Src/CMain.HC | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+)
+
+diff --git a/Src/CExts.HC b/Src/CExts.HC
+index e29ec74..0e079a0 100644
+--- a/Src/CExts.HC
++++ b/Src/CExts.HC
+@@ -40,4 +40,5 @@ extern I64 PrsUnaryTerm(
+ extern U0 PrsVarInit2(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,
+ 	CArrayDim *tmpad,U8 *data_addr_rip,U8 **_base,Bool data_heap,I64 pass,CHash * to);
+ extern U0 FillInShortCalls(CCmpCtrl *cc);
++extern CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name);
+ extern CHashClass *AssignRawTypeToNode(CRPN *r);
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 5504197..e7c8bde 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -560,10 +560,36 @@ I64 StreamExePrint(U8 *fmt,...)
+   return res;
+ }
+ 
++CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name)
++{
++  CHash *h;
++  CHashTable *table=cc->htc.glbl_hash_table;
++  I64 i;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_FUN && !StrCmp(h->str,name) &&
++            h->type&HTF_RESOLVE &&
++            0<=h(CHashFun*)->exe_addr<cc->aotc->rip)
++        return h;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_GLBL_VAR && !StrCmp(h->str,name) &&
++            !(h(CHashGlblVar*)->flags&GVF_EXTERN))
++        return h;
++  for (i=0;i<=table->mask;i++)
++    for (h=table->body[i];h;h=h->next)
++      if (h->type&HTT_EXPORT_SYS_SYM && !StrCmp(h->str,name) &&
++            h->type&HTF_RESOLVE)
++        return h;
++  return NULL;
++}
++
+ //Added by nroot
+ U0 FillInShortCalls(CCmpCtrl *cc) {
+   CAOTImportExport *tmpaotie,*tmpaotie1;
++  CAOTAbsAddr *tmpabs;
+   CHashFun *fun;
++  Bool value_resolved;
+   I64 i,ptr,low12;
+   for(tmpaotie=cc->aot->next_ie;tmpaotie!=&cc->aot->next_ie;tmpaotie=tmpaotie1) {
+     tmpaotie1=tmpaotie->next;
+@@ -635,6 +661,36 @@ skip:;
+         Free(tmpaotie);
+ #endif
+       }
++    } else if (tmpaotie->type==IET_IMM_I64 && tmpaotie->str) {
++      value_resolved=TRUE;
++      fun=AOTResolvedHashFind(cc,tmpaotie->str);
++      if (fun && fun->type&HTT_FUN && fun->type&HTF_RESOLVE)
++        i=fun->exe_addr+tmpaotie->offset;
++      else if (fun && fun->type&HTT_GLBL_VAR && fun->type&HTF_EXPORT &&
++            !(fun(CHashGlblVar*)->flags&(GVF_EXTERN|GVF_DATA_HEAP)))
++        i=fun(CHashGlblVar*)->data_addr_rip+tmpaotie->offset;
++      else if (fun && fun->type&HTT_EXPORT_SYS_SYM &&
++            fun->type&HTF_RESOLVE)
++        i=fun(CHashExport*)->val+tmpaotie->offset;
++      else
++        value_resolved=FALSE;
++      if (value_resolved) {
++        ptr=tmpaotie->rip;
++        if (tmpaotie->aot)
++          ptr+=tmpaotie->aot->rip2;
++        AOTStoreCodeU8At(cc,ptr,
++              i,i>>8,i>>16,i>>24);
++        AOTStoreCodeU8At(cc,ptr+4,
++              i>>32,i>>40,i>>48,i>>56);
++        tmpabs=CAlloc(sizeof(CAOTAbsAddr));
++        tmpabs->next=cc->aotc->abss;
++        tmpabs->type=AAT_ADD_U64;
++        tmpabs->rip=ptr;
++        cc->aotc->abss=tmpabs;
++        QueRem(tmpaotie);
++        Free(tmpaotie->str);
++        Free(tmpaotie);
++      }
+     }
+   }
+ }
+-- 
+2.53.0
+

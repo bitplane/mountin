@@ -1,0 +1,25 @@
+From f895c6baf019fe83629d85bb50461b788d441dfc Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:52 +0100
+Subject: [PATCH 56/71] Handle file-scope catch blocks
+
+---
+ Src/PrsStmt.HC | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index b1aba20..9f51605 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -992,7 +992,7 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+     RPNAddNew(cc,IC_LABEL,lb_catch,0,FALSE);
+     PrsStmt(cc,try_cnt+1);
+     RPNAddNew(cc,IC_IMM_I64,0,cmp.internal_types[RT_I64],FALSE);
+-    RPNAddNew(cc,IC_RET,0,cc->htc.fun->return_class,FALSE);
++    RPNAddNew(cc,IC_RET,0,tmpc,FALSE);
+     RPNAddNew(cc,IC_LABEL,lb_done,0,FALSE);
+     return;
+   }
+-- 
+2.53.0
+

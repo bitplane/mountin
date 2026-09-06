@@ -1,0 +1,31 @@
+From 3984ca73630854eb206aacd47f861715a25dadeb Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:48 +0100
+Subject: [PATCH 19/71] Emit AOT constant data
+
+---
+ Src/PrsVar.HC | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
+index ff2124c..6af5374 100644
+--- a/Src/PrsVar.HC
++++ b/Src/PrsVar.HC
+@@ -43,11 +43,9 @@ U0 PrsVarInit(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,CArrayDim *tmpad,
+       cc->flags=CCF_NO_ABSS | cc->flags &
+ 	    ~(CCF_AOT_COMPILE|CCF_HAS_MISC_DATA|CCF_NOT_CONST);
+       machine_code=LexExpression2Bin(cc,&type);
+-      if (old_flags&CCF_AOT_COMPILE
+-	    /*cc->flags&CCF_NOT_CONST && */ //Const-folding is done in the C end
+-	//Nroot forces all AOT globals to go on the heap for Apple hardedned runtime
+-	    /*!Bt(&cc->opts,OPTf_GLBLS_ON_DATA_HEAP)*/
+-	) {
++      if (old_flags&CCF_AOT_COMPILE &&
++            (!Bt(&cc->opts,OPTf_TEMPLEOS_BIN_SIGNATURE) ||
++            cc->flags&CCF_NOT_CONST)) {
+ 	cc->flags=cc->flags&~CCF_NO_ABSS|CCF_AOT_COMPILE;
+ 	Free(machine_code);
+ 	if (pass==2) {
+-- 
+2.53.0
+

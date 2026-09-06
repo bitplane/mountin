@@ -1,0 +1,25 @@
+From c85ee2a55d719913e02fdbf4a338042670d5f1db Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:48 +0100
+Subject: [PATCH 16/71] Clear AOT static reference
+
+---
+ Src/AIWNIOS_CodeGen.HC | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index f4b4824..e8cda62 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -2248,6 +2248,8 @@ break;case IC_RIP:
+           h=CAlloc(sizeof CHashImport);
+           h->type=HTT_IMPORT_SYS_SYM;
+           h->str=StrNew(misc->h->str);
++          foff=0;
++          WriteProtectMemCpy(misc->addr,&foff,8);
+           h->module_base=machine_code;
+           //[reloc type 1][reloc offset 4][target-offset 4][name?]NULL]
+           //Nroot adds an aditional byte to specify NULL after we load the silly sauce 
+-- 
+2.53.0
+

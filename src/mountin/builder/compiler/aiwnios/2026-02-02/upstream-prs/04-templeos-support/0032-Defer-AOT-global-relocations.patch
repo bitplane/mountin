@@ -1,0 +1,27 @@
+From 9248991e1b5e4d324705124f235bedc3ef5f813a Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:49 +0100
+Subject: [PATCH 32/71] Defer AOT global relocations
+
+---
+ Src/AIWNIOS_CodeGen.HC | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
+index ccef2bd..e4b7812 100644
+--- a/Src/AIWNIOS_CodeGen.HC
++++ b/Src/AIWNIOS_CodeGen.HC
+@@ -1927,9 +1927,7 @@ break;case IC_RIP:
+ 	);
+     }
+     if(cc->flags&CCF_AOT_COMPILE) {
+-      if(h->type&HTT_GLBL_VAR&&h->type&HTF_EXPORT) {
+-        __HC_SetAOTRelocBeforeRIP(new,h(CHashGlblVar*)->data_addr_rip-cc->aotc->rip);
+-      } else if(h->type&HTT_FUN&&!Bt(&(h(CHashFun*)->flags),Cf_EXTERN)) {
++      if(h->type&HTT_FUN&&!Bt(&(h(CHashFun*)->flags),Cf_EXTERN)) {
+         __HC_SetAOTRelocBeforeRIP(new,h(CHashFun*)->exe_addr-cc->aotc->rip);
+       }
+     }
+-- 
+2.53.0
+

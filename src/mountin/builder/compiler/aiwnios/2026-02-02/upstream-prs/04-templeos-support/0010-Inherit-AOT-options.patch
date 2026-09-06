@@ -1,0 +1,46 @@
+From 1bb9a0ece0d8f22ae077778ade5d379a11076fa7 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:47 +0100
+Subject: [PATCH 10/71] Inherit AOT options
+
+---
+ Src/CMain.HC   | 5 ++---
+ Src/KernelA.HH | 2 +-
+ 2 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/Src/CMain.HC b/Src/CMain.HC
+index 2ae90a8..0cf390e 100644
+--- a/Src/CMain.HC
++++ b/Src/CMain.HC
+@@ -234,13 +234,12 @@ CAOT *CmpJoin(CCmpCtrl *cc,I64 cmp_flags,U8 *map_name=NULL,U8 mapfile_drv_let=0)
+ }
+ 
+ CAOT *CmpBuf(U8 *buf,U8 *map_name=NULL,
+-  I64 *error_cnt=NULL, I64 *warning_cnt=NULL,U8 mapfile_drv_let=0)
++  I64 *error_cnt=NULL, I64 *warning_cnt=NULL,U8 mapfile_drv_let=0,I64 opts=0)
+ {
+   CCmpCtrl *cc;
+   CAOT *res=NULL;
+   cc=CmpCtrlNew(buf,CCF_DONT_FREE_BUF);
+-  if (GetOption(OPTf_RAW_AOT))
+-    Bts(&cc->opts,OPTf_RAW_AOT);
++  cc->opts=opts;
+   cc->flags|=CCF_AOT_COMPILE;
+   #ifdef TARGET_AARCH64
+   //For MacOS RWX protections. 
+diff --git a/Src/KernelA.HH b/Src/KernelA.HH
+index e9624fc..028464d 100644
+--- a/Src/KernelA.HH
++++ b/Src/KernelA.HH
+@@ -4971,7 +4971,7 @@ extern U0 CtrlAltCBSet(U8 ch,U0 (*fp_hndlr)(I64 sc),
+ 	U8 *no_shift_desc=NULL,U8 *shift_desc=NULL,Bool in_irq=FALSE);
+ extern U0 EdLineDown(CDoc *doc,I64 sc=I64_MIN);
+ extern CAOT *CmpBuf(U8 *buf,U8 *map_name=NULL,
+-  I64 *error_cnt=NULL, I64 *warning_cnt=NULL,U8 mapfile_drv_let=0);
++  I64 *error_cnt=NULL, I64 *warning_cnt=NULL,U8 mapfile_drv_let=0,I64 opts=0);
+ extern I64 PressAKey();
+ extern U8 *DocLineRead(U8 *filename,I64 line,CTask *mem_task=NULL);
+ extern U8 *DocLineWrite(U8 *filename,I64 line,U8 *st);
+-- 
+2.53.0
+

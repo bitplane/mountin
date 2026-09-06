@@ -1,0 +1,83 @@
+From 95f85fc038aa611ee1e6435f2194221139534945 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 08:48:51 +0100
+Subject: [PATCH 4/6] Accept equivalent registers in x86 operands
+
+---
+ Src/AsmX64.HC  | 14 ++++++++++++--
+ Src/UAsmX64.HC |  6 +++++-
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 04b5d1b..0dacbdb 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -644,7 +644,8 @@ Bool OpcodePassesModes(CX86Opcode *opc,CX86AddrMode **modes) {
+   for(mem_sz=2;mem_sz<=8;mem_sz*=2) {
+     a=0;
+     for(idx=0;opc->operands[idx].u8[0];idx++) {
+-      if(opc->operands[idx].u8[0]==X86_OPERAND_EXT) goto nxt_arg;
++      if(opc->operands[idx].u8[0]==X86_OPERAND_EXT||
++            opc->operands[idx].u8[0]==X86_OPERAND_PREV_RMx) goto nxt_arg;
+       if(a>=opc->arity) break;
+       if(ModeMatch(opc->operands[idx],modes[a],mem_sz)) {
+ 	a++;
+@@ -931,6 +932,14 @@ I64 X86EncodeOpcode(I64 rip,I64 seg_size,CX86Opcode *opc,CX86AddrMode **modes,U8
+ 	      a++;
+ 	      break;
+ 	    }
++	  case X86_OPERAND_PREV_RMx:
++	    if(!indir_mode) {
++	      if(!a)
++	        throw('AsmItrn');
++	      indir_mode_idx=a-1;
++	      indir_mode=modes[a-1];
++	    }
++	    break;
+ 	  case X86_OPERAND_R8:
+ 	  case X86_OPERAND_R16:
+ 	  case X86_OPERAND_R32:
+@@ -1154,7 +1163,8 @@ rex|=0x40;
+ 		  len+=8;
+ 	      }
+ 	    }
+-	    if(opc->operands[i].u8[0]!=X86_OPERAND_EXT)
++	    if(opc->operands[i].u8[0]!=X86_OPERAND_EXT&&
++	          opc->operands[i].u8[0]!=X86_OPERAND_PREV_RMx)
+ 	      a++;
+ 	  }
+         } else
+diff --git a/Src/UAsmX64.HC b/Src/UAsmX64.HC
+index 525c025..89749fc 100644
+--- a/Src/UAsmX64.HC
++++ b/Src/UAsmX64.HC
+@@ -60,6 +60,7 @@
+ #define X86_OPERAND_M128 49
+ #define X86_OPERAND_CONST_SREG 50
+ #define X86_OPERAND_EXPLICIT_IMM16 51
++#define X86_OPERAND_PREV_RMx 52
+ 
+ class CX86Opcode:CHash {
+   //-1 for absent
+@@ -112,7 +113,8 @@ CX86Opcode *AO(U8 *name,I64 pf,I64 _0f,I64 po,I64 so,I64 flags,...) {
+     if(idx>argc) {
+       throw('UAsmInit');
+     }
+-    if(argv[idx]!=X86_OPERAND_EXT)
++    if(argv[idx]!=X86_OPERAND_EXT&&
++          argv[idx]!=X86_OPERAND_PREV_RMx)
+       opc->arity++;
+     switch(argv[idx]) {
+       start:
+@@ -1359,6 +1361,8 @@ U0 UAsmInit() {
+   AO("IMUL",-1,-1,0xf6,-1,X86_OPCF_MODRM,X86_OPERAND_RM8,X86_OPERAND_EXT,5);
+   AO("IMUL",-1,-1,0xf7,-1,X86_OPCF_MODRM,X86_OPERAND_RMx,X86_OPERAND_EXT,5);
+   AO("IMUL2",-1,0xf,0xaf,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_RMx);
++  AO("IMUL2",-1,-1,0x69,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_PREV_RMx,X86_OPERAND_IMMx);
++  AO("IMUL2",-1,-1,0x6b,-1,X86_OPCF_MODRM,X86_OPERAND_Rx,X86_OPERAND_PREV_RMx,X86_OPERAND_IMM8);
+ 
+   AO("IN",-1,-1,0xe4,-1,0,X86_OPERAND_CONST_R8,REG_RAX,X86_OPERAND_IMM8);
+   AO("IN",-1,-1,0xe5,-1,X86_OPCF_OPSIZE32,X86_OPERAND_CONST_R32,REG_RAX,X86_OPERAND_IMM8);
+-- 
+2.53.0
+

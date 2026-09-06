@@ -1,0 +1,28 @@
+From 63889e5e22c6f2e8547d4aac245cb5c9f1a9a3b3 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:51 +0100
+Subject: [PATCH 49/71] Zero AOT relocations
+
+---
+ c/x86_64_backend.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/c/x86_64_backend.c b/c/x86_64_backend.c
+index 8900688..bbdbd5f 100644
+--- a/c/x86_64_backend.c
++++ b/c/x86_64_backend.c
+@@ -9107,7 +9107,10 @@ char *OptPassFinal(CCmpCtrl *cctrl, int64_t *res_sz, char **dbg_info,
+           code_off += 8 - code_off % 8;
+         misc->addr = bin + code_off;
+         if (bin)
+-          *(void **)((char *)MemGetWritePtr(bin) + code_off) = &DoNothing;
++          if (cctrl->flags & CCF_AOT_COMPILE)
++            *(void **)((char *)MemGetWritePtr(bin) + code_off) = NULL;
++          else
++            *(void **)((char *)MemGetWritePtr(bin) + code_off) = &DoNothing;
+         code_off += 8;
+         if (run == 2) {
+           *(import = A_CALLOC(sizeof(CHashImport), NULL)) = (CHashImport){
+-- 
+2.53.0
+

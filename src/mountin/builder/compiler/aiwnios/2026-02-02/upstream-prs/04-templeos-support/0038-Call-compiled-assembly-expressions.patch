@@ -1,0 +1,49 @@
+From 9f077aef18dd03f83e200824392f6d7478663044 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:50 +0100
+Subject: [PATCH 38/71] Call compiled assembly expressions
+
+---
+ Src/AsmResolve.HC | 3 +--
+ Src/AsmX64.HC     | 4 +---
+ 2 files changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/Src/AsmResolve.HC b/Src/AsmResolve.HC
+index 95f6e3a..31014e2 100644
+--- a/Src/AsmResolve.HC
++++ b/Src/AsmResolve.HC
+@@ -33,8 +33,7 @@ U0 AsmResolve(CCmpCtrl *cc,CAsmUnresolvedRef *tmpu,U8 *label,Bool undefined)
+   CAOTImportExport *tmpie;
+   CAOTAbsAddr *tmpabs;
+   CAsmUndefHash *tmpauh;
+-  I64 (*machine_code)()=tmpu->machine_code;
+-  I64 res=(*machine_code)();
++  I64 res=Call(tmpu->machine_code);
+   if (undefined) {
+     tmpauh=tmpu->asm_undef_hash;
+     while (tmpauh) {
+diff --git a/Src/AsmX64.HC b/Src/AsmX64.HC
+index 5e2f6d9..5193c2c 100644
+--- a/Src/AsmX64.HC
++++ b/Src/AsmX64.HC
+@@ -1258,7 +1258,6 @@ U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches,CQue *to_fill) {
+   CHashExport *exp;
+   CCodeMisc *cm;
+   Bool local;
+-  I64 (*machine_code)();
+   patch=patches->next;
+   while(patch!=patches) {
+     if(!patch->imm) goto nxt;
+@@ -1322,8 +1321,7 @@ U0 AsmResolvePatches(CCmpCtrl *cc,CQue *patches,CQue *to_fill) {
+ resolved:
+       cur=cur->next;
+     }
+-    machine_code=patch->imm->machine_code;
+-    patch->imm->off=(*machine_code)();
++    patch->imm->off=Call(patch->imm->machine_code);
+     Free(patch->imm->machine_code);
+     patch->imm->machine_code=NULL;
+     LinkedLstDel(tab);
+-- 
+2.53.0
+

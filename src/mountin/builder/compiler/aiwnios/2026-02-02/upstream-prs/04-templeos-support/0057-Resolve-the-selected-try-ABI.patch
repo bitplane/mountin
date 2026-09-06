@@ -1,0 +1,51 @@
+From 66c295529d4d64d96054a23b199faa7a89ee303e Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:52 +0100
+Subject: [PATCH 57/71] Resolve the selected try ABI
+
+---
+ Src/PrsStmt.HC | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
+index 9f51605..edb3ed3 100644
+--- a/Src/PrsStmt.HC
++++ b/Src/PrsStmt.HC
+@@ -953,16 +953,13 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+   CHashClass	*tmpc=cmp.internal_types[RT_PTR];
+   CHashFun	*tmp_try=HashFind("SysTry",cc->htc.hash_table_lst,HTT_FUN),
+ 	*tmp_untry=HashFind("SysUntry",cc->htc.hash_table_lst,HTT_FUN),
+-  *tmp_a_ent=HashFind("AIWNIOS_SetJmp",cc->htc.hash_table_lst,HTT_FUN),
+-  *tmp_end_catch=HashFind("EndCatch",cc->htc.hash_table_lst,HTT_FUN);
++  *tmp_a_ent,*tmp_end_catch;
+ 
+-  if (!tmp_try || !tmp_untry || !tmp_a_ent)
+-    LexExcept(cc,"Missing header for SysTry(),EndCatch(),AIWNIOS_SetJmp() and SysUntry() at ");
++  if (!tmp_try || !tmp_untry)
++    LexExcept(cc,"Missing header for SysTry() and SysUntry() at ");
+ 
+   tmp_try=CodeMiscHashNew(cc,tmp_try);
+   tmp_untry=CodeMiscHashNew(cc,tmp_untry);
+-  tmp_a_ent=CodeMiscHashNew(cc,tmp_a_ent);
+-  tmp_end_catch=CodeMiscHashNew(cc,tmp_end_catch);
+   
+   cc->flags|=CCF_NO_REG_OPT; //TODO:Currently no reg vars in funs with try/catch
+ 
+@@ -997,6 +994,14 @@ U0 PrsTryBlk(CCmpCtrl *cc,I64 try_cnt)
+     return;
+   }
+ 
++  tmp_a_ent=HashFind("AIWNIOS_SetJmp",cc->htc.hash_table_lst,HTT_FUN);
++  tmp_end_catch=HashFind("EndCatch",cc->htc.hash_table_lst,HTT_FUN);
++  if (!tmp_a_ent || !tmp_end_catch)
++    LexExcept(cc,"Missing header for AIWNIOS_SetJmp() and EndCatch() at ");
++
++  tmp_a_ent=CodeMiscHashNew(cc,tmp_a_ent);
++  tmp_end_catch=CodeMiscHashNew(cc,tmp_end_catch);
++
+   //Changed by nroot
+   RPNAddNew(cc,IC_ADDR_IMPORT,tmp_a_ent,tmpc,FALSE);
+   RPNAddNew(cc,IC_ADDR_IMPORT,tmp_try,tmpc,FALSE);
+-- 
+2.53.0
+

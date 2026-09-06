@@ -1,0 +1,24 @@
+From 8d6ff7bcc7ac176bd6f7934df34711087f268dba Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:46 +0100
+Subject: [PATCH 01/71] Avoid FSize symbol collision
+
+---
+ c/main.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/c/main.c b/c/main.c
+index 481eaf3..6a0c8a3 100644
+--- a/c/main.c
++++ b/c/main.c
+@@ -1833,7 +1833,6 @@ static void BootAiwnios(char *bootstrap_text) {
+     PrsAddSymbol("VFsFSeek", STK_VFsFSeek, 2);
+     PrsAddSymbol("VFsSetDrv", STK_VFsSetDrv, 1);
+     PrsAddSymbol("FUnixTime", STK_VFsUnixTime, 1);
+-    PrsAddSymbol("FSize", STK_VFsFSize, 1);
+     PrsAddSymbol("VFsFTrunc", STK_VFsTrunc, 2);
+     PrsAddSymbol("UnixNow", STK_UnixNow, 0);
+     PrsAddSymbol("__GrPaletteColorSet", STK_GrPaletteColorSet, 2);
+-- 
+2.53.0
+

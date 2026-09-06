@@ -1,0 +1,25 @@
+From afb8db361c90e9077115b07ca41bb2cf34892461 Mon Sep 17 00:00:00 2001
+From: Gareth Davidson <gaz@bitplane.net>
+Date: Sun, 6 Sep 2026 10:50:47 +0100
+Subject: [PATCH 06/71] Use volume size for DVD image
+
+---
+ Src/MakeISOFile.HC | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Src/MakeISOFile.HC b/Src/MakeISOFile.HC
+index dadfbd3..4238bae 100644
+--- a/Src/MakeISOFile.HC
++++ b/Src/MakeISOFile.HC
+@@ -68,7 +68,7 @@ U0 RedSeaISO9660(U8 *iso_filename,U8 drv_let)
+   CFile *out_file=NULL;
+ 
+   if (out_file=iso_filename) {
+-    iso_size=FSize(out_file)/DVD_BLK_SIZE;
++    iso_size=(dv->bd->max_blk+1)/(DVD_BLK_SIZE/BLK_SIZE);
+     for (i=0;i<dv->bd->drv_offset;i+=4)
+       FBlkWrite(out_file,zero_buf,i,4);
+ 
+-- 
+2.53.0
+
