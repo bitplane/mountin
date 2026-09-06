@@ -1,4 +1,4 @@
-From 9b640e88fb65559bad17116f1a75218a8163673f Mon Sep 17 00:00:00 2001
+From 0d18e6b10cf1624502c1fbbe7cc546b31fcc59b7 Mon Sep 17 00:00:00 2001
 From: Gareth Davidson <gaz@bitplane.net>
 Date: Sun, 6 Sep 2026 16:57:05 +0100
 Subject: [PATCH 4/7] Emit relocatable TempleOS modules and raw boot images
@@ -12,7 +12,7 @@ These changes form the module writer: expression resolution, symbol ownership an
  Src/AsmResolve.HC      | 155 +++++++++++++++++++++++++++++-
  Src/AsmX64.HC          | 209 +++++++++++++++++++++++++++++++++--------
  Src/CExts.HC           |   1 +
- Src/CMain.HC           | 159 +++++++++++++++++++++++++++----
+ Src/CMain.HC           | 164 ++++++++++++++++++++++++++++----
  Src/KLoadARM.HC        |  23 ++++-
  Src/KernelA.HH         |  15 ++-
  Src/PrsStmt.HC         |  21 +++--
@@ -23,7 +23,7 @@ These changes form the module writer: expression resolution, symbol ownership an
  c/parser.c             |   4 +
  c/riscv_backend.c      |   8 +-
  c/x86_64_backend.c     |  13 ++-
- 16 files changed, 690 insertions(+), 115 deletions(-)
+ 16 files changed, 695 insertions(+), 115 deletions(-)
 
 diff --git a/Src/AIWNIOS_CodeGen.HC b/Src/AIWNIOS_CodeGen.HC
 index a52e495..57f4d4c 100644
@@ -183,7 +183,7 @@ index a52e495..57f4d4c 100644
        AiwniosAOTBlobDel(cur->ic_data);
      }
 diff --git a/Src/AIWNIOS_PrsExp.HC b/Src/AIWNIOS_PrsExp.HC
-index 447fb4c..1653670 100644
+index 447fb4c..28be815 100644
 --- a/Src/AIWNIOS_PrsExp.HC
 +++ b/Src/AIWNIOS_PrsExp.HC
 @@ -833,6 +833,19 @@ CCodeMisc *CodeMiscHashNew(CCmpCtrl *cc,CHash* h) {
@@ -880,7 +880,7 @@ index e29ec74..0e079a0 100644
 +extern CHash *AOTResolvedHashFind(CCmpCtrl *cc,U8 *name);
  extern CHashClass *AssignRawTypeToNode(CRPN *r);
 diff --git a/Src/CMain.HC b/Src/CMain.HC
-index 065d87b..40f5c2c 100644
+index 065d87b..6766b53 100644
 --- a/Src/CMain.HC
 +++ b/Src/CMain.HC
 @@ -4,12 +4,14 @@ U8 *LexStmt2Bin(CCmpCtrl *cc,I64 *_type,I64 cmp_flags=0)
@@ -1056,7 +1056,7 @@ index 065d87b..40f5c2c 100644
      MemCpy(bfh(U8 *)+sizeof(CBinFile),tmpaot->buf,aot_U8s);
      MemCpy(bfh(U8 *)+sizeof(CBinFile)+aot_U8s,patch_table,
  	  size-aot_U8s-sizeof(CBinFile));
-@@ -551,17 +610,43 @@ I64 StreamExePrint(U8 *fmt,...)
+@@ -551,17 +610,47 @@ I64 StreamExePrint(U8 *fmt,...)
    return res;
  }
  
@@ -1095,14 +1095,18 @@ index 065d87b..40f5c2c 100644
      tmpaotie1=tmpaotie->next;
      if(tmpaotie->short_jmp) {		  
 -      fun=HashSingleTableFind(tmpaotie->str,cc->htc.glbl_hash_table,HTT_FUN|HTT_GLBL_VAR);
-+      fun=AOTResolvedHashFind(cc,tmpaotie->str);
++      if (Bt(&cc->opts,OPTf_TEMPLEOS))
++        fun=AOTResolvedHashFind(cc,tmpaotie->str);
++      else
++        fun=HashSingleTableFind(tmpaotie->str,cc->htc.glbl_hash_table,
++              HTT_FUN|HTT_GLBL_VAR);
        if(fun&&fun->type&HTT_FUN) {
 -		if(fun->type&HTF_RESOLVE) {
 +		if (fun->type&HTF_RESOLVE) {
  		  #ifdef TARGET_RISCV
  		  ptr=fun->exe_addr+tmpaotie->offset;
  riscv_patch:
-@@ -615,8 +700,50 @@ riscv_patch:
+@@ -615,8 +704,51 @@ riscv_patch:
  			Free(tmpaotie->str);
  			Free(tmpaotie);
  skip:;
@@ -1120,7 +1124,8 @@ index 065d87b..40f5c2c 100644
 +        throw('Compiler');
 +#endif
 +      }
-+    } else if (tmpaotie->type==IET_IMM_I64 && tmpaotie->str) {
++    } else if (Bt(&cc->opts,OPTf_TEMPLEOS) &&
++          tmpaotie->type==IET_IMM_I64 && tmpaotie->str) {
 +      value_resolved=TRUE;
 +      fun=AOTResolvedHashFind(cc,tmpaotie->str);
 +      if (fun && fun->type&HTT_FUN && fun->type&HTF_RESOLVE)
@@ -1196,7 +1201,7 @@ index 31409d3..075257b 100644
      Free(fbuf);
      throw('BinModul');
 diff --git a/Src/KernelA.HH b/Src/KernelA.HH
-index 2b0c63f..e255af6 100644
+index 2b0c63f..8260430 100644
 --- a/Src/KernelA.HH
 +++ b/Src/KernelA.HH
 @@ -1530,6 +1530,8 @@ public class CAutoCompleteDictGlbls
@@ -1254,7 +1259,7 @@ index 2b0c63f..e255af6 100644
  extern U8 SSE_ShuffleByte(I64 a,I64 b,I64 c,I64 d);
  #endif
 diff --git a/Src/PrsStmt.HC b/Src/PrsStmt.HC
-index 7d8c9f7..0a6f2f6 100644
+index 7d8c9f7..b863526 100644
 --- a/Src/PrsStmt.HC
 +++ b/Src/PrsStmt.HC
 @@ -453,6 +453,9 @@ U0 PrsGlblVarLst(CCmpCtrl *cc,I64 saved_mode,CHashClass *saved_tmpc,
@@ -1322,7 +1327,7 @@ index 7d8c9f7..0a6f2f6 100644
  		    }
  #endif
 diff --git a/Src/PrsVar.HC b/Src/PrsVar.HC
-index 7893867..6af5374 100644
+index 7893867..ea72454 100644
 --- a/Src/PrsVar.HC
 +++ b/Src/PrsVar.HC
 @@ -43,11 +43,9 @@ U0 PrsVarInit(CCmpCtrl *cc,U8 **_dst,CHashClass *tmpc,CArrayDim *tmpad,

@@ -90,8 +90,19 @@ RAM; they have not been repeated after consolidation. After fixing
 the `StrLen` register collision, the rebuilt image completed three cold boots
 without the earlier heap checks or diagnostic windows: one was observed for 120
 seconds and two for 75 seconds. All reached the graphical installer prompt and
-remained responsive. Neither older physical CPUs nor non-x86 compiler backends
-have been validated.
+remained responsive. Older physical x86 CPUs have not been validated.
+
+The complete series also builds and bootstraps `HCRT2.BIN` natively on
+AArch64. `FileSize`, `HostDrives`, `IncludeSearch`, `CallCompare`, and
+`CurrentPC` pass there in separate processes. The remaining regression checks
+exercise x86 instructions or intrinsics whose lowering is explicitly absent
+from the AArch64 backend.
+
+RISC-V cross-compilation produces a valid RV64 executable. It starts and parses
+its command line in a full RISC-V Linux VM, but entering the HolyC runtime
+raises a signal before a regression check can print `PASS`. Without fast-fail,
+Aiwnios catches that signal and exits zero, so exit status alone is not runtime
+proof. RISC-V runtime support therefore remains unproven and currently broken.
 
 ## Regression checks
 
@@ -106,7 +117,7 @@ The owning patches add standalone HolyC checks under `Tests/Compiler`:
 - `CallCompare.HC`: spilled call results in comparisons and short-circuit
   conditions, including floating-point results and stack-local preservation.
 - `CurrentPC.HC`: code addresses returned directly, stored locally and used in
-  expressions, with repeated calls. The x86 check passes; AArch64, RISC-V and
+  expressions, with repeated calls. The x86 and AArch64 checks pass; RISC-V and
   bytecode current-PC implementations have passed syntax checks, not runtime
   validation.
 - `ModU64.HC`: constant and function-call divisors, including unsigned values
