@@ -18,6 +18,8 @@ cp /build/kernel-source.HC "$tree/MountinKernelSource.HC"
 cp /build/mountin-appliance.HC "$tree/MountinAppliance.HC"
 cp /build/mountin-once.HC "$tree/Once.HC"
 cp /build/package-distro.HC "$tree/MountinPackageDistro.HC"
+cp /host/build/bin/x86_64-templeos/temple9p/Temple9P.HC "$tree/Temple9P.HC"
+cp /host/build/bin/x86_64-templeos/temple9p/Serial.HC "$tree/Serial.HC"
 cd "$tree"
 bootstrap_log=$tree/MountinBootstrap.log
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
