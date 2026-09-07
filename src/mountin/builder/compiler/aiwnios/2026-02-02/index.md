@@ -21,13 +21,10 @@ used as an input.
 The toolbox retains the matching source tree because AIWNIOS resolves its
 runtime, documentation and build scripts relative to that tree.
 
-## Patch set
+## Fork
 
-The `series` file is the authoritative patch order. Patches describe successive
-source changes against the unmodified 2026-02-02 source and are applied with
-zero fuzz. Offsets are allowed; changed context is not.
-
-The current groups provide:
+The toolbox builds the immutable `mountin-2026-09-07` release from the Mountin
+fork. Its changes are maintained as four branches:
 
 - TempleOS x86 assembler syntax and encoding
 - raw TempleOS AOT output, symbols and relocations
@@ -36,23 +33,14 @@ The current groups provide:
 - host-directory and relative-include source access
 - DVD image generation needed by the guest build
 
-The patches are arranged beneath `upstream-prs` as four proposed changes:
+- [`bugfix/compiler-correctness`](https://github.com/bitplane/Aiwnios/tree/bugfix/compiler-correctness)
+- [`bugfix/x86-assembler-correctness`](https://github.com/bitplane/Aiwnios/tree/bugfix/x86-assembler-correctness)
+- [`feature/host-filesystem`](https://github.com/bitplane/Aiwnios/tree/feature/host-filesystem)
+- [`feature/templeos-support`](https://github.com/bitplane/Aiwnios/tree/feature/templeos-support)
 
-1. general compiler correctness
-2. x86 assembler correctness
-3. host filesystem integration
-4. TempleOS support
-
-The first three apply independently to the unmodified upstream source. Each
-patch is the formatted form of one proposed commit and contains one fix, class
-of related fixes, or complete required feature. TempleOS support is the full
-integration change retained by Mountin; it can be submitted after its general
-prerequisites have landed. Its AOT expression handling, symbol resolution and
-relocation generation remain together because they share data structures and
-invariants.
-
-The TempleOS branch must be based on the combined compiler, assembler and
-host-filesystem changes. The other three branches each start at upstream.
+The first three start at the upstream snapshot. TempleOS support starts at their
+combined integration point because it uses the compiler and host interfaces
+they add. The `mountin` branch merges all four and supplies the release tag.
 
 TempleOS support contains seven feature commits: file-size interfaces,
 integer register types, DVD sizing, AOT modules and raw images, exception/
@@ -71,11 +59,6 @@ are not yet translated. Interrupt functions follow TempleOS and do not save
 XMM state; handlers must not use floating-point values until that restriction
 is removed.
 
-The former x86 stack-padding change masked an out-of-bounds write in
-`PrsArrayDims`: `&dim` was treated as a `CArrayDim`, so updating `total_cnt`
-wrote beyond the pointer parameter into its caller. The source now starts the
-walk at `dim`, and no compiler ABI padding is required.
-
 ## Validation
 
 The consolidated patch set passes the source-built x86 runtime bootstrap and
@@ -89,10 +72,9 @@ reports the missing runtime and exits with status 1; source bootstrap and all
 twelve runtime checks pass after this change. This checks header presence,
 not the contents of every relocation record.
 
-The compiler-correctness, x86-assembler and host-filesystem groups each apply
-independently to upstream with `git am`. The complete series applies with zero
-fuzz. Consolidation preserved the resulting source tree; the subsequent mode
-rename changes its identifier and documentation, not its value or behaviour.
+The compiler-correctness, x86-assembler and host-filesystem branches each
+bootstrap independently. Their combined source plus TempleOS support produces
+the tagged source tree used here.
 
 The earlier graphical boot checks used QEMU TCG, `-cpu max`, one CPU and 512 MiB
 RAM; they have not been repeated after consolidation. After fixing
