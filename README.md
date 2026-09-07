@@ -87,7 +87,7 @@ means read-only. Absence of evidence, YMMV, expect occasional regressions etc.
 | **PureDarwin 17.4** | MBR/DOS, GPT, Apple APM, Protective MBR | HFS/HFS+/HFSX |
 | **9front** | MBR/DOS, Plan 9 | FAT12/16/32, ISO9660 (no Rock Ridge symlinks), PAQFS (ro), FlashFS, HJFS, GEFS, CWFS, V5/V6 (ro), UNIX/32V (ro), V10 (ro) |
 | **illumos x86_64** | MBR/DOS, GPT, Solaris x86 VTOC16 (inside MBR) | FAT12/16/32, ISO9660, UFS1 |
-| **TempleOS 5.03** | Raw volume | RedSea |
+| **TempleOS 5.03** | MBR/DOS, raw volume | RedSea |
 
 ### 💩 Known bad
 

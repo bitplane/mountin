@@ -3,11 +3,15 @@
 extern U0 RedSeaInit(CDrv *drive);
 extern Bool RedSeaValidate(U8 drive_letter);
 
-Bool MountinMountRawRedSea()
+Bool MountinMountRedSea()
 {
-  CBlkDev *device=BlkDevNextFreeSlot('C',BDT_ATA);
+  CBlkDev *device;
   CDrv *drive;
 
+  if (RedSeaValidate('C'))
+    return TRUE;
+
+  device=BlkDevNextFreeSlot('C',BDT_ATA);
   device->base0=0x1F0;
   device->base1=0x3F4;
   device->unit=0;
@@ -20,7 +24,7 @@ Bool MountinMountRawRedSea()
 }
 
 try {
-  if (!MountinMountRawRedSea())
+  if (!MountinMountRedSea())
     throw('Disk',TRUE);
   OutU8(0xE9,'R');
   OutU8(0xE9,'E');

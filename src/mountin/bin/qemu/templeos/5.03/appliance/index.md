@@ -7,10 +7,12 @@ output_platforms:
     requires:
       - guest/${MOUNTIN_TARGET_PLATFORM}/5.03/templeos.iso
       - data/fs/basic.redsea
+      - data/pt/templeos-redsea.mbr
     provides:
       - bin/qemu/${MOUNTIN_TARGET_PLATFORM}/5.03/templeos.iso
 support:
   - format/fs/redsea
+  - format/pt/mbr
   - transport/9p
 requires:
   - docker:${MOUNTIN_BUILDER}
@@ -19,6 +21,7 @@ requires:
 # TempleOS 5.03 mountin appliance
 
 Publishes the source-built TempleOS distribution ISO as a QEMU input. Before
-publishing, the real TempleOS kernel mounts the raw RedSea fixture from a QEMU
-IDE disk and serves it with the released temple9p server. Verification reads and
-mutates the filesystem using 9P2000 over an emulated COM1.
+publishing, the real TempleOS kernel mounts both raw RedSea and a conventional
+MBR-partitioned TempleOS disk from a QEMU IDE drive and serves them with the
+released temple9p server. Verification reads and mutates both layouts using
+9P2000 over an emulated COM1.
