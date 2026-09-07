@@ -16,6 +16,8 @@ cp /build/build-image.HC "$tree/MountinBuildImage.HC"
 cp /build/build-kernel.HC "$tree/MountinBuildKernel.HC"
 cp /build/kernel-config.HC "$tree/MountinKernelConfig.HC"
 cp /build/kernel-source.HC "$tree/MountinKernelSource.HC"
+cp /build/mountin-appliance.HC "$tree/MountinAppliance.HC"
+cp /build/mountin-once.HC "$tree/Once.HC"
 cp /build/package-distro.HC "$tree/MountinPackageDistro.HC"
 cd "$tree"
 bootstrap_log=$tree/MountinBootstrap.log
