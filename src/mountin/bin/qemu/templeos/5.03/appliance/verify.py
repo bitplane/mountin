@@ -91,7 +91,7 @@ def wait_for(path, marker, process, deadline):
 
 def main():
     if len(sys.argv) != 3:
-        raise SystemExit("usage: verify.py TEMPLEOS_ISO REDSEA_IMAGE")
+        raise SystemExit("usage: verify.py TEMPLEOS_ISO DISK_IMAGE")
 
     iso, fixture = map(Path, sys.argv[1:])
     token = os.getpid()
@@ -142,7 +142,7 @@ def main():
         socket_path.unlink(missing_ok=True)
         debug_path.unlink(missing_ok=True)
 
-    print("TempleOS RedSea read/write over 9P complete")
+    print("TempleOS disk read/write over 9P complete")
 
 
 if __name__ == "__main__":

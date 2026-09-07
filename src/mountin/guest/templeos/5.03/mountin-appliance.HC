@@ -1,14 +1,13 @@
 #include "/Temple9P"
 
 extern U0 RedSeaInit(CDrv *drive);
-extern Bool RedSeaValidate(U8 drive_letter);
 
-Bool MountinMountRedSea()
+Bool MountinMountDisk()
 {
   CBlkDev *device;
-  CDrv *drive;
+  CDrv *drive=Let2Drv('C',FALSE);
 
-  if (RedSeaValidate('C'))
+  if (drive && (drive->fs_type==FSt_REDSEA || drive->fs_type==FSt_FAT32))
     return TRUE;
 
   device=BlkDevNextFreeSlot('C',BDT_ATA);
@@ -24,7 +23,7 @@ Bool MountinMountRedSea()
 }
 
 try {
-  if (!MountinMountRedSea())
+  if (!MountinMountDisk())
     throw('Disk',TRUE);
   OutU8(0xE9,'R');
   OutU8(0xE9,'E');

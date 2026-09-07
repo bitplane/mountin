@@ -4,18 +4,15 @@ set -eu
 tree=$MOUNTIN_CACHE_DIR/tree
 templeos_source=/opt/mountin/source
 output=/host/build/guest/x86_64-templeos/5.03/templeos.iso
-fixture_output=/host/build/guest/x86_64-templeos/5.03/fixture/templeos.iso
 
-if [ ! -d "$tree" ]; then
-    cp -a /opt/mountin/build "$tree"
-fi
+rm -rf "$tree"
+cp -a /opt/mountin/build "$tree"
 
 cp /build/build-distro.HC "$tree/MountinBuildDistro.HC"
 cp /build/build-compiler.HC "$tree/MountinBuildCompiler.HC"
 cp /build/build-image.HC "$tree/MountinBuildImage.HC"
 cp /build/build-kernel.HC "$tree/MountinBuildKernel.HC"
 cp /build/fixture-image.HC "$tree/MountinBuildFixtureImage.HC"
-cp /build/fixture-once.HC "$tree/MountinFixtureOnce.HC"
 cp /build/kernel-config.HC "$tree/MountinKernelConfig.HC"
 cp /build/kernel-source.HC "$tree/MountinKernelSource.HC"
 cp /build/mountin-appliance.HC "$tree/MountinAppliance.HC"
@@ -48,11 +45,15 @@ mkdir -p "$tree/MountinFixtureData"
 tar -xf /host/build/data/templates/basic.tar \
     -C "$tree/MountinFixtureData" --strip-components=1
 fixture_log=$tree/MountinFixtureImage.log
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
-    aiwnios -F -d -t "$tree" -c MountinBuildFixtureImage.HC |
-    tee "$fixture_log"
-grep -q '^MOUNTIN: fixture boot image complete$' "$fixture_log"
-rm "$fixture_log"
-mkdir -p "${fixture_output%/*}"
-cp "$tree/Tmp/MountinFixture.ISO.C" "$fixture_output"
-truncate -s %2048 "$fixture_output"
+for filesystem in redsea fat32; do
+    fixture_output=/host/build/guest/x86_64-templeos/5.03/fixture/$filesystem/templeos.iso
+    cp "/build/fixture-$filesystem-once.HC" "$tree/MountinFixtureOnce.HC"
+    SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
+        aiwnios -F -d -t "$tree" -c MountinBuildFixtureImage.HC |
+        tee "$fixture_log"
+    grep -q '^MOUNTIN: fixture boot image complete$' "$fixture_log"
+    rm "$fixture_log"
+    mkdir -p "${fixture_output%/*}"
+    cp "$tree/Tmp/MountinFixture.ISO.C" "$fixture_output"
+    truncate -s %2048 "$fixture_output"
+done

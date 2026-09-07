@@ -2,7 +2,7 @@
 format: pt/mbr
 requires:
   - docker:builder/disk/guest
-  - guest/x86_64-templeos/5.03/fixture/templeos.iso
+  - guest/x86_64-templeos/5.03/fixture/redsea/templeos.iso
 provides:
   - data/pt/templeos-redsea.mbr
 ---

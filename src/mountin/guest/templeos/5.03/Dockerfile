@@ -2,6 +2,7 @@ FROM builder/compiler/templeos/5.03
 
 COPY --chmod=755 build.sh /build/build.sh
 COPY build-compiler.HC build-distro.HC build-image.HC build-kernel.HC \
-    fixture-image.HC fixture-once.HC kernel-config.HC kernel-source.HC \
+    fixture-image.HC fixture-fat32-once.HC fixture-redsea-once.HC \
+    kernel-config.HC kernel-source.HC \
     mountin-appliance.HC mountin-once.HC package-distro.HC /build/
 ENTRYPOINT ["/build/build.sh"]

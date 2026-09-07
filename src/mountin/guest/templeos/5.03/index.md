@@ -9,7 +9,8 @@ output_platforms:
       - data/templates/basic.tar
     provides:
       - guest/x86_64-templeos/5.03/templeos.iso
-      - guest/x86_64-templeos/5.03/fixture/templeos.iso
+      - guest/x86_64-templeos/5.03/fixture/redsea/templeos.iso
+      - guest/x86_64-templeos/5.03/fixture/fat32/templeos.iso
 ---
 
 # TempleOS 5.03 guest components
