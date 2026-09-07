@@ -2,13 +2,12 @@
 set -eu
 
 tree=$MOUNTIN_CACHE_DIR/tree
-templeos_source=/opt/templeos/source
+templeos_source=/opt/mountin/source
 output=/host/build/guest/x86_64-templeos/5.03/templeos.iso
 
 if [ ! -d "$tree" ]; then
-    cp -a /opt/aiwnios/source "$tree"
+    cp -a /opt/mountin/build "$tree"
 fi
-cp -a "$templeos_source/." "$tree/"
 
 cp /build/build-distro.HC "$tree/MountinBuildDistro.HC"
 cp /build/build-compiler.HC "$tree/MountinBuildCompiler.HC"
