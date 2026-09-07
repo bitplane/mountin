@@ -177,13 +177,15 @@ jobs:
               --username "$GITHUB_ACTOR" --password-stdin
 
           manifest="$DESTINATION:$RELEASE"
-          podman manifest create \
-              --annotation "org.opencontainers.image.documentation=$DOCUMENTATION" \
-              "$manifest"
+          podman manifest create "$manifest"
           for digest_file in digests/digest-*; do
               digest=$(cat "$digest_file")
               podman manifest add "$manifest" \
                   "docker://$DESTINATION@$digest"
+              podman manifest annotate \
+                  --annotation \
+                      "org.opencontainers.image.documentation=$DOCUMENTATION" \
+                  "$manifest" "$digest"
           done
           podman manifest push --all "$manifest" "docker://$manifest"
 
@@ -199,8 +201,9 @@ jobs:
               (.manifests | length) == $expected
           ' <<<"$manifest" >/dev/null
           jq -e --arg documentation "$DOCUMENTATION" '
-              .annotations["org.opencontainers.image.documentation"] ==
-                  $documentation
+              all(.manifests[];
+                  .annotations["org.opencontainers.image.documentation"] ==
+                      $documentation)
           ' <<<"$manifest" >/dev/null
 
           for digest_file in digests/digest-*; do
