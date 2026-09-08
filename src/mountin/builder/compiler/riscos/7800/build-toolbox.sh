@@ -22,24 +22,28 @@ make_args=(
     GCC_CONFIG_ARGS='--enable-threads=posix --enable-sjlj-exceptions=no --enable-c99 --enable-cmath --disable-c-mbchar --disable-wchar_t --disable-libstdcxx-pch --disable-tls --enable-__cxa_atexit --enable-maintainer-mode --disable-werror --enable-interwork --disable-nls --disable-libquadmath --enable-checking=release --disable-multilib'
 )
 
+refresh_config_scripts() {
+    while IFS= read -r script; do
+        case "${script##*/}" in
+            *.guess) source=/usr/share/misc/config.guess ;;
+            *.sub) source=/usr/share/misc/config.sub ;;
+        esac
+        install -m 755 "$source" "$script"
+    done < <(find "$@" -type f \
+        \( -name config.guess -o -name config.sub \
+           -o -name configfsf.guess -o -name configfsf.sub \))
+}
+
 make "${make_args[@]}" src-automake-for-binutils-copied
-install -m 755 /usr/share/misc/config.guess /usr/share/misc/config.sub \
-    srcdir/automake-for-binutils/lib/
+refresh_config_scripts srcdir/automake-for-binutils
 make "${make_args[@]}" src-libtool-for-binutils-copied
+refresh_config_scripts srcdir/libtool-for-binutils
 make "${make_args[@]}" \
     src-binutils-copied \
     src-gcc-copied \
     src-gmp-copied \
     src-mpc-copied \
-    src-mpfr-copied \
-    src-newlib-copied
-while IFS= read -r script; do
-    case "${script##*/}" in
-        *.guess) source=/usr/share/misc/config.guess ;;
-        *.sub) source=/usr/share/misc/config.sub ;;
-    esac
-    install -m 755 "$source" "$script"
-done < <(find srcdir -type f \
-    \( -name config.guess -o -name config.sub \
-       -o -name configfsf.guess -o -name configfsf.sub \))
+    src-mpfr-copied
+refresh_config_scripts \
+    srcdir/binutils srcdir/gcc srcdir/gmp srcdir/mpc srcdir/mpfr
 make "${make_args[@]}" cross-gcc-built
