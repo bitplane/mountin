@@ -8,7 +8,7 @@ env:
   MOUNTIN_BUILDER: builder/compiler/illumos/2026-08-13/x86_64
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - sources/9d-0.7.3.tar.xz
+  - sources/9d-0.7.6.tar.xz
 ---
 
 # 9d for illumos
