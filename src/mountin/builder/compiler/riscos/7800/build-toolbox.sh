@@ -26,8 +26,20 @@ make "${make_args[@]}" src-automake-for-binutils-copied
 install -m 755 /usr/share/misc/config.guess /usr/share/misc/config.sub \
     srcdir/automake-for-binutils/lib/
 make "${make_args[@]}" src-libtool-for-binutils-copied
+make "${make_args[@]}" \
+    src-binutils-copied \
+    src-gcc-copied \
+    src-gmp-copied \
+    src-mpc-copied \
+    src-mpfr-copied \
+    src-newlib-copied
 while IFS= read -r script; do
-    install -m 755 "/usr/share/misc/${script##*/}" "$script"
-done < <(find srcdir/libtool-for-binutils -type f \
-    \( -name config.guess -o -name config.sub \))
+    case "${script##*/}" in
+        *.guess) source=/usr/share/misc/config.guess ;;
+        *.sub) source=/usr/share/misc/config.sub ;;
+    esac
+    install -m 755 "$source" "$script"
+done < <(find srcdir -type f \
+    \( -name config.guess -o -name config.sub \
+       -o -name configfsf.guess -o -name configfsf.sub \))
 make "${make_args[@]}" cross-gcc-built
