@@ -278,6 +278,29 @@ Default output selection follows architecture compatibility (`x86_64` also
 selects `i386`); `--output-arch` and `--output-platform` provide explicit
 selection without changing provider identity or buildability.
 
+### Fork maintenance
+
+Keep downstream changes in project forks, not as an accumulating patch stack
+inside Mountin:
+
+1. Develop and prove each independent change locally.
+2. Put upstreamable changes on independent `bugfix/` or `feature/` branches,
+   each based directly on the relevant upstream base rather than on one
+   another.
+3. Recreate the fork's `mountin` branch from that upstream base plus the
+   outstanding changes required by Mountin. Preserve the changes as separate,
+   reviewable commits.
+4. Build and test the composed branch before tagging it. Tags use
+   `mountin-YYYY-MM-DD`, are immutable, and identify the tested source used by
+   the catalogue.
+5. Point the source definition at that tag and remove equivalent local patches.
+   The source definition remains the single provenance record.
+
+When upstream advances, first update the fork's upstream branch, rebase the
+still-outstanding contribution branches independently, recreate `mountin`, and
+cut a new tag after testing. Delete remote contribution branches after their
+changes merge upstream; never move a published tag.
+
 ### Guest versions and build toolboxes
 
 Guest paths identify the upstream operating-system generation, because that is

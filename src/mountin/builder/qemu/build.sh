@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-QEMU_TARGETS="x86_64-softmmu,aarch64-softmmu,m68k-softmmu"
+QEMU_TARGETS="x86_64-softmmu,aarch64-softmmu,arm-softmmu,m68k-softmmu"
 MOUNTIN_BUILD_JOBS=${MOUNTIN_BUILD_JOBS:-$(nproc)}
 CACHE_DIR=${MOUNTIN_CACHE_DIR:?MOUNTIN_CACHE_DIR is required}
 
@@ -446,12 +446,12 @@ build_qemu_for_target() {
 
     echo "=== Building QEMU for $TARGET ==="
 
-    local QEMU_SOURCE=$CACHE_DIR/qemu-10.2.0
+    local QEMU_SOURCE=$CACHE_DIR/qemu-10.2.3
     if [ ! -d "$QEMU_SOURCE" ]; then
-        local QEMU_TEMP=$CACHE_DIR/.qemu-10.2.0.tmp.$$
+        local QEMU_TEMP=$CACHE_DIR/.qemu-10.2.3.tmp.$$
         rm -rf "$QEMU_TEMP"
         mkdir -p "$QEMU_TEMP"
-        tar --no-same-owner -xf /host/build/sources/qemu-10.2.0.tar.xz \
+        tar --no-same-owner -xf /host/build/sources/qemu-10.2.3.tar.gz \
             -C "$QEMU_TEMP" --strip-components=1
         mv "$QEMU_TEMP" "$QEMU_SOURCE"
     fi
@@ -498,6 +498,7 @@ build_qemu_for_target() {
     ninja -C build -j$MOUNTIN_BUILD_JOBS \
         "qemu-system-x86_64$SUFFIX$EXT" \
         "qemu-system-aarch64$SUFFIX$EXT" \
+        "qemu-system-arm$SUFFIX$EXT" \
         "qemu-system-m68k$SUFFIX$EXT"
 
     # Copy outputs. On macOS, QEMU's meson build produces *-unsigned
@@ -506,6 +507,7 @@ build_qemu_for_target() {
     # on their mac, or run via `xattr -d com.apple.quarantine`.
     cp build/qemu-system-x86_64$SUFFIX$EXT $OUTDIR/qemu-system-x86_64$EXT
     cp build/qemu-system-aarch64$SUFFIX$EXT $OUTDIR/qemu-system-aarch64$EXT
+    cp build/qemu-system-arm$SUFFIX$EXT $OUTDIR/qemu-system-arm$EXT
     cp build/qemu-system-m68k$SUFFIX$EXT $OUTDIR/qemu-system-m68k$EXT
 
     # Strip binaries

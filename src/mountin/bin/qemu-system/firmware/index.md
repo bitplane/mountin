@@ -4,7 +4,7 @@ env:
   MOUNTIN_BUILDER: builder/disk/debian
 requires:
   - docker:builder/disk/debian
-  - sources/qemu-10.2.0.tar.xz
+  - sources/qemu-10.2.3.tar.gz
 provides:
   - bin/qemu-system/firmware/bios-256k.bin
   - bin/qemu-system/firmware/linuxboot_dma.bin

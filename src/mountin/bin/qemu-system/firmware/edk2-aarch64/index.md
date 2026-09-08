@@ -1,7 +1,7 @@
 ---
 title: QEMU AArch64 UEFI Firmware
 requires:
-  - sources/qemu-10.2.0.tar.xz
+  - sources/qemu-10.2.3.tar.gz
 provides:
   - bin/qemu-system/firmware/edk2-aarch64-code.fd
 build_platforms:
