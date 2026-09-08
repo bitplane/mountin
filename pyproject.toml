@@ -1,7 +1,7 @@
 [project]
 name = "mountin"
 description = "Mount anything"
-version = "0.1.3"
+version = "0.1.4"
 authors = [
     { name = "Gareth Davidson", email = "gaz@bitplane.net" }
 ]
