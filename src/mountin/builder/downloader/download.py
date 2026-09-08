@@ -10,6 +10,7 @@ Supports:
   then export as a tarball
 - git-full+git://...#ref: fetch from a server without shallow-clone support,
   then export the checked-out tree without repository history
+- svn+svn://...#revision: export an immutable Subversion revision as a tarball
 """
 
 import json
@@ -146,8 +147,46 @@ def clone_repo(url: str, dest: Path, *, shallow: bool = True) -> bool:
     return True
 
 
+def export_svn(url: str, dest: Path) -> bool:
+    """Export a pinned Subversion directory and package it as a tarball."""
+    if "#" not in url:
+        log.warning("Subversion URL missing #revision: %s", url)
+        return False
+
+    repo_url, revision = url[len("svn+") :].rsplit("#", 1)
+    if not revision.isdecimal():
+        log.warning("Invalid Subversion revision: %s", revision)
+        return False
+
+    repo_name = repo_url.rstrip("/").rsplit("/", 1)[-1]
+    export_name = f"{repo_name}-r{revision}"
+    log.info("Exporting: %s @ r%s", repo_url, revision)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        export_dir = Path(tmpdir) / export_name
+        result = subprocess.run(
+            ["svn", "export", "--quiet", "-r", revision, repo_url, export_dir],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            log.warning("Subversion export failed: %s", result.stderr.strip())
+            return False
+
+        log.info("Creating tarball: %s", dest)
+        with temporary_output(dest) as tmp:
+            with tarfile.open(tmp, "w:gz") as tar:
+                tar.add(export_dir, arcname=export_name)
+            tmp.replace(dest)
+
+    log.info("OK: %s", dest)
+    return True
+
+
 def fetch(url: str, dest: Path) -> bool:
     """Fetch from URL - dispatches to appropriate handler."""
+    if url.startswith("svn+"):
+        return export_svn(url, dest)
     if url.startswith("git-full+"):
         return clone_repo(url, dest, shallow=False)
     if url.startswith("git+"):

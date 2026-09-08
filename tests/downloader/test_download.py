@@ -1,7 +1,7 @@
 import subprocess
 import tarfile
 
-from mountin.builder.downloader.download import clone_repo, temporary_output
+from mountin.builder.downloader.download import clone_repo, export_svn, temporary_output
 
 
 def test_temporary_outputs_are_unique(tmp_path):
@@ -113,3 +113,21 @@ def test_full_clone_exports_tree_without_repository_history(tmp_path):
         names = archive.getnames()
         assert f"repository-{commit}/content.txt" in names
         assert not any("/.git" in name for name in names)
+
+
+def test_svn_export_publishes_pinned_revision(tmp_path):
+    repository = tmp_path / "repository"
+    import_tree = tmp_path / "import"
+    destination = tmp_path / "output" / "source.tar.gz"
+    import_tree.mkdir()
+    (import_tree / "content.txt").write_text("complete\n")
+    subprocess.run(["svnadmin", "create", repository], check=True)
+    subprocess.run(
+        ["svn", "import", "-q", "-m", "fixture", import_tree, repository.as_uri()],
+        check=True,
+    )
+
+    assert export_svn(f"svn+{repository.as_uri()}#1", destination)
+
+    with tarfile.open(destination, "r:gz") as archive:
+        assert "repository-r1/content.txt" in archive.getnames()
