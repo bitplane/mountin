@@ -296,10 +296,21 @@ inside Mountin:
 5. Point the source definition at that tag and remove equivalent local patches.
    The source definition remains the single provenance record.
 
-When upstream advances, first update the fork's upstream branch, rebase the
-still-outstanding contribution branches independently, recreate `mountin`, and
-cut a new tag after testing. Delete remote contribution branches after their
-changes merge upstream; never move a published tag.
+For upstreams that use an email patch process (for example QEMU), each fix
+branch should contain a single self-contained commit based directly on the
+upstream development branch. Amend that commit during review rather than
+adding fixup commits. Keep independent fixes on separate branches.
+
+For each review iteration, synchronize the fork's upstream branch, rebase the
+contribution branches independently, and push rewritten branches with
+`--force-with-lease`. Recreate `mountin` from that same base plus the reviewed
+commits. Use a new date tag after validation (`-2`, `-3`, etc. for further
+releases that day); earlier tags retain the earlier compositions.
+Delete remote contribution branches after their changes merge upstream;
+never move a published tag.
+
+Keep original author attribution and patch provenance when adapting another
+project's changes. Do not add someone else's sign-off on their behalf.
 
 ### Guest versions and build toolboxes
 
