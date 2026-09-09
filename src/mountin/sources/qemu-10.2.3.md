@@ -1,7 +1,7 @@
 ---
 title: QEMU 10.2.3
 urls:
-  - git+https://github.com/bitplane/qemu.git#mountin-2026-09-09
+  - git+https://github.com/bitplane/qemu.git#mountin-2026-09-09-2
 provides:
   - sources/qemu-10.2.3.tar.gz
 ---
