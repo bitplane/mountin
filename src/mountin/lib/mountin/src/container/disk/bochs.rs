@@ -74,8 +74,7 @@ impl BochsReader {
         }
 
         // Parse header fields (little-endian)
-        let version =
-            u32::from_le_bytes([header[64], header[65], header[66], header[67]]);
+        let version = u32::from_le_bytes([header[64], header[65], header[66], header[67]]);
         let header_size =
             u32::from_le_bytes([header[68], header[69], header[70], header[71]]) as u64;
         let catalog_size =
@@ -90,13 +89,13 @@ impl BochsReader {
         // v2 (0x00020000): disk_size at offset 88 (4-byte reserved before it)
         let disk_size = if version == 0x00010000 {
             u64::from_le_bytes([
-                header[84], header[85], header[86], header[87],
-                header[88], header[89], header[90], header[91],
+                header[84], header[85], header[86], header[87], header[88], header[89], header[90],
+                header[91],
             ])
         } else {
             u64::from_le_bytes([
-                header[88], header[89], header[90], header[91],
-                header[92], header[93], header[94], header[95],
+                header[88], header[89], header[90], header[91], header[92], header[93], header[94],
+                header[95],
             ])
         };
 
@@ -186,10 +185,8 @@ impl Reader for BochsReader {
         // Slot size = bitmap_size + extent_size
         let slot_size = self.bitmap_size + self.extent_size;
 
-        let physical_offset = self.data_offset
-            + (catalog_entry as u64 * slot_size)
-            + self.bitmap_size
-            + in_extent;
+        let physical_offset =
+            self.data_offset + (catalog_entry as u64 * slot_size) + self.bitmap_size + in_extent;
 
         self.parent.read_at(physical_offset, &mut buf[..to_read])
     }

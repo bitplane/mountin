@@ -65,7 +65,13 @@ impl Container for AtariContainer {
 
         // ICD partitions only processed if no XGM extended partitions exist
         if !has_xgm {
-            parse_icd_partitions(&*reader, &reader, hd_siz, &mut children, &mut partition_index)?;
+            parse_icd_partitions(
+                &*reader,
+                &reader,
+                hd_siz,
+                &mut children,
+                &mut partition_index,
+            )?;
         }
 
         Ok(children)
@@ -102,7 +108,12 @@ fn read_partition_entry(reader: &dyn Reader, offset: u64) -> io::Result<Partitio
     }
     let start = read_be32(reader, offset + 4)?;
     let size = read_be32(reader, offset + 8)?;
-    Ok(PartitionEntry { flags, id, start, size })
+    Ok(PartitionEntry {
+        flags,
+        id,
+        start,
+        size,
+    })
 }
 
 /// Add a partition as a child
@@ -185,7 +196,7 @@ fn parse_icd_partitions(
 ) -> io::Result<()> {
     // Check if first ICD partition has a valid type ID
     let first_entry = read_partition_entry(reader, ICD_TABLE_OFFSET)?;
-    if !ICD_VALID_IDS.iter().any(|&valid| &first_entry.id == valid) {
+    if !ICD_VALID_IDS.contains(&&first_entry.id) {
         return Ok(());
     }
 

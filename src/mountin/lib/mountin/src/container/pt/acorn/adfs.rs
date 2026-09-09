@@ -35,16 +35,12 @@ impl Container for AdfsContainer {
         }
 
         // Parse disc record
-        let dr = DiscRecord::parse(&boot).ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "invalid disc record")
-        })?;
+        let dr = DiscRecord::parse(&boot)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "invalid disc record"))?;
 
         // Disc must have non-zero size
         if dr.disc_size == 0 && dr.disc_size_high == 0 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "zero disc size",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "zero disc size"));
         }
 
         // Primary ADFS partition
@@ -117,13 +113,17 @@ fn parse_riscix(
         children.push(Child {
             index: 1,
             offset: start,
-            reader: Arc::new(SliceReader::new(Arc::clone(reader), start, u64::MAX - start)),
+            reader: Arc::new(SliceReader::new(
+                Arc::clone(reader),
+                start,
+                u64::MAX - start,
+            )),
         });
         return Ok(());
     }
 
     // First 2 sectors are boot area
-    let boot_size = 2.min(1) * SECTOR_SIZE; // At least 2 sectors for boot
+    let boot_size = 2 * SECTOR_SIZE;
     children.push(Child {
         index: 1,
         offset: start_sect * SECTOR_SIZE,
@@ -158,7 +158,11 @@ fn parse_riscix(
             children.push(Child {
                 index: slot,
                 offset: start_bytes,
-                reader: Arc::new(SliceReader::new(Arc::clone(reader), start_bytes, length_bytes)),
+                reader: Arc::new(SliceReader::new(
+                    Arc::clone(reader),
+                    start_bytes,
+                    length_bytes,
+                )),
             });
             slot += 1;
         }

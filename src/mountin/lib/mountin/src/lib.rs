@@ -20,7 +20,9 @@ struct FileReader {
 
 impl Reader for FileReader {
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
-        let mut file = self.file.lock()
+        let mut file = self
+            .file
+            .lock()
             .map_err(|_| io::Error::other("file reader lock poisoned"))?;
         file.seek(SeekFrom::Start(offset))?;
         file.read(buf)
@@ -51,6 +53,7 @@ pub type DetectTreeCallback =
 
 /// Load the compiled format catalogue used by subsequent detection calls.
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn mountin_load_catalogue(path: *const c_char) -> bool {
     let result = catch_unwind(AssertUnwindSafe(|| {
         if path.is_null() {
@@ -79,11 +82,7 @@ pub extern "C" fn mountin_detect_tree(
     }));
 }
 
-fn detect_tree_ffi(
-    path: *const c_char,
-    callback: DetectTreeCallback,
-    userdata: *mut c_void,
-) {
+fn detect_tree_ffi(path: *const c_char, callback: DetectTreeCallback, userdata: *mut c_void) {
     if path.is_null() {
         return;
     }

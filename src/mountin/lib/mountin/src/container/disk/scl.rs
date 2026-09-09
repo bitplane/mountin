@@ -163,7 +163,7 @@ mod tests {
         assert_eq!(trd[sys + 0xE3], DISK_TYPE_DS80);
         assert_eq!(trd[sys + 0xE7], TRDOS_ID);
         assert_eq!(trd[sys + 0xE4], 2); // file count
-        // two sectors used -> 2542 free
+                                        // two sectors used -> 2542 free
         let free = u16::from_le_bytes([trd[sys + 0xE5], trd[sys + 0xE6]]);
         assert_eq!(free as usize, FREE_SECTORS_TOTAL - 2);
         // first free is track 1, sector 2
@@ -178,7 +178,7 @@ mod tests {
         assert_eq!(&trd[0..8], b"FIRST   ");
         assert_eq!(trd[14], 0); // start sector
         assert_eq!(trd[15], 1); // start track
-        // file data laid down at track 1 sector 0 and sector 1
+                                // file data laid down at track 1 sector 0 and sector 1
         let base = DATA_START_SECTOR * SECTOR;
         assert_eq!(trd[base], 0xAA);
         assert_eq!(trd[base + SECTOR], 0xBB);

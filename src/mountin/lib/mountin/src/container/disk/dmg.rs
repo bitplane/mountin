@@ -92,16 +92,34 @@ impl DmgReader {
 
         // Parse koly trailer (big-endian)
         let data_fork_offset = u64::from_be_bytes([
-            trailer[0x18], trailer[0x19], trailer[0x1a], trailer[0x1b],
-            trailer[0x1c], trailer[0x1d], trailer[0x1e], trailer[0x1f],
+            trailer[0x18],
+            trailer[0x19],
+            trailer[0x1a],
+            trailer[0x1b],
+            trailer[0x1c],
+            trailer[0x1d],
+            trailer[0x1e],
+            trailer[0x1f],
         ]);
         let xml_offset = u64::from_be_bytes([
-            trailer[0xd8], trailer[0xd9], trailer[0xda], trailer[0xdb],
-            trailer[0xdc], trailer[0xdd], trailer[0xde], trailer[0xdf],
+            trailer[0xd8],
+            trailer[0xd9],
+            trailer[0xda],
+            trailer[0xdb],
+            trailer[0xdc],
+            trailer[0xdd],
+            trailer[0xde],
+            trailer[0xdf],
         ]);
         let xml_length = u64::from_be_bytes([
-            trailer[0xe0], trailer[0xe1], trailer[0xe2], trailer[0xe3],
-            trailer[0xe4], trailer[0xe5], trailer[0xe6], trailer[0xe7],
+            trailer[0xe0],
+            trailer[0xe1],
+            trailer[0xe2],
+            trailer[0xe3],
+            trailer[0xe4],
+            trailer[0xe5],
+            trailer[0xe6],
+            trailer[0xe7],
         ]);
 
         // Read XML plist
@@ -126,7 +144,8 @@ impl DmgReader {
 
         // Calculate virtual size
         let virtual_size = chunks.iter().try_fold(0u64, |size, chunk| {
-            let end = chunk.sector_start
+            let end = chunk
+                .sector_start
                 .checked_add(chunk.sector_count)
                 .and_then(|sectors| sectors.checked_mul(512))
                 .ok_or_else(|| invalid_data("DMG virtual size overflow"))?;
@@ -172,10 +191,7 @@ impl DmgReader {
         Ok(size - 512)
     }
 
-    fn parse_plist_blkx(
-        xml: &str,
-        data_fork_offset: u64,
-    ) -> io::Result<Vec<DmgChunk>> {
+    fn parse_plist_blkx(xml: &str, data_fork_offset: u64) -> io::Result<Vec<DmgChunk>> {
         let mut chunks = Vec::new();
         let mut pos = 0;
 
@@ -192,7 +208,9 @@ impl DmgReader {
                     // Decode base64
                     if let Ok(mish_data) = Self::decode_base64(base64_data) {
                         // Parse MISH block
-                        if let Ok(mut block_chunks) = Self::parse_mish_block(&mish_data, data_fork_offset) {
+                        if let Ok(mut block_chunks) =
+                            Self::parse_mish_block(&mish_data, data_fork_offset)
+                        {
                             chunks.append(&mut block_chunks);
                         }
                     }
@@ -231,10 +249,7 @@ impl DmgReader {
             } else if byte.is_ascii_whitespace() {
                 continue;
             } else {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "invalid base64",
-                ));
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid base64"));
             };
 
             accum = (accum << 6) | val;
@@ -269,8 +284,7 @@ impl DmgReader {
 
         // Get block's base sector offset
         let block_sector_start = u64::from_be_bytes([
-            data[8], data[9], data[10], data[11],
-            data[12], data[13], data[14], data[15],
+            data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
         ]);
 
         // Chunk entries start at offset 204
@@ -279,7 +293,10 @@ impl DmgReader {
 
         while offset + 40 <= data.len() {
             let chunk_type = u32::from_be_bytes([
-                data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+                data[offset],
+                data[offset + 1],
+                data[offset + 2],
+                data[offset + 3],
             ]);
 
             // Skip comment and check for last entry
@@ -292,20 +309,44 @@ impl DmgReader {
             }
 
             let sector_number = u64::from_be_bytes([
-                data[offset + 8], data[offset + 9], data[offset + 10], data[offset + 11],
-                data[offset + 12], data[offset + 13], data[offset + 14], data[offset + 15],
+                data[offset + 8],
+                data[offset + 9],
+                data[offset + 10],
+                data[offset + 11],
+                data[offset + 12],
+                data[offset + 13],
+                data[offset + 14],
+                data[offset + 15],
             ]);
             let sector_count = u64::from_be_bytes([
-                data[offset + 16], data[offset + 17], data[offset + 18], data[offset + 19],
-                data[offset + 20], data[offset + 21], data[offset + 22], data[offset + 23],
+                data[offset + 16],
+                data[offset + 17],
+                data[offset + 18],
+                data[offset + 19],
+                data[offset + 20],
+                data[offset + 21],
+                data[offset + 22],
+                data[offset + 23],
             ]);
             let compressed_offset = u64::from_be_bytes([
-                data[offset + 24], data[offset + 25], data[offset + 26], data[offset + 27],
-                data[offset + 28], data[offset + 29], data[offset + 30], data[offset + 31],
+                data[offset + 24],
+                data[offset + 25],
+                data[offset + 26],
+                data[offset + 27],
+                data[offset + 28],
+                data[offset + 29],
+                data[offset + 30],
+                data[offset + 31],
             ]);
             let compressed_length = u64::from_be_bytes([
-                data[offset + 32], data[offset + 33], data[offset + 34], data[offset + 35],
-                data[offset + 36], data[offset + 37], data[offset + 38], data[offset + 39],
+                data[offset + 32],
+                data[offset + 33],
+                data[offset + 34],
+                data[offset + 35],
+                data[offset + 36],
+                data[offset + 37],
+                data[offset + 38],
+                data[offset + 39],
             ]);
 
             // Only add chunks with actual data
@@ -336,7 +377,9 @@ impl DmgReader {
 
     fn find_chunk(&self, sector: u64) -> Option<&DmgChunk> {
         // Binary search for chunk containing this sector
-        let idx = self.chunks.partition_point(|c| c.sector_start + c.sector_count <= sector);
+        let idx = self
+            .chunks
+            .partition_point(|c| c.sector_start + c.sector_count <= sector);
 
         if idx < self.chunks.len() {
             let chunk = &self.chunks[idx];
@@ -349,7 +392,8 @@ impl DmgReader {
     }
 
     fn decompress_chunk(&self, chunk: &DmgChunk) -> io::Result<Vec<u8>> {
-        let uncompressed_size = chunk.sector_count
+        let uncompressed_size = chunk
+            .sector_count
             .checked_mul(512)
             .filter(|&size| size <= MAX_CHUNK_SIZE)
             .and_then(|size| usize::try_from(size).ok())
@@ -363,7 +407,8 @@ impl DmgReader {
             _ => 0,
         };
         if source_size != 0 {
-            let source_end = chunk.compressed_offset
+            let source_end = chunk
+                .compressed_offset
                 .checked_add(source_size as u64)
                 .ok_or_else(|| invalid_data("DMG chunk offset overflow"))?;
             if self.parent.size().is_some_and(|size| source_end > size) {
@@ -378,8 +423,15 @@ impl DmgReader {
             UDZO => {
                 // zlib
                 let mut compressed = vec![0u8; source_size];
-                if self.parent.read_at(chunk.compressed_offset, &mut compressed)? != source_size {
-                    return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short DMG zlib chunk read"));
+                if self
+                    .parent
+                    .read_at(chunk.compressed_offset, &mut compressed)?
+                    != source_size
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "short DMG zlib chunk read",
+                    ));
                 }
 
                 let mut decoder = ZlibDecoder::new(&compressed[..]);
@@ -390,8 +442,15 @@ impl DmgReader {
             UDBZ => {
                 // bzip2
                 let mut compressed = vec![0u8; source_size];
-                if self.parent.read_at(chunk.compressed_offset, &mut compressed)? != source_size {
-                    return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short DMG bzip2 chunk read"));
+                if self
+                    .parent
+                    .read_at(chunk.compressed_offset, &mut compressed)?
+                    != source_size
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "short DMG bzip2 chunk read",
+                    ));
                 }
 
                 let mut decoder = BzDecoder::new(&compressed[..]);
@@ -402,13 +461,22 @@ impl DmgReader {
             ULFO => {
                 // lzfse
                 let mut compressed = vec![0u8; source_size];
-                if self.parent.read_at(chunk.compressed_offset, &mut compressed)? != source_size {
-                    return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short DMG lzfse chunk read"));
+                if self
+                    .parent
+                    .read_at(chunk.compressed_offset, &mut compressed)?
+                    != source_size
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "short DMG lzfse chunk read",
+                    ));
                 }
 
                 let mut decompressed = vec![0u8; uncompressed_size];
-                let decoded_len = lzfse::decode_buffer(&compressed, &mut decompressed)
-                    .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "lzfse decode error"))?;
+                let decoded_len =
+                    lzfse::decode_buffer(&compressed, &mut decompressed).map_err(|_| {
+                        io::Error::new(io::ErrorKind::InvalidData, "lzfse decode error")
+                    })?;
 
                 if decoded_len < uncompressed_size {
                     return Err(io::Error::new(
@@ -457,18 +525,21 @@ impl Reader for DmgReader {
         match chunk.chunk_type {
             UDZE | UDIG | COMMENT => buf[..to_read].fill(0),
             UDRW => {
-                let physical = chunk.compressed_offset
+                let physical = chunk
+                    .compressed_offset
                     .checked_add(chunk_byte_offset)
                     .ok_or_else(|| invalid_data("DMG raw chunk offset overflow"))?;
                 if self.parent.read_at(physical, &mut buf[..to_read])? != to_read {
-                    return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short DMG raw chunk read"));
+                    return Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "short DMG raw chunk read",
+                    ));
                 }
             }
             _ => {
                 let decompressed = self.decompress_chunk(&chunk)?;
-                buf[..to_read].copy_from_slice(
-                    &decompressed[chunk_byte_offset as usize..][..to_read],
-                );
+                buf[..to_read]
+                    .copy_from_slice(&decompressed[chunk_byte_offset as usize..][..to_read]);
             }
         }
 

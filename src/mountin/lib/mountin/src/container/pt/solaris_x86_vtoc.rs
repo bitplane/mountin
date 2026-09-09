@@ -27,9 +27,7 @@ impl Container for SolarisX86VtocContainer {
         {
             return Err(invalid_data("invalid Solaris x86 VTOC label"));
         }
-        if read_le16(&*reader, LABEL_OFFSET + PARTITION_COUNT_OFFSET)? as usize
-            != VTOC_PARTITIONS
-        {
+        if read_le16(&*reader, LABEL_OFFSET + PARTITION_COUNT_OFFSET)? as usize != VTOC_PARTITIONS {
             return Err(invalid_data("invalid Solaris x86 VTOC slice count"));
         }
 
@@ -129,4 +127,3 @@ mod tests {
         assert!(SOLARIS_X86_VTOC.children(bytes).is_err());
     }
 }
-

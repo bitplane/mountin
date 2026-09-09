@@ -13,7 +13,11 @@ pub struct SliceReader {
 
 impl SliceReader {
     pub fn new(parent: Arc<dyn Reader + Send + Sync>, offset: u64, length: u64) -> Self {
-        Self { parent, offset, length }
+        Self {
+            parent,
+            offset,
+            length,
+        }
     }
 }
 
@@ -24,7 +28,8 @@ impl Reader for SliceReader {
         }
         let available = (self.length - offset) as usize;
         let to_read = buf.len().min(available);
-        self.parent.read_at(self.offset + offset, &mut buf[..to_read])
+        self.parent
+            .read_at(self.offset + offset, &mut buf[..to_read])
     }
 
     fn size(&self) -> Option<u64> {

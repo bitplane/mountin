@@ -41,9 +41,7 @@ impl Container for VmdkContainer {
 /// VMDK variant-specific data
 enum VmdkVariant {
     /// VMDK3 (COWD) - single-level lookup
-    Vmdk3 {
-        l1_table: Vec<u32>,
-    },
+    Vmdk3 { l1_table: Vec<u32> },
     /// VMDK4 (KDMV) - two-level GD/GT
     Vmdk4 {
         gd: Vec<u32>,
@@ -51,15 +49,9 @@ enum VmdkVariant {
         has_zero_grain: bool,
     },
     /// VMDK4 stream-optimized (compressed)
-    Vmdk4Compressed {
-        gd: Vec<u32>,
-        num_gtes_per_gt: u32,
-    },
+    Vmdk4Compressed { gd: Vec<u32>, num_gtes_per_gt: u32 },
     /// seSparse (ESXi)
-    SeSparse {
-        gd: Vec<u64>,
-        gt_size: u64,
-    },
+    SeSparse { gd: Vec<u64>, gt_size: u64 },
 }
 
 /// Reader that translates virtual disk offsets through VMDK structures
@@ -142,9 +134,7 @@ impl VmdkReader {
 
         Ok(Self {
             parent,
-            variant: VmdkVariant::Vmdk3 {
-                l1_table,
-            },
+            variant: VmdkVariant::Vmdk3 { l1_table },
             grain_size,
             virtual_size,
         })
@@ -209,7 +199,10 @@ impl VmdkReader {
             .collect();
 
         let variant = if is_compressed {
-            VmdkVariant::Vmdk4Compressed { gd, num_gtes_per_gt }
+            VmdkVariant::Vmdk4Compressed {
+                gd,
+                num_gtes_per_gt,
+            }
         } else {
             VmdkVariant::Vmdk4 {
                 gd,
@@ -268,9 +261,7 @@ impl VmdkReader {
 
         let gd: Vec<u64> = gd_data[..actual_entries * 8]
             .chunks_exact(8)
-            .map(|c| {
-                u64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]])
-            })
+            .map(|c| u64::from_le_bytes([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]))
             .collect();
 
         Ok(Self {
@@ -396,7 +387,10 @@ impl Reader for VmdkReader {
                 self.parent.read_at(physical, &mut buf[..to_read])
             }
 
-            VmdkVariant::Vmdk4Compressed { gd, num_gtes_per_gt } => {
+            VmdkVariant::Vmdk4Compressed {
+                gd,
+                num_gtes_per_gt,
+            } => {
                 let gd_idx = grain_idx / *num_gtes_per_gt as u64;
                 let gt_idx = grain_idx % *num_gtes_per_gt as u64;
 

@@ -61,11 +61,9 @@ impl VdiReader {
 
         // Parse header fields (little-endian)
         let offset_bmap =
-            u32::from_le_bytes([header[0x154], header[0x155], header[0x156], header[0x157]])
-                as u64;
+            u32::from_le_bytes([header[0x154], header[0x155], header[0x156], header[0x157]]) as u64;
         let offset_data =
-            u32::from_le_bytes([header[0x158], header[0x159], header[0x15a], header[0x15b]])
-                as u64;
+            u32::from_le_bytes([header[0x158], header[0x159], header[0x15a], header[0x15b]]) as u64;
         let disk_size = u64::from_le_bytes([
             header[0x170],
             header[0x171],
@@ -77,8 +75,7 @@ impl VdiReader {
             header[0x177],
         ]);
         let block_size =
-            u32::from_le_bytes([header[0x178], header[0x179], header[0x17a], header[0x17b]])
-                as u64;
+            u32::from_le_bytes([header[0x178], header[0x179], header[0x17a], header[0x17b]]) as u64;
         let blocks_in_image =
             u32::from_le_bytes([header[0x180], header[0x181], header[0x182], header[0x183]])
                 as usize;

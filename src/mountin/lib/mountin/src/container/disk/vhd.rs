@@ -73,12 +73,24 @@ impl VhdReader {
 
         // Parse footer (big-endian)
         let data_offset = u64::from_be_bytes([
-            footer[0x10], footer[0x11], footer[0x12], footer[0x13],
-            footer[0x14], footer[0x15], footer[0x16], footer[0x17],
+            footer[0x10],
+            footer[0x11],
+            footer[0x12],
+            footer[0x13],
+            footer[0x14],
+            footer[0x15],
+            footer[0x16],
+            footer[0x17],
         ]);
         let virtual_size = u64::from_be_bytes([
-            footer[0x30], footer[0x31], footer[0x32], footer[0x33],
-            footer[0x34], footer[0x35], footer[0x36], footer[0x37],
+            footer[0x30],
+            footer[0x31],
+            footer[0x32],
+            footer[0x33],
+            footer[0x34],
+            footer[0x35],
+            footer[0x36],
+            footer[0x37],
         ]);
         let disk_type =
             u32::from_be_bytes([footer[0x3c], footer[0x3d], footer[0x3e], footer[0x3f]]);
@@ -109,14 +121,26 @@ impl VhdReader {
 
                 // Parse dynamic header (big-endian)
                 let table_offset = u64::from_be_bytes([
-                    dyn_header[0x10], dyn_header[0x11], dyn_header[0x12], dyn_header[0x13],
-                    dyn_header[0x14], dyn_header[0x15], dyn_header[0x16], dyn_header[0x17],
+                    dyn_header[0x10],
+                    dyn_header[0x11],
+                    dyn_header[0x12],
+                    dyn_header[0x13],
+                    dyn_header[0x14],
+                    dyn_header[0x15],
+                    dyn_header[0x16],
+                    dyn_header[0x17],
                 ]);
                 let max_table_entries = u32::from_be_bytes([
-                    dyn_header[0x1c], dyn_header[0x1d], dyn_header[0x1e], dyn_header[0x1f],
+                    dyn_header[0x1c],
+                    dyn_header[0x1d],
+                    dyn_header[0x1e],
+                    dyn_header[0x1f],
                 ]) as usize;
                 let block_size = u32::from_be_bytes([
-                    dyn_header[0x20], dyn_header[0x21], dyn_header[0x22], dyn_header[0x23],
+                    dyn_header[0x20],
+                    dyn_header[0x21],
+                    dyn_header[0x22],
+                    dyn_header[0x23],
                 ]) as u64;
 
                 if block_size == 0 {
@@ -127,7 +151,7 @@ impl VhdReader {
                 }
 
                 // Bitmap size = ceil(block_size / 512 / 8) rounded up to 512
-                let bitmap_size = (((block_size / 512) + 7) / 8 + 511) & !511;
+                let bitmap_size = ((block_size / 512).div_ceil(8) + 511) & !511;
 
                 // Read BAT
                 let bat_bytes = max_table_entries * 4;
@@ -144,7 +168,11 @@ impl VhdReader {
                     .map(|chunk| u32::from_be_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
                     .collect();
 
-                VhdVariant::Dynamic { bat, block_size, bitmap_size }
+                VhdVariant::Dynamic {
+                    bat,
+                    block_size,
+                    bitmap_size,
+                }
             }
             _ => {
                 return Err(io::Error::new(
@@ -176,7 +204,11 @@ impl Reader for VhdReader {
                 // Fixed VHD: direct passthrough, data at offset 0
                 self.parent.read_at(offset, &mut buf[..to_read])
             }
-            VhdVariant::Dynamic { bat, block_size, bitmap_size } => {
+            VhdVariant::Dynamic {
+                bat,
+                block_size,
+                bitmap_size,
+            } => {
                 let block_idx = (offset / block_size) as usize;
                 let in_block = offset % block_size;
 

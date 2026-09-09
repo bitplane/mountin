@@ -158,8 +158,7 @@ fn reconstruct(data: &[u8]) -> io::Result<Vec<u8>> {
 
     let mut img = vec![0u8; total_sectors * SECTOR_SIZE];
     for r in &recs {
-        let lba =
-            (r.track as usize * heads + r.head as usize) * spt + (r.sector as usize - 1);
+        let lba = (r.track as usize * heads + r.head as usize) * spt + (r.sector as usize - 1);
         let off = lba * SECTOR_SIZE;
         img[off..off + SECTOR_SIZE].copy_from_slice(&r.data);
     }
@@ -237,8 +236,8 @@ mod tests {
         let img = reconstruct(&sample()).unwrap();
         // heads=2, spt=2, tracks=1 -> 4 sectors
         assert_eq!(img.len(), 4 * SECTOR_SIZE);
-        assert_eq!(img[0 * SECTOR_SIZE], 0xAA);
-        assert_eq!(img[1 * SECTOR_SIZE], 0xBB); // RLE-expanded
+        assert_eq!(img[0], 0xAA);
+        assert_eq!(img[SECTOR_SIZE], 0xBB); // RLE-expanded
         assert_eq!(img[2 * SECTOR_SIZE], 0xCC);
         assert_eq!(img[3 * SECTOR_SIZE], 0xDD);
         // RLE sector is uniformly the fill byte

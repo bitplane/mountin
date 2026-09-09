@@ -44,7 +44,11 @@ impl Container for IcsContainer {
             }
 
             let mut actual_start = start;
-            let mut actual_size = if size < 0 { (-size) as u32 } else { size as u32 };
+            let mut actual_size = if size < 0 {
+                (-size) as u32
+            } else {
+                size as u32
+            };
 
             // Negative size indicates non-ADFS partition
             // Check if first sector contains "LinuxPart" marker

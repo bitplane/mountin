@@ -87,9 +87,9 @@ fn read_bytes(reader: &dyn Reader, offset: u64, buf: &mut [u8]) -> io::Result<()
 
 /// Parse CDI image and return list of tracks
 fn parse_cdi(reader: &dyn Reader) -> io::Result<Vec<Track>> {
-    let file_size = reader.size().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::Other, "cannot determine file size")
-    })?;
+    let file_size = reader
+        .size()
+        .ok_or_else(|| io::Error::other("cannot determine file size"))?;
 
     if file_size < 8 {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "file too small"));
@@ -100,14 +100,22 @@ fn parse_cdi(reader: &dyn Reader) -> io::Result<Vec<Track>> {
     let header_offset = read_u32_le(reader, file_size - 4)?;
 
     if header_offset == 0 {
-        return Err(io::Error::new(io::ErrorKind::InvalidData, "bad header offset"));
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "bad header offset",
+        ));
     }
 
     // Determine header position based on version
     let header_pos = match version {
         CDI_V35 => file_size - header_offset as u64,
         CDI_V2 | CDI_V3 => header_offset as u64,
-        _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "unknown CDI version")),
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "unknown CDI version",
+            ))
+        }
     };
 
     // Read session count
@@ -127,7 +135,8 @@ fn parse_cdi(reader: &dyn Reader) -> io::Result<Vec<Track>> {
             let (track, new_pos) = parse_track(reader, pos, version, data_pos, global_track)?;
 
             // Advance data position past this track's data
-            data_pos += (track.pregap_length as u64 + track.length as u64) * track.sector_size as u64;
+            data_pos +=
+                (track.pregap_length as u64 + track.length as u64) * track.sector_size as u64;
 
             tracks.push(track);
             pos = new_pos;

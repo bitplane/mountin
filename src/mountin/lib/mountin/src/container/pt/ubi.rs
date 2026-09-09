@@ -73,11 +73,7 @@ impl Container for UbiContainer {
             }
 
             // Create reader for this volume
-            let vol_reader = UbiVolumeReader::new(
-                Arc::clone(&reader),
-                leb_map.clone(),
-                leb_size,
-            );
+            let vol_reader = UbiVolumeReader::new(Arc::clone(&reader), leb_map.clone(), leb_size);
 
             children.push(Child {
                 index: *vol_id,
@@ -126,10 +122,7 @@ fn detect_peb_size(reader: &dyn Reader) -> io::Result<u64> {
 }
 
 /// Scan all PEBs and build volume -> LEB maps
-fn scan_pebs(
-    reader: &dyn Reader,
-    peb_size: u64,
-) -> io::Result<(BTreeMap<u32, LebMap>, u64, u64)> {
+fn scan_pebs(reader: &dyn Reader, peb_size: u64) -> io::Result<(BTreeMap<u32, LebMap>, u64, u64)> {
     let mut vol_maps: BTreeMap<u32, LebMap> = BTreeMap::new();
     let mut vid_hdr_offset = 0u64;
     let mut data_offset = 0u64;
@@ -173,7 +166,7 @@ fn scan_pebs(
         let data_size = read_be32(reader, vid_start + 0x14)? as u64;
 
         // Add to volume map (later PEBs overwrite earlier - usually newer)
-        let leb_map = vol_maps.entry(vol_id).or_insert_with(BTreeMap::new);
+        let leb_map = vol_maps.entry(vol_id).or_default();
         let abs_data_offset = peb_start + peb_data_offset;
         leb_map.insert(lnum, (abs_data_offset, data_size));
     }
@@ -212,7 +205,7 @@ fn read_volume_table(
     let records_per_leb = leb_size as usize / VTBL_RECORD_SIZE;
     let num_records = records_per_leb.min(MAX_VOLUMES);
 
-    for i in 0..num_records {
+    for (i, volume) in vtbl.iter_mut().enumerate().take(num_records) {
         let rec_offset = data_offset + (i * VTBL_RECORD_SIZE) as u64;
 
         // Read record
@@ -248,7 +241,7 @@ fn read_volume_table(
             String::new()
         };
 
-        vtbl[i] = Some(VolumeInfo {
+        *volume = Some(VolumeInfo {
             _name: name,
             _vol_type: vol_type,
             _reserved_pebs: reserved_pebs,
@@ -267,11 +260,7 @@ pub struct UbiVolumeReader {
 }
 
 impl UbiVolumeReader {
-    pub fn new(
-        parent: Arc<dyn Reader + Send + Sync>,
-        leb_map: LebMap,
-        leb_size: u64,
-    ) -> Self {
+    pub fn new(parent: Arc<dyn Reader + Send + Sync>, leb_map: LebMap, leb_size: u64) -> Self {
         // Calculate virtual size from highest LEB
         let virtual_size = leb_map
             .keys()
@@ -310,7 +299,8 @@ impl Reader for UbiVolumeReader {
         match self.leb_map.get(&leb_num) {
             Some(&(data_offset, _data_size)) => {
                 // Read from physical location
-                self.parent.read_at(data_offset + in_leb, &mut buf[..to_read])
+                self.parent
+                    .read_at(data_offset + in_leb, &mut buf[..to_read])
             }
             None => {
                 // Unmapped LEB - return zeros (sparse)

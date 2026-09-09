@@ -25,8 +25,12 @@ pub enum Detect {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Rule {
-    Any { any: Vec<Rule> },
-    All { all: Vec<Rule> },
+    Any {
+        any: Vec<Rule>,
+    },
+    All {
+        all: Vec<Rule>,
+    },
     Leaf {
         offset: i64,
         #[serde(rename = "type")]

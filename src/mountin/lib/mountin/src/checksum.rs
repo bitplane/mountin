@@ -128,6 +128,7 @@ mod tests {
         let mut data = [0u8; 512];
         data[0] = 0x60; // BRA.S
         data[1] = 0x38; // branch offset
+
         // Word at offset 0 = 0x6038
         // Need checksum word at 510 to be 0x1234 - 0x6038 = 0xB1FC
         let cksum: u16 = 0x1234u16.wrapping_sub(0x6038);

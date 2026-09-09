@@ -94,10 +94,7 @@ fn read_le32(reader: &dyn Reader, offset: u64) -> io::Result<u32> {
     let mut buf = [0u8; 4];
     let n = reader.read_at(offset, &mut buf)?;
     if n != 4 {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "short read",
-        ));
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short read"));
     }
     Ok(u32::from_le_bytes(buf))
 }
@@ -106,10 +103,7 @@ fn read_le64(reader: &dyn Reader, offset: u64) -> io::Result<u64> {
     let mut buf = [0u8; 8];
     let n = reader.read_at(offset, &mut buf)?;
     if n != 8 {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "short read",
-        ));
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short read"));
     }
     Ok(u64::from_le_bytes(buf))
 }

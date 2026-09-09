@@ -12,22 +12,18 @@ const VHDX_REGION_SIGNATURE: u32 = 0x69676572; // "regi"
 
 // Region GUIDs (little-endian)
 const BAT_GUID: [u8; 16] = [
-    0x66, 0x77, 0xC2, 0x2D, 0x23, 0xF6, 0x00, 0x42,
-    0x9D, 0x64, 0x11, 0x5E, 0x9B, 0xFD, 0x4A, 0x08,
+    0x66, 0x77, 0xC2, 0x2D, 0x23, 0xF6, 0x00, 0x42, 0x9D, 0x64, 0x11, 0x5E, 0x9B, 0xFD, 0x4A, 0x08,
 ];
 const METADATA_GUID: [u8; 16] = [
-    0x06, 0xA2, 0x7C, 0x8B, 0x90, 0x47, 0x9A, 0x4B,
-    0xB8, 0xFE, 0x57, 0x5F, 0x05, 0x0F, 0x88, 0x6E,
+    0x06, 0xA2, 0x7C, 0x8B, 0x90, 0x47, 0x9A, 0x4B, 0xB8, 0xFE, 0x57, 0x5F, 0x05, 0x0F, 0x88, 0x6E,
 ];
 
 // Metadata item GUIDs
 const VIRTUAL_DISK_SIZE_GUID: [u8; 16] = [
-    0x24, 0x42, 0xA5, 0x2F, 0x1B, 0xCD, 0x76, 0x48,
-    0xB2, 0x11, 0x5D, 0xBE, 0xD8, 0x3B, 0xF4, 0xB8,
+    0x24, 0x42, 0xA5, 0x2F, 0x1B, 0xCD, 0x76, 0x48, 0xB2, 0x11, 0x5D, 0xBE, 0xD8, 0x3B, 0xF4, 0xB8,
 ];
 const FILE_PARAMETERS_GUID: [u8; 16] = [
-    0x37, 0x67, 0xa1, 0xca, 0x36, 0xfa, 0x43, 0x4d,
-    0xb3, 0xb6, 0x33, 0xf0, 0xaa, 0x44, 0xe7, 0x6b,
+    0x37, 0x67, 0xa1, 0xca, 0x36, 0xfa, 0x43, 0x4d, 0xb3, 0xb6, 0x33, 0xf0, 0xaa, 0x44, 0xe7, 0x6b,
 ];
 
 // BAT entry masks
@@ -115,15 +111,15 @@ impl VhdxReader {
 
             let guid = &entry[0..16];
             let file_offset = u64::from_le_bytes([
-                entry[16], entry[17], entry[18], entry[19],
-                entry[20], entry[21], entry[22], entry[23],
+                entry[16], entry[17], entry[18], entry[19], entry[20], entry[21], entry[22],
+                entry[23],
             ]);
             let length = u32::from_le_bytes([entry[24], entry[25], entry[26], entry[27]]) as u64;
 
-            if guid == &BAT_GUID {
+            if guid == BAT_GUID {
                 bat_offset = file_offset;
                 bat_length = length;
-            } else if guid == &METADATA_GUID {
+            } else if guid == METADATA_GUID {
                 metadata_offset = file_offset;
             }
         }
@@ -148,8 +144,7 @@ impl VhdxReader {
             .chunks_exact(8)
             .map(|chunk| {
                 u64::from_le_bytes([
-                    chunk[0], chunk[1], chunk[2], chunk[3],
-                    chunk[4], chunk[5], chunk[6], chunk[7],
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
                 ])
             })
             .collect();
@@ -172,8 +167,7 @@ impl VhdxReader {
             ));
         }
 
-        let entry_count =
-            u16::from_le_bytes([header[10], header[11]]) as usize;
+        let entry_count = u16::from_le_bytes([header[10], header[11]]) as usize;
 
         let mut virtual_size = 0u64;
         let mut block_size = 0u32;
@@ -192,11 +186,11 @@ impl VhdxReader {
             let item_length =
                 u32::from_le_bytes([entry[20], entry[21], entry[22], entry[23]]) as usize;
 
-            if guid == &VIRTUAL_DISK_SIZE_GUID && item_length >= 8 {
+            if guid == VIRTUAL_DISK_SIZE_GUID && item_length >= 8 {
                 let mut buf = [0u8; 8];
                 parent.read_at(metadata_offset + item_offset, &mut buf)?;
                 virtual_size = u64::from_le_bytes(buf);
-            } else if guid == &FILE_PARAMETERS_GUID && item_length >= 8 {
+            } else if guid == FILE_PARAMETERS_GUID && item_length >= 8 {
                 let mut buf = [0u8; 8];
                 parent.read_at(metadata_offset + item_offset, &mut buf)?;
                 block_size = u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]]);

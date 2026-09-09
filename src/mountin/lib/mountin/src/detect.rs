@@ -27,6 +27,7 @@ fn resolve_offset(offset: i64, size: Option<u64>) -> Option<u64> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn matches_leaf<R, F>(
     reader: &R,
     offset: u64,
@@ -155,7 +156,11 @@ fn match_ascii_regex<R: Reader + ?Sized>(
     Some(re.is_match(s))
 }
 
-fn match_bytes_generic<R: Reader + ?Sized>(reader: &R, offset: u64, expected: &Value) -> Option<bool> {
+fn match_bytes_generic<R: Reader + ?Sized>(
+    reader: &R,
+    offset: u64,
+    expected: &Value,
+) -> Option<bool> {
     let expected_bytes = match expected {
         Value::Bytes(b) => b,
         _ => return None,
@@ -190,7 +195,10 @@ fn read_byte_generic<R: Reader + ?Sized>(reader: &R, offset: u64) -> Option<u8> 
     }
 }
 
-fn read_bytes_generic<R: Reader + ?Sized, const N: usize>(reader: &R, offset: u64) -> Option<[u8; N]> {
+fn read_bytes_generic<R: Reader + ?Sized, const N: usize>(
+    reader: &R,
+    offset: u64,
+) -> Option<[u8; N]> {
     let mut buf = [0u8; N];
     match reader.read_at(offset, &mut buf) {
         Ok(n) if n == N => Some(buf),
@@ -252,6 +260,7 @@ fn numeric_value(value: &Value) -> Option<u64> {
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
 
@@ -273,7 +282,12 @@ mod tests {
 }
 
 /// Match checksum validation rule
-fn match_checksum<R: Reader + ?Sized>(reader: &R, offset: u64, length: usize, algorithm: &str) -> bool {
+fn match_checksum<R: Reader + ?Sized>(
+    reader: &R,
+    offset: u64,
+    length: usize,
+    algorithm: &str,
+) -> bool {
     let validator = match checksum::get(algorithm) {
         Some(f) => f,
         None => return false,
@@ -312,8 +326,12 @@ where
     // Create a reader for the decrypted data and check nested rules
     let decrypted_reader = crate::container::BytesReader::new(decrypted);
     rules.iter().all(|r| match r {
-        Rule::Any { any } => any.iter().any(|r2| match_rule_on_bytes(&decrypted_reader, r2)),
-        Rule::All { all } => all.iter().all(|r2| match_rule_on_bytes(&decrypted_reader, r2)),
+        Rule::Any { any } => any
+            .iter()
+            .any(|r2| match_rule_on_bytes(&decrypted_reader, r2)),
+        Rule::All { all } => all
+            .iter()
+            .all(|r2| match_rule_on_bytes(&decrypted_reader, r2)),
         Rule::Leaf { .. } => match_rule_on_bytes(&decrypted_reader, r),
     })
 }
@@ -323,12 +341,35 @@ fn match_rule_on_bytes(reader: &crate::container::BytesReader, rule: &Rule) -> b
     match rule {
         Rule::Any { any } => any.iter().any(|r| match_rule_on_bytes(reader, r)),
         Rule::All { all } => all.iter().all(|r| match_rule_on_bytes(reader, r)),
-        Rule::Leaf { offset, typ, value, op, mask, _name: _, then_rules, length, algorithm, key } => {
+        Rule::Leaf {
+            offset,
+            typ,
+            value,
+            op,
+            mask,
+            _name: _,
+            then_rules,
+            length,
+            algorithm,
+            key,
+        } => {
             let resolved = match resolve_offset(*offset, reader.size()) {
                 Some(o) => o,
                 None => return false,
             };
-            matches_leaf(reader, resolved, typ, value.as_ref(), op.as_deref(), *mask, *length, then_rules.as_ref(), algorithm.as_deref(), key.as_deref(), |r, rule| match_rule_on_bytes(r, rule))
+            matches_leaf(
+                reader,
+                resolved,
+                typ,
+                value.as_ref(),
+                op.as_deref(),
+                *mask,
+                *length,
+                then_rules.as_ref(),
+                algorithm.as_deref(),
+                key.as_deref(),
+                match_rule_on_bytes,
+            )
         }
     }
 }
@@ -444,7 +485,7 @@ fn detect_tree_recursive(
         };
 
         results.push(DetectNode {
-            format: *format,
+            format,
             index,
             children,
         });
@@ -460,16 +501,40 @@ fn matches_detect_dyn(reader: &dyn Reader, detect: &Detect) -> bool {
     }
 }
 
+#[allow(clippy::redundant_closure)]
 fn matches_rule_dyn(reader: &dyn Reader, rule: &Rule) -> bool {
     match rule {
         Rule::Any { any } => any.iter().any(|r| matches_rule_dyn(reader, r)),
         Rule::All { all } => all.iter().all(|r| matches_rule_dyn(reader, r)),
-        Rule::Leaf { offset, typ, value, op, mask, _name: _, then_rules, length, algorithm, key } => {
+        Rule::Leaf {
+            offset,
+            typ,
+            value,
+            op,
+            mask,
+            _name: _,
+            then_rules,
+            length,
+            algorithm,
+            key,
+        } => {
             let resolved = match resolve_offset(*offset, reader.size()) {
                 Some(o) => o,
                 None => return false,
             };
-            matches_leaf(reader, resolved, typ, value.as_ref(), op.as_deref(), *mask, *length, then_rules.as_ref(), algorithm.as_deref(), key.as_deref(), |r, rule| matches_rule_dyn(r, rule))
+            matches_leaf(
+                reader,
+                resolved,
+                typ,
+                value.as_ref(),
+                op.as_deref(),
+                *mask,
+                *length,
+                then_rules.as_ref(),
+                algorithm.as_deref(),
+                key.as_deref(),
+                |nested_reader, nested_rule| matches_rule_dyn(nested_reader, nested_rule),
+            )
         }
     }
 }

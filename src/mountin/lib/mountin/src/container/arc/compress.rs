@@ -30,8 +30,11 @@ impl Container for CompressContainer {
         let max_bits = (flags & 0x1F) as u8;
         let _block_mode = (flags & 0x80) != 0;
 
-        if max_bits < 9 || max_bits > 16 {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid max_bits"));
+        if !(9..=16).contains(&max_bits) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid max_bits",
+            ));
         }
 
         // weezl only supports up to 12-bit codes (GIF/TIFF LZW).

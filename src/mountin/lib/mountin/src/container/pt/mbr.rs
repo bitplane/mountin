@@ -107,9 +107,9 @@ fn read_partition_table(reader: &dyn Reader, lba: u64) -> io::Result<[PartitionE
         sector_count: 0,
     }; 4];
 
-    for i in 0..4 {
+    for (i, entry) in entries.iter_mut().enumerate() {
         let entry_offset = base + PARTITION_TABLE_OFFSET + (i as u64 * 16);
-        entries[i] = PartitionEntry {
+        *entry = PartitionEntry {
             type_code: read_byte(reader, entry_offset + 4)?,
             lba_start: read_le32(reader, entry_offset + 8)?,
             sector_count: read_le32(reader, entry_offset + 12)?,
@@ -183,10 +183,7 @@ fn read_byte(reader: &dyn Reader, offset: u64) -> io::Result<u8> {
     let mut buf = [0u8; 1];
     let n = reader.read_at(offset, &mut buf)?;
     if n != 1 {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "short read",
-        ));
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short read"));
     }
     Ok(buf[0])
 }
@@ -195,10 +192,7 @@ fn read_le16(reader: &dyn Reader, offset: u64) -> io::Result<u16> {
     let mut buf = [0u8; 2];
     let n = reader.read_at(offset, &mut buf)?;
     if n != 2 {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "short read",
-        ));
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short read"));
     }
     Ok(u16::from_le_bytes(buf))
 }
@@ -207,10 +201,7 @@ fn read_le32(reader: &dyn Reader, offset: u64) -> io::Result<u32> {
     let mut buf = [0u8; 4];
     let n = reader.read_at(offset, &mut buf)?;
     if n != 4 {
-        return Err(io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "short read",
-        ));
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "short read"));
     }
     Ok(u32::from_le_bytes(buf))
 }

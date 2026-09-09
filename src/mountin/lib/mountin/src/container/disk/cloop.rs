@@ -81,8 +81,7 @@ impl CloopReader {
             .chunks_exact(8)
             .map(|chunk| {
                 u64::from_be_bytes([
-                    chunk[0], chunk[1], chunk[2], chunk[3],
-                    chunk[4], chunk[5], chunk[6], chunk[7],
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
                 ])
             })
             .collect();

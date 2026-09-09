@@ -63,10 +63,10 @@ impl Container for AixContainer {
         // Read LV descriptors to get num_lps per LV (at VGDA + 1 sector)
         let lvd_offset = (vgda_sector + 1) * SECTOR;
         let mut lv_num_lps = vec![0u16; MAX_LVS];
-        for i in 0..numlvs.min(MAX_LVS) {
+        for (i, num_lps) in lv_num_lps.iter_mut().enumerate().take(numlvs.min(MAX_LVS)) {
             // Each LVD is 32 bytes, num_lps at offset 0x0E
             let entry_offset = lvd_offset + (i * 32) as u64;
-            lv_num_lps[i] = read_be16(&*reader, entry_offset + 0x0E)?;
+            *num_lps = read_be16(&*reader, entry_offset + 0x0E)?;
         }
 
         // Read PVD (at VGDA + 17 sectors)

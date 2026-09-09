@@ -63,26 +63,23 @@ impl QcowReader {
         // Check version
         let version = u32::from_be_bytes([header[4], header[5], header[6], header[7]]);
         if version != QCOW_VERSION {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "not QCOW v1",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "not QCOW v1"));
         }
 
         // Parse header fields (big-endian)
         let virtual_size = u64::from_be_bytes([
-            header[24], header[25], header[26], header[27],
-            header[28], header[29], header[30], header[31],
+            header[24], header[25], header[26], header[27], header[28], header[29], header[30],
+            header[31],
         ]);
         let cluster_bits = header[32] as u32;
         let l2_bits = header[33] as u32;
         let l1_table_offset = u64::from_be_bytes([
-            header[40], header[41], header[42], header[43],
-            header[44], header[45], header[46], header[47],
+            header[40], header[41], header[42], header[43], header[44], header[45], header[46],
+            header[47],
         ]);
 
         // Validate cluster_bits (9-16 typical)
-        if cluster_bits < 9 || cluster_bits > 20 {
+        if !(9..=20).contains(&cluster_bits) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "invalid cluster_bits",
@@ -93,8 +90,8 @@ impl QcowReader {
         let l2_size = 1u64 << l2_bits;
 
         // Calculate L1 table size
-        let l1_size = (virtual_size + (1 << (cluster_bits + l2_bits)) - 1)
-            >> (cluster_bits + l2_bits);
+        let l1_size =
+            (virtual_size + (1 << (cluster_bits + l2_bits)) - 1) >> (cluster_bits + l2_bits);
 
         // Read L1 table
         let l1_bytes = l1_size as usize * 8;
@@ -111,8 +108,7 @@ impl QcowReader {
             .chunks_exact(8)
             .map(|chunk| {
                 u64::from_be_bytes([
-                    chunk[0], chunk[1], chunk[2], chunk[3],
-                    chunk[4], chunk[5], chunk[6], chunk[7],
+                    chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
                 ])
             })
             .collect();

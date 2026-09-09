@@ -152,7 +152,11 @@ fn parse_riscix_cumana(
             children.push(Child {
                 index: *slot,
                 offset: start_bytes,
-                reader: Arc::new(SliceReader::new(Arc::clone(reader), start_bytes, length_bytes)),
+                reader: Arc::new(SliceReader::new(
+                    Arc::clone(reader),
+                    start_bytes,
+                    length_bytes,
+                )),
             });
             *slot += 1;
         }

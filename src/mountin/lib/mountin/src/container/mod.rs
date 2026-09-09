@@ -110,10 +110,7 @@ pub fn read_all(reader: &dyn Reader) -> io::Result<Vec<u8>> {
         data.extend_from_slice(&buf[..n]);
         offset += n as u64;
         if data.len() > MAX_SIZE {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "container too large",
-            ));
+            return Err(io::Error::other("container too large"));
         }
     }
     Ok(data)

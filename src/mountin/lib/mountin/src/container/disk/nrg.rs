@@ -17,12 +17,12 @@ pub static NRG: NrgContainer = NrgContainer;
 /// Track mode
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum TrackMode {
-    Mode1,      // 2048 bytes
-    Mode2,      // 2336 bytes
-    Mode2Xa1,   // 2048 bytes (XA Form 1)
-    Mode2Raw,   // 2352 bytes
-    Audio,      // 2352 bytes
-    Mode1Raw,   // 2352 bytes
+    Mode1,       // 2048 bytes
+    Mode2,       // 2336 bytes
+    Mode2Xa1,    // 2048 bytes (XA Form 1)
+    Mode2Raw,    // 2352 bytes
+    Audio,       // 2352 bytes
+    Mode1Raw,    // 2352 bytes
     Mode2Xa1Raw, // 2352 bytes
     Mode2Xa2Raw, // 2352 bytes
 }
@@ -97,9 +97,9 @@ fn read_bytes(reader: &dyn Reader, offset: u64, buf: &mut [u8]) -> io::Result<()
 
 /// Parse NRG image and return list of tracks
 fn parse_nrg(reader: &dyn Reader) -> io::Result<Vec<Track>> {
-    let file_size = reader.size().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::Other, "cannot determine file size")
-    })?;
+    let file_size = reader
+        .size()
+        .ok_or_else(|| io::Error::other("cannot determine file size"))?;
 
     if file_size < 12 {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "file too small"));
@@ -110,13 +110,15 @@ fn parse_nrg(reader: &dyn Reader) -> io::Result<Vec<Track>> {
     read_bytes(reader, file_size - 12, &mut sig)?;
 
     let chunk_offset = if &sig == b"NER5" {
-        let offset = read_u64_be(reader, file_size - 8)?;
-        offset
+        read_u64_be(reader, file_size - 8)?
     } else {
         // Check for NERO (old format) at -8
         read_bytes(reader, file_size - 8, &mut sig)?;
         if &sig != b"NERO" {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "not an NRG file"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "not an NRG file",
+            ));
         }
         read_u32_be(reader, file_size - 4)? as u64
     };
@@ -126,11 +128,7 @@ fn parse_nrg(reader: &dyn Reader) -> io::Result<Vec<Track>> {
 }
 
 /// Parse NRG chunk stream
-fn parse_chunks(
-    reader: &dyn Reader,
-    start_offset: u64,
-    file_size: u64,
-) -> io::Result<Vec<Track>> {
+fn parse_chunks(reader: &dyn Reader, start_offset: u64, file_size: u64) -> io::Result<Vec<Track>> {
     let mut pos = start_offset;
     let mut tracks = Vec::new();
 

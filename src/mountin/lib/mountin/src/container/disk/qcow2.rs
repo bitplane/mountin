@@ -105,7 +105,7 @@ impl Qcow2Reader {
         ]);
 
         // Validate cluster_bits (9-21 typical)
-        if cluster_bits < 9 || cluster_bits > 21 {
+        if !(9..=21).contains(&cluster_bits) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "invalid cluster_bits",

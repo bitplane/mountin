@@ -75,8 +75,8 @@ impl ParallelsReader {
         let tracks = u32::from_le_bytes([header[28], header[29], header[30], header[31]]);
         let bat_entries = u32::from_le_bytes([header[32], header[33], header[34], header[35]]);
         let nb_sectors = u64::from_le_bytes([
-            header[36], header[37], header[38], header[39],
-            header[40], header[41], header[42], header[43],
+            header[36], header[37], header[38], header[39], header[40], header[41], header[42],
+            header[43],
         ]);
 
         let cluster_size = (tracks as u64)
