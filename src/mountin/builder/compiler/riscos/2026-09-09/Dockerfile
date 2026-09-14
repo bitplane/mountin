@@ -21,10 +21,10 @@ RUN /build-host-tools.sh
 
 FROM host-tools
 
-COPY bcmsupport-gnu.patch buildsys-gnu.patch hal-bcm2835-gnu.patch hal-rel32.patch \
+COPY bcmsupport-gnu.patch buildsys-gnu.patch hal-bcm2835-gnu.patch \
     haldevice-header-guard.patch kernel-gnu.patch kernel.ld module.ld \
     riscoslib-gnu.patch riscoslib-gcc.patch sharedclib.ld rtsupport-cmunge.patch sdiodriver-gnu.patch \
-    sdfs-gnu.patch territory-gnu.patch /patches/
+    sdfs-gnu.patch /patches/
 RUN rm /opt/mountin/source /opt/mountin/build && \
     ln -s /opt/mountin/sources/gccsdk/builddir /opt/mountin/build && \
     mkdir -p /opt/mountin/sources/riscos && \
@@ -38,14 +38,10 @@ RUN rm /opt/mountin/source /opt/mountin/build && \
         /host/build/sources/riscos-territory-manager-0.58.tar.gz \
         -C /opt/mountin/sources/riscos/RiscOS/Sources/Internat/Territory/TerritoryManager \
         --strip-components=1 && \
-    patch -d /opt/mountin/sources/riscos/RiscOS/Sources/Internat/Territory/TerritoryManager -p1 \
-        < /patches/territory-gnu.patch && \
     patch -d /opt/mountin/sources/riscos/RiscOS/BuildSys -p1 \
         < /patches/buildsys-gnu.patch && \
     patch -d /opt/mountin/sources/riscos/RiscOS/Sources/HAL/HAL_BCM2835 -p1 \
         < /patches/hal-bcm2835-gnu.patch && \
-    patch -d /opt/mountin/sources/riscos/RiscOS/Sources/HAL/HAL_BCM2835 -p1 \
-        < /patches/hal-rel32.patch && \
     patch -d /opt/mountin/sources/riscos/RiscOS/Sources/Kernel -p1 \
         < /patches/haldevice-header-guard.patch && \
     patch -d /opt/mountin/sources/riscos/RiscOS/Sources/Kernel -p1 \

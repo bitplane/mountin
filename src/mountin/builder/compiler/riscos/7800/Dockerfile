@@ -25,13 +25,15 @@ RUN patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-macro-resolution.patch && 
 RUN /build-toolbox.sh
 
 COPY asasm-export-alias.patch asasm-divide.patch \
-     asasm-conditional-call-reloc.patch /
+     asasm-conditional-call-reloc.patch asasm-relative-data.patch /
 RUN patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
         < /asasm-export-alias.patch && \
     patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
         < /asasm-divide.patch && \
     patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
         < /asasm-conditional-call-reloc.patch && \
+    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
+        < /asasm-relative-data.patch && \
     cd /opt/mountin/sources/gccsdk && \
     ./riscos/build-it -f -host-tools-only cross
 

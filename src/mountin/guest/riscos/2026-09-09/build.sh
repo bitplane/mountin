@@ -59,9 +59,8 @@ install_messages Buffers \
 install_messages DeviceFS \
     "$root/Sources/HWSupport/DeviceFS/Resources/UK/Messages"
 patch -d "$root/Sources/HAL/HAL_BCM2835" -p1 < /build/hal-headless.patch
-patch -d "$root/Sources/HAL/HAL_BCM2835" -p1 < /build/hal-headless-ram.patch
-patch -d "$root/Sources/Kernel" -p1 < /build/kernel-gnu-link.patch
 patch -d "$root/Sources/Kernel" -p1 < /build/kernel-headless.patch
+patch -d "$root/Sources/Internat/Territory/TerritoryManager" -p1 < /build/territory-headless.patch
 
 cat >> "$root/BuildSys/ModuleDB" <<'EOF'
 MountinResources            ASM   Sources.MountinResources                                             Mountin         MountinResources

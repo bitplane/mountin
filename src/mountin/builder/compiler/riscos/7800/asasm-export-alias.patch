@@ -11,26 +11,29 @@
  	      failed = Symbol_Define (sym, symbolType, &valueDef);
 --- a/src/symbol.c
 +++ b/src/symbol.c
-@@ -1238,6 +1238,8 @@
-     return true;
+@@ -354,7 +354,10 @@
+   bool doOutput = ((SYMBOL_KIND(sym->attr.type) == SYMBOL_GLOBAL
+ 		    || (SYMBOL_KIND(sym->attr.type) == SYMBOL_LOCAL && (oKeepAllSymbols || (sym->attr.type & SYMBOL_KEEP) != 0 || oExportAllSymbols)))
+                    || (SYMBOL_KIND(sym->attr.type) == SYMBOL_REFERENCE && sym->attr.used == 0))
+-		  && (sym->attr.type & (SYMBOL_RW | SYMBOL_NO_EXPORT)) == 0;
++		  && (sym->attr.type & SYMBOL_RW) == 0
++                   && ((sym->attr.type & SYMBOL_NO_EXPORT) == 0
++                       || ((sym->attr.type & SYMBOL_EXPORT) != 0
++                           && sym->attr.value.Tag == ValueSymbol));
+   return doOutput;
+ }
  
-   Symbol *sym = ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported");
-+  if (sym != NULL && sym->attr.value.Tag == ValueSymbol)
-+    sym->attr.type &= ~SYMBOL_NO_EXPORT;
-   Input_SkipWS ();
-   if (sym == NULL)
-     {
-@@ -1264,8 +1266,11 @@
- 	{
- 	  /* More than one symbol is exported.  */
- 	  do
- 	    {
--	      if (ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported") == NULL)
-+	      Symbol *exportedSym = ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported");
-+	      if (exportedSym == NULL)
- 		Error (ErrorError, "Missing symbol");
-+	      else if (exportedSym->attr.value.Tag == ValueSymbol)
-+		exportedSym->attr.type &= ~SYMBOL_NO_EXPORT;
- 	      Input_SkipWS ();
- 	    } while (Input_Match (',', true));
- 	}
+--- /dev/null
++++ b/unittests/compare/core/export_alias_order.s
+@@ -0,0 +1,11 @@
++        AREA Code, CODE
++        [ :LNOT: REFERENCE
++        EXPORT alias
++        ]
++alias   EQU target
++        [ REFERENCE
++        EXPORT alias
++        ]
++        EXPORT target
++target  DCD 42
++        END

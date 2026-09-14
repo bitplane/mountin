@@ -27,7 +27,7 @@ index 8c5cc03..37840af 100644
  #endif
  
    return size;
-@@ -74,7 +83,12 @@ int32 wf_load(const char *filename, VoidStar buf, int32 bufsz)
+@@ -74,7 +83,18 @@ int32 wf_load(const char *filename, VoidStar buf, int32 bufsz)
        return -1;
    }
  #else
@@ -35,13 +35,19 @@ index 8c5cc03..37840af 100644
 +  if (size)
 +  {
 +    FILE *file = fopen(filename, "rb");
-+    if (!file || fread(buf, 1, size, file) != (size_t) size || fclose(file) != 0)
++    size_t count;
++    int closed;
++    if (!file)
++      return -1;
++    count = fread(buf, 1, size, file);
++    closed = fclose(file);
++    if (count != (size_t) size || closed != 0)
 +      return -1;
 +  }
  #endif
  
    return 0;
-@@ -93,7 +107,13 @@ int32 wf_save(const char *filename, VoidStar buf, int32 bufsz)
+@@ -93,7 +107,17 @@ int32 wf_save(const char *filename, VoidStar buf, int32 bufsz)
        return -1;
    }
  #else
@@ -50,8 +56,12 @@ index 8c5cc03..37840af 100644
 +    FILE *file = fopen(filename, "wb");
 +    if (!file)
 +      return -1;
-+    if ((bufsz && fwrite(buf, 1, bufsz, file) != (size_t) bufsz) || fclose(file) != 0)
-+      return -1;
++    {
++      size_t count = fwrite(buf, 1, bufsz, file);
++      int closed = fclose(file);
++      if (count != (size_t) bufsz || closed != 0)
++        return -1;
++    }
 +  }
  #endif
  
