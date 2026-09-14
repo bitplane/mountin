@@ -1,0 +1,34 @@
+--- a/Makefile
++++ b/Makefile
+@@ -27,17 +27,9 @@ HEADER1    = Territory
+ SPRITEFILE = z.SystemDisc
+ 
+-ASFLAGS    = -PD "SpriteDisc SETS \"${SPRITEFILE}\""
++ASFLAGS    = -PD "Mountin_Headless SETL {TRUE}"
+ 
+ include StdTools
+ include AAsmModule
+ 
+-${SA_OBJECT} ${DBG_OBJECT} ${ROM_OBJECT}: ${SPRITEFILE}
+-
+-${SPRITEFILE}: SystemDisc
+-	${SQUASH} SystemDisc $@
+-
+-clean ::
+-	${RM} ${SPRITEFILE}
+-
+ 
+ # Dynamic dependencies:
+--- a/s/ModHead
++++ b/s/ModHead
+@@ -856,6 +856,10 @@ load_error                                ; Failed to load configured territory.
+         DebugS  xx,"Original error is ",R14
+       ]
+ 
++      [ :DEF: Mountin_Headless
++Embedded_UI SETL Mountin_Headless
++      ]
++
+       [ Embedded_UI
+ 
+         ; On NC/STB - no way should we be bringing up a floppy picture. Instead, let's take the

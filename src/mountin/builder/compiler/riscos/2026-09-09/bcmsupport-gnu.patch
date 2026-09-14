@@ -1,0 +1,47 @@
+--- a/Makefile
++++ b/Makefile
+@@ -11,5 +11,9 @@
+ LIBS += ${SYNCLIB}
+-CINCLUDES += -Itbox:
++ifeq (${TOOLCHAIN},GNU)
++CINCLUDES += -I${LIBDIR}/tboxlibint/objects
++else
++CINCLUDES += -Itbox:
++endif
+ 
+ COMPONENT = BCMSupport
+
+--- a/cmhg/BCMSupportHdr
++++ b/cmhg/BCMSupportHdr
+@@ -45,7 +45,7 @@
+ 
+ swi-handler-code:	module_swi
+ 
+-swi-decoding-table:	BCMSupportSWI_Name,
++swi-decoding-table:	BCMSupport,
+ 			SendMBMessage,
+ 			MBSync,
+			AllocPropertyBuffer,
+
+--- a/c/BCMSupport
++++ b/c/BCMSupport
+@@ -105,7 +105,11 @@
+ 	   Newer Pi's are assumed to all be multi-core, so use WFE */
+ 	uint32_t midr;
++#ifdef __GNUC__
++	__asm volatile ("mrc p15, 0, %0, c0, c0, 0" : "=r" (midr));
++#else
+ 	__asm("MRC p15,0,midr,c0,c0,0");
++#endif
+ 	if ((midr & 0xfff0) == 0xb760)
+ 	{
+		dprintf(("","Using retry_cp15\n"));
+
+--- a/c/mailbox
++++ b/c/mailbox
+@@ -28,3 +28,5 @@
++#include <stddef.h>
++
+ #include "mailbox.h"
+ #include "globals.h"
+ #include "errors.h"

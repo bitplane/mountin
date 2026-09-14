@@ -1,12 +1,12 @@
 #!/bin/bash
 set -eu
 
-cat >/opt/mountin/source/gccsdk-params <<'EOF'
+cat >/opt/mountin/sources/gccsdk/gccsdk-params <<'EOF'
 export GCCSDK_INSTALL_CROSSBIN=/opt/gccsdk/cross/bin
 export GCCSDK_INSTALL_ENV=/opt/gccsdk/env
 EOF
 
-cd /opt/mountin/source
+cd /opt/mountin/sources/gccsdk
 export GCCSDK_ROOT=$PWD
 . ./setup-gccsdk-params
 mkdir -p buildstepsdir
@@ -47,3 +47,6 @@ make "${make_args[@]}" \
 refresh_config_scripts \
     srcdir/binutils srcdir/gcc srcdir/gmp srcdir/mpc srcdir/mpfr
 make "${make_args[@]}" cross-gcc-built
+
+patch -p1 < /riscostools-host-only.patch
+./riscos/build-it -f -host-tools-only cross

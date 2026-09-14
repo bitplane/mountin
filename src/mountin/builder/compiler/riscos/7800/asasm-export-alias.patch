@@ -1,0 +1,36 @@
+--- a/src/directive_symbol.c
++++ b/src/directive_symbol.c
+@@ -80,6 +80,8 @@
+ 	      unsigned symbolType;
+ 	      if (valueDef.Tag == ValueInt && valueDef.Data.Int.type == eIntType_PureInt)
+ 		symbolType = SYMBOL_CONSTANT | SYMBOL_ABSOLUTE;
++	      else if (valueDef.Tag == ValueSymbol)
++		symbolType = SYMBOL_CONSTANT | SYMBOL_NO_EXPORT;
+ 	      else
+ 		symbolType = SYMBOL_CONSTANT | SYMBOL_ABSOLUTE | SYMBOL_NO_EXPORT;
+ 	      failed = Symbol_Define (sym, symbolType, &valueDef);
+--- a/src/symbol.c
++++ b/src/symbol.c
+@@ -1238,6 +1238,8 @@
+     return true;
+ 
+   Symbol *sym = ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported");
++  if (sym != NULL && sym->attr.value.Tag == ValueSymbol)
++    sym->attr.type &= ~SYMBOL_NO_EXPORT;
+   Input_SkipWS ();
+   if (sym == NULL)
+     {
+@@ -1264,8 +1266,11 @@
+ 	{
+ 	  /* More than one symbol is exported.  */
+ 	  do
+ 	    {
+-	      if (ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported") == NULL)
++	      Symbol *exportedSym = ParseSymbolAndAdjustFlag (SYMBOL_REFERENCE, "exported");
++	      if (exportedSym == NULL)
+ 		Error (ErrorError, "Missing symbol");
++	      else if (exportedSym->attr.value.Tag == ValueSymbol)
++		exportedSym->attr.type &= ~SYMBOL_NO_EXPORT;
+ 	      Input_SkipWS ();
+ 	    } while (Input_Match (',', true));
+ 	}

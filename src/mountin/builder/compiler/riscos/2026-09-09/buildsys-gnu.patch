@@ -1,0 +1,118 @@
+diff --git a/Components/ROOL/BCM2835Pico b/Components/ROOL/BCM2835Pico
+index 037dbbb..cf7c2a1 100644
+--- a/Components/ROOL/BCM2835Pico
++++ b/Components/ROOL/BCM2835Pico
+@@ -34,7 +34,7 @@ PDriver               -type EXP
+ 
+ # kernel is first module in ROM seen as the UtilityModule
+ HAL_BCM2835
+-Kernel                -at 0xFC010000 -options ASFLAGS="-PD \"CMOS_Override SETS \\\"= FileLangCMOS,fsnumber_SDFS,CDROMFSCMOS,&C0,LanguageCMOS,10\\\"\""
++Kernel                -at 0xFC010000 -options KERNEL_ADDRESS=0xFC010000 ASMDEFINES="-PD \"CMOS_Override SETS \\\"= FileLangCMOS,fsnumber_SDFS,CDROMFSCMOS,&C0,LanguageCMOS,10\\\"\""
+ Podule                -type EXP
+ PCI
+ FileSwitch
+@@ -63,7 +63,7 @@ DWCDriver
+ VCHIQ
+ BCMSound
+ ScreenModes
+-BCMVideo              -options ASFLAGS="-PD \"GenCmd SETL {FALSE}\""
++BCMVideo              -options ASMDEFINES="-PD \"GenCmd SETL {FALSE}\""
+ DMAManager
+ DrawMod               -type EXP
+ FileCore
+diff --git a/GNUmakefiles/CModule b/GNUmakefiles/CModule
+index f5415a2..604448b 100644
+--- a/GNUmakefiles/CModule
++++ b/GNUmakefiles/CModule
+@@ -172,7 +172,14 @@ TOKHELPDEPENDS ?= ${OBJS}
+ ROM_LIBS     ?= ${LIBS}
+ SA_LIBS      ?= ${LIBS}
+-ROM_LIBS     += ${ROMCSTUBS}
+-ROM_SYMS      = ${C_ABSSYM}
++ifeq (GNU,${TOOLCHAIN})
++CMHGFLAGS    += -zbase
++ROM_LIBS     += ${ROMCSTUBS} $(shell ${CC} -print-libgcc-file-name)
++ROM_SYMS      = ${LNK_TARGET}.rom-syms.ld
++ROM_SYM_FLAGS = -T ${ROM_SYMS}
++else
++ROM_LIBS     += ${ROMCSTUBS}
++ROM_SYMS      = ${C_ABSSYM}
++endif
+ SA_LIBS      += ${CLIB}
+ DBG_LIBS     += ${DEBUGLIBS}
+ 
+@@ -430,10 +430,27 @@ rom_link_: ${LNK_TARGET}.linked
+ 	@${ECHO} ${COMPONENT}: rom_link complete
+ 
++ifeq (GNU,${TOOLCHAIN})
++${ROM_SYMS}: ${C_ABSSYM}
++	awk '$$2 == "A" { print "PROVIDE(" $$3 " = " $$1 ");" }' $< > $@
++
++${ROM_TARGET}.aof: ${ROM_DEPEND} ${DIRS} ${ROM_OBJS_} ${ROM_LIBS}
++	${GNUTOOLPREFIX}ld -r -o $@ ${ROM_OBJS_} ${ROM_LIBS}
++
++${LNK_TARGET}.module.ld: /opt/rool/module.ld
++	sed 's/@MODULE_CODE_SECTION@/${TARGET}$$$$Code/g' $< > $@
++
++${LNK_TARGET}.linked: ${FORCEROMLINK} ${ROM_SYMS} ${ROM_TARGET}.aof ${LNK_TARGET}.module.ld
++	${GNUTOOLPREFIX}ld --ro-module-reloc ${ROM_SYM_FLAGS} -T ${LNK_TARGET}.module.ld --defsym=Module_LoadAddr=${ADDRESS} --defsym=Data_LoadAddr=0xFFF00000 \
++		-o $@.elf ${ROM_TARGET}.aof
++	${GNUTOOLPREFIX}objcopy -O binary $@.elf $@
++	${GNUTOOLPREFIX}nm -n $@.elf > ${LNK_TARGET}_sym.linked
++else
+ ${ROM_TARGET}.aof: ${ROM_DEPEND} ${DIRS} ${ROM_OBJS_} ${ROM_LIBS}
+ 	${LD} -o $@ -aof ${ROM_OBJS_} ${ROM_LIBS}
+ 
+ ${LNK_TARGET}.linked: ${FORCEROMLINK} ${ROM_SYMS} ${ROM_TARGET}.aof
+ 	${LD} ${LDFLAGS} ${LDLINKFLAGS} -o $@ -rmf -base ${ADDRESS} ${ROM_TARGET}.aof ${ROM_SYMS} -Symbols ${LNK_TARGET}_sym.linked
++endif
+ 
+ #
+ # Standalone rules
+diff --git a/GNUmakefiles/HAL b/GNUmakefiles/HAL
+index d7f6219..bc9b108 100644
+--- a/GNUmakefiles/HAL
++++ b/GNUmakefiles/HAL
+@@ -41,10 +41,11 @@ install_rom: ${TARGET}.linked
+ 	@${ECHO} ${COMPONENT}: HAL installed
+ 
+ ${TARGET}.aof: ${ROM_OBJS_} ${ROM_LIBS} ${DIRS} ${ROM_DEPEND}
+-	${LD} -o $@ -aof ${ROM_OBJS_} ${ROM_LIBS}
++	${GNUTOOLPREFIX}ld -r -o $@ ${ROM_OBJS_} ${ROM_LIBS}
+ 
+ ${TARGET}.linked: ${TARGET}.aof
+-	${LD} ${LDFLAGS} ${LDLINKFLAGS} -o $@ -bin -base 0xFC000000 ${TARGET}.aof
++	${GNUTOOLPREFIX}ld -Ttext=0xFC000000 -o $@.elf ${TARGET}.aof
++	${GNUTOOLPREFIX}objcopy -O binary $@.elf $@
+ 
+ ${AIFDBG}: ${ROM_OBJS_} ${ROM_LIBS}
+ 	${MKDIR} aif
+diff --git a/GNUmakefiles/CModule b/GNUmakefiles/CModule
+index 76c5b2f..fb0bbd1 100644
+--- a/GNUmakefiles/CModule
++++ b/GNUmakefiles/CModule
+@@ -305,7 +305,7 @@ create_exp_hdr_dirs:
+ 
+ ifneq (${CMHGFILE},)
+ ${CMHGAUTOHDR}_h_: ${DIRS} ${CMHGFILE}.h
+-	${AWK} -- "/.ifndef ${CMHGFILE_SWIPREFIX}/,/endif/" ${CMHGFILE}.h > ${CMHGAUTOHDR}_h_
++	${AWK} -- "/SWI number definitions/,/Special error/" ${CMHGFILE}.h > ${CMHGAUTOHDR}_h_
+ endif
+ 
+ ifneq ($(findstring ${CMHGAUTOHDR},${HDRS}),)
+@@ -319,9 +319,14 @@ ifneq ($(findstring ${CMHGAUTOHDR},${HDRS}),)
+ 	${FAPPEND} ${C_EXP_HDR}/${CMHGAUTOHDR}.h ${CMHGAUTOHDR}.h ${CMHGAUTOHDR}_h_
+ endif
+ 
+ ifneq ($(findstring ${CMHGAUTOHDR},${ASMCHDRS}),)
+-${CMHGAUTOHDR}.expasmc: ${CMHGAUTOHDR}_h_ ${CMHGAUTOHDR}.hdr
++${CMHGAUTOHDR}.rawasmc: ${CMHGAUTOHDR}.hdr
+ 	${HDR2H} ${CMHGAUTOHDR}.hdr ${C_EXP_HDR}/${CMHGAUTOHDR}.h
++	${TOUCH} $@
++
++${CMHGFILE}.h: ${CMHGAUTOHDR}.rawasmc
++
++${CMHGAUTOHDR}.expasmc: ${CMHGAUTOHDR}.rawasmc ${CMHGAUTOHDR}_h_
+ 	${FAPPEND} ${C_EXP_HDR}/${CMHGAUTOHDR}.h ${C_EXP_HDR}/${CMHGAUTOHDR}.h ${CMHGAUTOHDR}_h_
+ endif
+ 

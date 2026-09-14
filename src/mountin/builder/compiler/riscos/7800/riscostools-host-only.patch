@@ -1,0 +1,30 @@
+diff --git a/riscos/build-it b/riscos/build-it
+--- a/riscos/build-it
++++ b/riscos/build-it
+@@ -39,4 +39,5 @@ create_empty_dir() {
+ # Setup the default values which can be overruled by user options given:
+ GCCSDK_BUILD_FORCED=false
+ GCCSDK_BUILD_ISSTATIC=false
++GCCSDK_BUILD_HOST_TOOLS_ONLY=false
+ for param in $@ ; do
+@@ -48,6 +49,9 @@ for param in $@ ; do
+     -f)
+        GCCSDK_BUILD_FORCED=true
+        ;;
++    -host-tools-only)
++       GCCSDK_BUILD_HOST_TOOLS_ONLY=true
++       ;;
+     -static)
+        GCCSDK_BUILD_ISSTATIC=true
+        ;;
+@@ -144,6 +148,10 @@ for roapp in asasm cmunge elf2aif ln mkresfs ; do
+   else
+     echo +++ NOT building $roapp as it already exists
+   fi
+ done
++
++if $GCCSDK_BUILD_HOST_TOOLS_ONLY ; then
++  exit 0
++fi
+ 
+ # DRenderer module:

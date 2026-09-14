@@ -1,0 +1,14 @@
+diff --git a/s/Top b/s/Top
+index 890cc4e..f9103e6 100644
+--- a/s/Top
++++ b/s/Top
+@@ -533,6 +533,9 @@ reset
+         Pull    "a4,ip"      ; a4 = ref from last AddRAM
+         MOV     a1, #0
+         ORRNE   a1, a1, #OSStartFlag_POR
++      [ :DEF: Headless
++        ORR     a1, a1, #OSStartFlag_RAMCleared
++      ]
+         ADRL    a2, HAL_Base + OSROM_HALSize       ; a2 -> RISC OS image
+         CPUDetect a3
+         ADRCCL  a3, HALdescriptor

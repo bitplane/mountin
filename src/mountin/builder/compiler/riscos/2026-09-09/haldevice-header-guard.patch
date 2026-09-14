@@ -1,0 +1,11 @@
+diff --git a/h/HALDevice b/h/HALDevice
+--- a/h/HALDevice
++++ b/h/HALDevice
+@@ -13,6 +13,7 @@
+  * limitations under the License.
+  */
+ #ifndef GLOBAL_HALDEVICE_H
++#define GLOBAL_HALDEVICE_H
+ 
+ #include <stdbool.h>
+ #include <stdint.h>

@@ -1,0 +1,67 @@
+diff --git a/c/wholefls b/c/wholefls
+index 8c5cc03..37840af 100644
+--- a/c/wholefls
++++ b/c/wholefls
+@@ -19,6 +19,11 @@
+ 
+ 
+ #include <string.h>
++#ifndef __riscos
++#include <stdio.h>
++#include <stdint.h>
++#include <sys/stat.h>
++#endif
+ #include "wholefls.h"
+ 
+ #ifdef __riscos
+@@ -46,7 +51,11 @@ int32 wf_filesize(const char *filename)
+     return -1;
+ 
+ #else
+-#warning _UNSUPPORTED_SYSTEM_IN_CLX_WHOLEFLS_C_
++  struct stat st;
++
++  if (stat(filename, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size > INT32_MAX)
++    return -1;
++  size = (int32) st.st_size;
+ #endif
+ 
+   return size;
+@@ -74,7 +83,12 @@ int32 wf_load(const char *filename, VoidStar buf, int32 bufsz)
+       return -1;
+   }
+ #else
+-#warning _UNSUPPORTED_SYSTEM_IN_CLX_WHOLEFLS_C_
++  if (size)
++  {
++    FILE *file = fopen(filename, "rb");
++    if (!file || fread(buf, 1, size, file) != (size_t) size || fclose(file) != 0)
++      return -1;
++  }
+ #endif
+ 
+   return 0;
+@@ -93,7 +107,13 @@ int32 wf_save(const char *filename, VoidStar buf, int32 bufsz)
+       return -1;
+   }
+ #else
+-#warning _UNSUPPORTED_SYSTEM_IN_CLX_WHOLEFLS_C_
++  {
++    FILE *file = fopen(filename, "wb");
++    if (!file)
++      return -1;
++    if ((bufsz && fwrite(buf, 1, bufsz, file) != (size_t) bufsz) || fclose(file) != 0)
++      return -1;
++  }
+ #endif
+ 
+   return 0;
+@@ -107,7 +127,7 @@ int wf_rename(const char *source, const char *dest)
+   return _swix(OS_FSControl, _INR(0,8), 26, source, dest, (1<<7) | (1<<9), 0, 0, 0, 0, 0) ? -1 : 0;
+ 
+ #else
+-#warning _UNSUPPORTED_SYSTEM_IN_CLX_WHOLEFLS_C_
++  return rename(source, dest);
+ #endif
+ 
+   return 0;

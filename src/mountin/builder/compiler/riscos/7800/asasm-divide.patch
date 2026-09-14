@@ -1,0 +1,78 @@
+diff --git a/src/decode.c b/src/decode.c
+--- a/src/decode.c
++++ b/src/decode.c
+@@ -273,2 +273,3 @@ static const DecodeEntry oDecodeTable[] =
+   { "SBFX", eCB_VoidPMatch, 1, 1, { .vdpm = m_sbfx } }, /* SBFX */
++  { "SDIV", eCB_VoidPMatch, 1, 1, { .vdpm = m_sdiv } }, /* SDIV CC */
+   /* FIXME: SEL */
+@@ -338,2 +339,3 @@ static const DecodeEntry oDecodeTable[] =
+   { "UBFX", eCB_VoidPMatch, 1, 1, { .vdpm = m_ubfx } }, /* UBFX */
++  { "UDIV", eCB_VoidPMatch, 1, 1, { .vdpm = m_udiv } }, /* UDIV CC */
+   /* FIXME: UHADD16, UHADD8 */
+diff --git a/src/m_cpu.c b/src/m_cpu.c
+--- a/src/m_cpu.c
++++ b/src/m_cpu.c
+@@ -688,6 +688,52 @@ m_mul (bool doLowerCase)
+   return false;
+ }
+ 
++static bool
++divide (bool doLowerCase, ARMWord opcode)
++{
++  ARMWord cc = Option_Cond (doLowerCase);
++  if (cc == kOption_NotRecognized)
++    return true;
++
++  Target_CheckCPUFeature (kCPUExt_Div, true);
++
++  unsigned regD = Get_CPUReg ();
++  Input_SkipWS ();
++  if (!Input_Match (',', true))
++    Error (ErrorError, "%sdst", InsertCommaAfter);
++  unsigned regN = Get_CPUReg ();
++  Input_SkipWS ();
++  if (!Input_Match (',', true))
++    Error (ErrorError, "%slhs", InsertCommaAfter);
++  unsigned regM = Get_CPUReg ();
++
++  if (regD == 15 || regN == 15 || regM == 15)
++    Error (ErrorWarning, "Use of register PC is UNPREDICTABLE");
++
++  Put_Ins (4, cc | opcode | (regD << 16) | (regM << 8) | regN);
++  return false;
++}
++
++/**
++ * Implements SDIV.
++ *   SDIV<cond> <Rd>, <Rn>, <Rm>
++ */
++bool
++m_sdiv (bool doLowerCase)
++{
++  return divide (doLowerCase, 0x0710f010);
++}
++
++/**
++ * Implements UDIV.
++ *   UDIV<cond> <Rd>, <Rn>, <Rm>
++ */
++bool
++m_udiv (bool doLowerCase)
++{
++  return divide (doLowerCase, 0x0730f010);
++}
++
+ 
+ /**
+  * Used for implementing SMUL*, SMLA*, UMUL*, UMLA.
+diff --git a/src/m_cpu.h b/src/m_cpu.h
+--- a/src/m_cpu.h
++++ b/src/m_cpu.h
+@@ -100,3 +100,4 @@ bool m_rsb (bool doLowerCase);
+ bool m_rsc (bool doLowerCase);
+ bool m_sbc (bool doLowerCase);
++bool m_sdiv (bool doLowerCase);
+ bool m_smull (bool doLowerCase);
+@@ -119,2 +120,3 @@ bool m_tst (bool doLowerCase);
++bool m_udiv (bool doLowerCase);
+ bool m_umlal (bool doLowerCase);

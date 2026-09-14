@@ -1,0 +1,28 @@
+--- a/Makefile
++++ b/Makefile
+@@ -4,10 +4,14 @@
+ ASMHDRS     = SDFS SDFSErr
+ ASMCHDRS    = SDFS SDFSErr
+ HDRS        =
++CMHGAUTOHDR = SDFS
+ CMHGFILE    = SDFSHdr
+ CMHGDEPENDS = command module
+ OBJS        = cardreg command discop free freeveneer globals message miscop module sdio service swi
+ LIBS        = ${SYNCLIB} ${ASMUTILS}
++ifeq (${TOOLCHAIN},GNU)
++ROM_OBJS    = ${OBJS} ${RES_OBJ}
++endif
+ ROMCDEFINES = -DROM_MODULE
+ ASM2TXT     = SDFSErr hdr
+ CDFLAGS    += -DDEBUG_ENABLED
+ 
+--- a/c/free
++++ b/c/free
+@@ -29,6 +29,7 @@
+ #include "swis.h"
+ 
+ #include "Interface/Free.h"
++#include "Interface/SDFS.h"
+ 
+ #include "free.h"
+ #include "globals.h"

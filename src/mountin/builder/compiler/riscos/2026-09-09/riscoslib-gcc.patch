@@ -1,0 +1,278 @@
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -37,3 +37,7 @@ CLIB_COMMON_OBJS   = alloc armsys complex ctype cxsupport error fenv fpprintf loc
+ CLIB_STATIC_OBJS   = ${CLIB_COMMON_OBJS} armprof overmgr
+ CLIB_SHARED_OBJS   = ${CLIB_COMMON_OBJS} cl_spare
++ifeq (GNU,${TOOLCHAIN})
++CLIB_SHARED_OBJS   := $(filter-out complex math mathl,${CLIB_SHARED_OBJS})
++ASFLAGS            += -PD "GNU_MINIMAL_CLIB SETL {TRUE}"
++endif
+ RLIB_COMMON_OBJS   = basdump callafter callafterr callbefore callbeforer callx callxr callback callbackr callbackx callbackxr
+@@ -140,1 +144,3 @@
+-CDEFINES     += -DDDE
++ifneq (no,${DDE})
++CDEFINES     += -DDDE
++endif
+@@ -145,2 +151,3 @@ ifeq (GNU,${TOOLCHAIN})
+-CINCLUDES    = -nostdinc -isystem ${LIBDIR}/CLib -isystem ${LIBDIR}/RISC_OSLib
+-CFLAGS       +=  ${C_NO_ZI}
++CINCLUDES    = -nostdinc -iquote . -iquote rlib -isystem ${LIBDIR}/CLib -isystem ${LIBDIR}/RISC_OSLib
++CFLAGS       += -std=c11 -fno-unwind-tables -fno-asynchronous-unwind-tables -mmodule -fno-section-anchors ${C_NO_ZI}
++CSHAREDFLAGS = -msharedclibrary
+@@ -234,10 +241,10 @@ string.m_o: string.c
+ 
+ .c.rm_o:
+-	${CC} ${CFLAGS} -zm1 ${CSFLAGS} -o $@ $<
+-	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSFLAGS})
++	${CC} ${CFLAGS} ${CSHAREDFLAGS} -zm1 ${CSFLAGS} -o $@ $<
++	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSHAREDFLAGS} ${CSFLAGS})
+ armsys.rm_o: armsys.c
+-	${CC} ${CFLAGS} -zm1 ${CSFLAGS} ${VSFLAGS} -o $@ $<
+-	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSFLAGS} ${VSFLAGS})
++	${CC} ${CFLAGS} ${CSHAREDFLAGS} -zm1 ${CSFLAGS} ${VSFLAGS} -o $@ $<
++	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSHAREDFLAGS} ${CSFLAGS} ${VSFLAGS})
+ string.rm_o: string.c
+-	${CC} ${CFLAGS} -zm1 ${CSFLAGS} -DSEPARATE_MEMCPY -DSEPARATE_MEMSET -o $@ $<
+-	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSFLAGS} -DSEPARATE_MEMCPY -DSEPARATE_MEMSET)
++	${CC} ${CFLAGS} ${CSHAREDFLAGS} -zm1 ${CSFLAGS} -DSEPARATE_MEMCPY -DSEPARATE_MEMSET -o $@ $<
++	$(call make-depend,$<,$@,$(subst .rm_o,.rm_d,$@),${CSHAREDFLAGS} ${CSFLAGS} -DSEPARATE_MEMCPY -DSEPARATE_MEMSET)
+@@ -295,4 +302,4 @@ trace.m_o_rl: rlib/trace.c
+ 
+ .c.rm_o_rl:
+-	${CC} ${CFLAGS} -zm1 ${DFLAGS} ${CSFLAGS} -o $@ $<
+-	$(call make-depend,$<,$@,$(subst .rm_o_rl,.rm_d_rl,$@),${DFLAGS} ${CSFLAGS})
++	${CC} ${CFLAGS} ${CSHAREDFLAGS} -zm1 ${DFLAGS} ${CSFLAGS} -o $@ $<
++	$(call make-depend,$<,$@,$(subst .rm_o_rl,.rm_d_rl,$@),${CSHAREDFLAGS} ${DFLAGS} ${CSFLAGS})
+@@ -416,5 +423,27 @@ rom_link_CLib: rom_link_Entries ${ROMSHAREDCLIB_OBJS}
+ 	${XTENT} Entries.syms kernel/k_entries.s kernel/k_entries2.s clib/cl_entries.s clib/cl_entry2.s clib/cl_entry3.s clib/cl_entry4.s clib/cl_entry5.s
+ 	cat rlib/swi >> Entries.syms
++ifeq (GNU,${TOOLCHAIN})
++	awk '$$2 == "A" { print "PROVIDE(" $$3 " = " $$1 ");" }' Entries.syms > Entries.ld
++	rm -rf libgcc-min && mkdir libgcc-min
++	cd libgcc-min && ${GNUTOOLPREFIX}ar x $(shell ${CC} -print-libgcc-file-name) \
++	      _divsi3.o _modsi3.o _udivsi3.o _umodsi3.o _divdi3.o _moddi3.o _udivdi3.o _umoddi3.o \
++	      _clzsi2.o _dvmd_tls.o
++	for object in libgcc-min/*.o; do ${GNUTOOLPREFIX}objcopy -R .ARM.exidx -R .ARM.extab $$object; done
++	${GNUTOOLPREFIX}ld --ro-module-reloc -T /opt/rool/sharedclib.ld \
++	      -T Entries.ld \
++	      --defsym=Module_LoadAddr=${ADDRESS} \
++	      -o CLib.linked.elf ${ROMSHAREDCLIB_OBJS} \
++	      libgcc-min/*.o
++	${GNUTOOLPREFIX}objcopy -O binary CLib.linked.elf CLib.linked
++	${GNUTOOLPREFIX}nm -n CLib.linked.elf > ${TARGET}_sym.linked
++	for symbols in Entries A_Entries; do \
++	      awk 'NR == FNR && $$2 == "A" { wanted[$$3] = 1; next } $$3 in wanted { print "0x" $$1 " A " $$3 }' $$symbols.syms ${TARGET}_sym.linked > $$symbols.linked; \
++	      mv $$symbols.linked $$symbols.syms; done
++	awk 'NF == 3 && $$2 ~ /^[A-Z]$$/ { print "0x" $$1 " A " $$3 }' ${TARGET}_sym.linked > C_Entries.syms
++	${RM} ${ROMCSTUBS_OBJS} romcstubs.a
++	${MAKE_COMMAND} -f ../GNUmakefile romcstubs.a
++	${CP} romcstubs.a ${LIBDIR}/RISC_OSLib/romcstubs.a ${CPFLAGS}
++else
+ 	${LD} ${LDFLAGS} -o CLib.linked ${ROMSHAREDCLIB_OBJS} \
+               -symdefs C_Entries.syms \
+               -symdefs A_Entries.syms \
+@@ -424,4 +446,5 @@ rom_link_CLib: rom_link_Entries ${ROMSHAREDCLIB_OBJS}
+               -bin -base ${ADDRESS} \
+               -map > ${TARGET}.map
++endif
+ 
+ rom_link_RISC_OSLib: rom_link_Entries ${ROMSHAREDRLIB_OBJS}
+--- a/c/error
++++ b/c/error
+@@ -25,5 +25,11 @@
+ #include <errno.h>
+ #include "kernel.h"
+ 
++#ifdef __GNUC__
++volatile int __errno;
++#undef errno
++volatile int errno;
++#endif
++
+ extern int _fprintf_lf(FILE *fp, const char *fmt, ...);
+ extern int _sprintf_lf(char *buff, const char *fmt, ...);
+--- a/clib/s/cl_spare
++++ b/clib/s/cl_spare
+@@ -25,5 +25,9 @@
+ 
+         EXPORT  |CLib_data_end|
+ 
++      [ :DEF:GNU_MINIMAL_CLIB
++        %       489*4
++      |
+         %       96*4
++      ]
+ |CLib_data_end|
+ 
+--- a/clib/h/math
++++ b/clib/h/math
+@@ -136,5 +136,9 @@ extern "C" {
+ 
+ #ifndef __cplusplus
++#ifdef __GNUC__
++#define __caller_narrow
++#endif
++
+ /* None of this actually works, as the C++ system won't obey the
+   force_fpargs_in_regs pragma */
+ 
+@@ -163,6 +167,13 @@ double __copysignd(double,double);
+                                                     __##fn##d((double)(r)))
+ #endif
+ 
++#ifdef __GNUC__
++#define fpclassify(r) __builtin_fpclassify(FP_NAN, FP_INFINITE, FP_NORMAL, \
++                                            FP_SUBNORMAL, FP_ZERO, (r))
++#define signbit(r)    __builtin_signbit(r)
++#else
+ #define fpclassify(r) __classmacro(fpclassify,(r))
++#define signbit(r)    __classmacro(signbit,(r))
++#endif
+    /* Returns: the value of the appropriate number classification macro */
+ #define isfinite(r)   (fpclassify(r) <= FP_NORMAL)
+@@ -173,5 +184,4 @@ double __copysignd(double,double);
+    /* Returns: a nonzero value if and only if its argument is a NaN */
+ #define isnormal(r)   (fpclassify(r) == FP_NORMAL)
+    /* Returns: a nonzero value if and only if its argument is normal */
+-#define signbit(r)    __classmacro(signbit,(r))
+    /* Returns: a nonzero value if and only if its argument is negative */
+@@ -553,10 +558,19 @@ long double fmal(long double /*x*/, long double /*y*/, long double /*z*/);
+ #ifndef __cplusplus
++#ifdef __GNUC__
++#define isgreater(x,y)      __builtin_isgreater((x),(y))
++#define isgreaterequal(x,y) __builtin_isgreaterequal((x),(y))
++#define isless(x,y)         __builtin_isless((x),(y))
++#define islessequal(x,y)    __builtin_islessequal((x),(y))
++#define islessgreater(x,y)  __builtin_islessgreater((x),(y))
++#define isunordered(x,y)    __builtin_isunordered((x),(y))
++#else
+ #define isgreater(x,y)      ((x) __greater (y))
+ #define isgreaterequal(x,y) ((x) __greaterequal (y))
+ #define isless(x,y)         ((x) __less (y))
+ #define islessequal(x,y)    ((x) __lessequal (y))
+ #define islessgreater(x,y)  ((x) __lessgreater (y))
+ #define isunordered(x,y)    ((x) __unordered (y))
++#endif
+    /* quiet (non floating-point exception raising) versions of the */
+    /* relational operators, and other comparison macros that facilitate */
+    /* writing efficient code that accounts for NaNs without suffering the */
+@@ -603,5 +614,7 @@ double exp(double /*x*/);
+ #ifdef __cplusplus
+ #  define fabs(x) __d_abs(x)
++#elif defined(__GNUC__)
++#  define fabs(x) __builtin_fabs(x)
+ #else
+ #  define fabs(x) ((void) sizeof (fabs)(x), __abs (double) (x))
+ #endif
+@@ -646,6 +659,10 @@ __caller_narrow float __r_fma(float,float,float);
+ #define log10f(x) __r_lg10(x)
+ #define expf(x) __r_exp(x)
++#ifdef __GNUC__
++#define fabsf(x) __builtin_fabsf(x)
++#else
+ #define fabsf(x) ((void) sizeof (fabsf)(x), __abs (float) (x))
++#endif
+ #define floorf(x) __r_floor(x)
+ #define ceilf(x) __r_ceil(x)
+ #define truncf(x) __r_trunc(x)
+--- a/clib/h/complex
++++ b/clib/h/complex
+@@ -39,5 +39,9 @@
+ #undef imaginary
+ #undef complex
+ #undef I
++#ifdef __GNUC__
++#define imaginary    _Complex
++#else
+ #define imaginary    _Imaginary
++#endif
+ #define complex      _Complex
+@@ -51,6 +55,10 @@
+-#define _Imaginary_I ___i
++#ifdef __GNUC__
++#define _Imaginary_I (__extension__ 1.0iF)
++#else
++#define _Imaginary_I ___i
++#endif
+    /* a constant expression of type const float _Imaginary, with the value */
+    /* of the imaginary unit. */
+-#define _Complex_I   (0.0F+___i)
++#define _Complex_I   _Imaginary_I
+    /* a constant expression of type const float _Complex, with the value */
+    /* of the imaginary unit. */
+@@ -202,3 +211,9 @@ long double cimagl(long double complex /*z*/);
++#ifdef __GNUC__
++#define cimag(z) __imag__ (z)
++#define cimagf(z) __imag__ (z)
++#define cimagl(z) __imag__ (z)
++#else
+ #define cimag(z) ((void) sizeof cimag(z), (double _Imaginary)(z)/_Imaginary_I)
+ #define cimagf(z) ((void) sizeof cimagf(z), (float _Imaginary)(z)/_Imaginary_I)
+ #define cimagl(z) ((void) sizeof cimagl(z), (long double _Imaginary)(z)/_Imaginary_I)
++#endif
+@@ -215,3 +230,9 @@ long double complex conjl(long double complex /*z*/);
++#ifdef __GNUC__
++#define conj(z) __builtin_conj(z)
++#define conjf(z) __builtin_conjf(z)
++#define conjl(z) __builtin_conjl(z)
++#else
+ #define conj(z) ((void) sizeof conj(z), __conj (double _Complex)(z))
+ #define conjf(z) ((void) sizeof conjf(z), __conj (float _Complex)(z))
+ #define conjl(z) ((void) sizeof conjl(z), __conj (long double _Complex)(z))
++#endif
+--- a/clib/h/stdarg
++++ b/clib/h/stdarg
+@@ -35,4 +35,8 @@
+ /* N.B. <stdio.h> is required to declare vfprintf() without defining      */
+ /* va_list.  Clearly the type __va_list there must keep in step.          */
++#ifdef __GNUC__
++typedef __builtin_va_list va_list;
++#else
+ typedef char *va_list[1];       /* see <stdio.h> */
++#endif
+    /*
+@@ -47,4 +51,9 @@ typedef char *va_list[1];       /* see <stdio.h> */
+-#ifdef __cplusplus
++#ifdef __GNUC__
++#define va_start(ap,parmN) __builtin_va_start(ap,parmN)
++#define va_arg(ap,type) __builtin_va_arg(ap,type)
++#define va_copy(dest,src) __builtin_va_copy(dest,src)
++#define va_end(ap) __builtin_va_end(ap)
++#elif defined(__cplusplus)
+ template <class T> struct __alignoftest
+ { char __member1; T __member2;
+ };
+@@ -116,4 +125,5 @@ typedef char *va_list[1];       /* see <stdio.h> */
+     */
+ #endif
+ 
++#ifndef __GNUC__
+ #define va_copy(dest,src) ((void)(*(dest) = *(src)))
+@@ -137,5 +147,6 @@ typedef char *va_list[1];       /* see <stdio.h> */
+     */
+ 
+ #define va_end(ap) ((void)(*(ap) = (char *)-256))
++#endif
+    /*
+     * The va_end macro facilitates a normal return from the function whose
+--- a/clib/h/stdio
++++ b/clib/h/stdio
+@@ -40,2 +40,6 @@ typedef unsigned int size_t;   /* see <stddef.h> */
+ /* ANSI forbids va_list to be defined here */
++#ifdef __GNUC__
++typedef __builtin_va_list __va_list;
++#else
+ typedef char *__va_list[1];       /* keep in step with <stdarg.h> */
++#endif
+--- a/clib/h/stdlib
++++ b/clib/h/stdlib
+@@ -559,5 +559,8 @@ long long int llabs(long long int /*j*/);
+-#ifndef __cplusplus
++#ifdef __GNUC__
++#define abs(j)  __builtin_abs(j)
++#define labs(j) __builtin_labs(j)
++#elif !defined(__cplusplus)
+ /* the sizeof expression performs the necessary type-checking */
+ #define abs(j)  ((void) sizeof (abs)(j), __abs (int) (j))
+ #define labs(j) ((void) sizeof (labs)(j), __abs (long int) (j))
+ #endif

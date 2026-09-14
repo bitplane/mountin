@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     flex \
+    gawk \
     gperf \
     help2man \
     libtool \
@@ -14,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     patch \
     pkg-config \
     texinfo \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

@@ -2,11 +2,11 @@ FROM builder/compiler/riscos
 
 ARG MOUNTIN_BUILD_JOBS=1
 
-RUN mkdir -p /opt/gccsdk /opt/mountin/source
+RUN mkdir -p /opt/gccsdk /opt/mountin/sources/gccsdk
 
 RUN tar --no-same-owner -xzf /host/build/sources/gccsdk-7800.tar.gz \
-        -C /opt/mountin/source --strip-components=1 && \
-    mkdir -p /opt/mountin/source/srcdir.orig && \
+        -C /opt/mountin/sources/gccsdk --strip-components=1 && \
+    mkdir -p /opt/mountin/sources/gccsdk/srcdir.orig && \
     cp /host/build/sources/autoconf-2.64.tar.bz2 \
         /host/build/sources/automake-1.11.1.tar.bz2 \
         /host/build/sources/libtool-2.4.2.tar.gz \
@@ -15,12 +15,27 @@ RUN tar --no-same-owner -xzf /host/build/sources/gccsdk-7800.tar.gz \
         /host/build/sources/gmp-5.0.1.tar.bz2 \
         /host/build/sources/mpc-1.1.0.tar.gz \
         /host/build/sources/mpfr-3.0.1.tar.bz2 \
-        /opt/mountin/source/srcdir.orig/
+        /opt/mountin/sources/gccsdk/srcdir.orig/
 
 COPY --chmod=755 build-toolbox.sh /build-toolbox.sh
+COPY asasm-posix.patch gcc-sharedclibrary.patch riscostools-host-only.patch /
+RUN patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-posix.patch && \
+    patch -d /opt/mountin/sources/gccsdk -p1 < /gcc-sharedclibrary.patch
 RUN /build-toolbox.sh
 
-RUN ln -s /opt/mountin/source/builddir /opt/mountin/build && \
+COPY asasm-export-alias.patch asasm-divide.patch \
+     asasm-conditional-call-reloc.patch /
+RUN patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
+        < /asasm-export-alias.patch && \
+    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
+        < /asasm-divide.patch && \
+    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
+        < /asasm-conditional-call-reloc.patch && \
+    cd /opt/mountin/sources/gccsdk && \
+    ./riscos/build-it -f -host-tools-only cross
+
+RUN ln -s /opt/mountin/sources/gccsdk /opt/mountin/source && \
+    ln -s /opt/mountin/sources/gccsdk/builddir /opt/mountin/build && \
     ln -s /opt/gccsdk/cross/arm-unknown-riscos /opt/mountin/sysroot
 
 ENV PATH=/opt/gccsdk/cross/bin:$PATH \

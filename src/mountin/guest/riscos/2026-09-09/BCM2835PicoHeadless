@@ -1,0 +1,30 @@
+%BaseAddress   0xFC000000
+%Image         BCM2835PicoHeadless
+%Log           BCM2835PicoHeadless
+%Joiner        romlinker
+%JoinerFormat  romlinker
+%noimagesize
+
+HAL_BCM2835           -options ASMDEFINES="-PD \"Headless SETL {TRUE}\""
+Kernel                -at 0xFC010000 -options KERNEL_ADDRESS=0xFC010000 ASMDEFINES="-PD \"Headless SETL {TRUE}\" -PD \"CMOS_Override SETS \\\"= FileLangCMOS,fsnumber_none,CDROMFSCMOS,fsnumber_none,LanguageCMOS,10\\\"\""
+PCI
+FileSwitch
+ResourceFS
+MountinResources
+TerritoryManager
+MessageTrans
+UK
+BufferManager
+DeviceFS
+SharedCLibrary
+MountinSharedULib
+DualSerial
+SerialDeviceSupport
+FileCore
+Obey
+PipeFS
+SystemDevices
+SDIODriver
+SDFS
+# This module terminates the ROM module size chain.
+UnSqzAIF

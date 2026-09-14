@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+import shutil
+import socket
+import struct
+import subprocess
+import sys
+import tempfile
+import time
+
+
+def p9_string(value):
+    encoded = value.encode()
+    return struct.pack("<H", len(encoded)) + encoded
+
+
+def stat_names(data):
+    names = []
+    offset = 0
+    while offset < len(data):
+        size = struct.unpack_from("<H", data, offset)[0]
+        stat = data[offset + 2:offset + 2 + size]
+        name_offset = 2 + 4 + 13 + 4 + 4 + 4 + 8
+        length = struct.unpack_from("<H", stat, name_offset)[0]
+        start = name_offset + 2
+        names.append(stat[start:start + length].decode("latin-1"))
+        offset += size + 2
+    return names
+
+
+class Client:
+
+    def __init__(self, stream):
+        self.stream = stream
+        self.stream.settimeout(30)
+        self.tag = 0
+
+    def exact(self, size):
+        result = bytearray()
+        while len(result) < size:
+            chunk = self.stream.recv(size - len(result))
+            if not chunk:
+                raise EOFError("RISC OS closed the 9P stream")
+            result.extend(chunk)
+        return bytes(result)
+
+    def ready(self):
+        received = bytearray()
+        marker = b"9D-READY\n"
+        while not received.endswith(marker):
+            received.extend(self.exact(1))
+
+    def call(self, kind, body=b"", tag=None):
+        self.tag += 1
+        if tag is None:
+            tag = 0xFFFF if kind == 100 else self.tag
+        packet = struct.pack("<IBH", len(body) + 7, kind, tag) + body
+
+        # QEMU's BCM2835 PL011 model has a 16-byte receive FIFO. Pace input so
+        # the non-interleaved guest server can drain it without dropped bytes.
+        for byte in packet:
+            self.stream.sendall(bytes((byte, )))
+            time.sleep(0.05)
+
+        size, reply, reply_tag = struct.unpack("<IBH", self.exact(7))
+        body = self.exact(size - 7)
+        if reply_tag != tag:
+            raise RuntimeError(f"unexpected 9P tag {reply_tag}, wanted {tag}")
+        if reply == 107:
+            length = struct.unpack_from("<H", body)[0]
+            raise RuntimeError(body[2:2 + length].decode("latin-1"))
+        if reply != kind + 1:
+            raise RuntimeError(f"unexpected 9P reply {reply} for {kind}")
+        return body
+
+    def version(self):
+        version = b"9P2000.u"
+        self.call(100, struct.pack("<IH", 8192, len(version)) + version)
+
+    def attach(self, fid):
+        body = struct.pack("<II", fid, 0xFFFFFFFF)
+        body += p9_string("mountin") + p9_string("")
+        self.call(104, body + struct.pack("<I", 0xFFFFFFFF))
+
+    def walk(self, fid, newfid, name):
+        self.call(110, struct.pack("<IIH", fid, newfid, 1) + p9_string(name))
+
+    def open(self, fid, mode=0):
+        self.call(112, struct.pack("<IB", fid, mode))
+
+    def create(self, fid, name):
+        body = struct.pack("<I", fid) + p9_string(name)
+        self.call(114, body + struct.pack("<IB", 0o666, 2) + p9_string(""))
+
+    def read(self, fid, offset=0, count=8192):
+        body = self.call(116, struct.pack("<IQI", fid, offset, count))
+        length = struct.unpack_from("<I", body)[0]
+        return body[4:4 + length]
+
+    def write(self, fid, data):
+        body = struct.pack("<IQI", fid, 0, len(data)) + data
+        written = struct.unpack("<I", self.call(118, body))[0]
+        if written != len(data):
+            raise RuntimeError(f"short 9P write: {written} of {len(data)}")
+
+    def clunk(self, fid):
+        self.call(120, struct.pack("<I", fid))
+
+
+def connect(path, process, deadline):
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f"QEMU exited with status {process.returncode}")
+        if path.exists():
+            stream = socket.socket(socket.AF_UNIX)
+            try:
+                stream.connect(str(path))
+                return stream
+            except (ConnectionRefusedError, FileNotFoundError):
+                stream.close()
+        time.sleep(0.05)
+    raise TimeoutError("QEMU did not create the RISC OS serial endpoint")
+
+
+def boot(qemu, rom, disk, directory):
+    serial = directory / "serial.sock"
+    command = [
+        str(qemu),
+        "-M",
+        "raspi2b",
+        "-bios",
+        str(rom),
+        "-drive",
+        f"file={disk},format=raw,if=sd",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-no-reboot",
+        "-chardev",
+        f"socket,id=mountin,path={serial},server=on,wait=on",
+        "-serial",
+        "chardev:mountin",
+        "-serial",
+        "null",
+    ]
+    process = subprocess.Popen(command)
+    try:
+        stream = connect(serial, process, time.monotonic() + 30)
+        client = Client(stream)
+        client.ready()
+        client.version()
+        return process, stream, client
+    except BaseException:
+        stop(process)
+        raise
+
+
+def stop(process):
+    if process.poll() is None:
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+
+
+def initial_test(client):
+    client.attach(1)
+    client.open(1)
+    if "basic" not in stat_names(client.read(1)):
+        raise RuntimeError("RISC OS did not expose the FileCore fixture")
+
+    payload = b"written through RISC OS 9d\n"
+    client.attach(4)
+    client.create(4, "MtTest01")
+    client.write(4, payload)
+    client.clunk(4)
+
+    client.attach(5)
+    client.walk(5, 6, "MtTest01")
+    client.open(6)
+    if client.read(6) != payload:
+        raise RuntimeError("RISC OS did not retain the 9P write")
+    return payload
+
+
+def persistence_test(client, expected):
+    client.attach(1)
+    client.walk(1, 2, "MtTest01")
+    client.open(2)
+    if client.read(2) != expected:
+        raise RuntimeError(
+            "RISC OS did not persist the 9P write across reboot")
+
+
+def main():
+    if len(sys.argv) != 4:
+        raise SystemExit("usage: verify.py QEMU ROM FILECORE_IMAGE")
+    qemu, rom, fixture = map(Path, sys.argv[1:])
+
+    cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
+    cache.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="appliance-", dir=cache) as tmp:
+        directory = Path(tmp)
+        disk = directory / "fixture.img"
+        shutil.copyfile(fixture, disk)
+        with disk.open("r+b") as stream:
+            stream.truncate(32 * 1024 * 1024)
+
+        process, stream, client = boot(qemu, rom, disk, directory)
+        try:
+            payload = initial_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(qemu, rom, disk, directory)
+        try:
+            persistence_test(client, payload)
+        finally:
+            stream.close()
+            stop(process)
+
+    print(
+        "RISC OS FileCore read/write over 9P and reboot persistence complete")
+
+
+if __name__ == "__main__":
+    main()

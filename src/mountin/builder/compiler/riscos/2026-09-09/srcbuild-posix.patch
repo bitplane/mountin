@@ -1,0 +1,80 @@
+diff --git a/c/build b/c/build
+index d9e0ff7..d62a73a 100644
+--- a/c/build
++++ b/c/build
+@@ -99,7 +99,7 @@ static int build_install_rom_(build_install_rom_reason_code);
+ static int build_resources_(build_resources_reason_code);
+ 
+ /* Some string handling functions */
+-unsigned int strcasecmp(const char *xs, const char *ys);
++static unsigned int ascii_casecmp(const char *xs, const char *ys);
+ const char *strstr_ci(const char *source, const char *substr);
+ 
+ 
+@@ -2136,7 +2136,7 @@ build_release_autobuild(void)
+  *   Compare two ASCII strings, irrespective of case. Will return zero if they
+  *   match and non-zero if they do not.
+  */
+-unsigned int strcasecmp(const char *xs, const char *ys)
++static unsigned int ascii_casecmp(const char *xs, const char *ys)
+ {
+   unsigned char xc;
+   unsigned char yc;
+@@ -2174,7 +2174,7 @@ const char *strstr_ci(const char *source, const char *substr)
+ 
+   do
+   {
+-    if (strcasecmp(source, substr) == 0) return(source);
++    if (ascii_casecmp(source, substr) == 0) return(source);
+     source++;
+   } while (len--);
+ 
+diff --git a/c/riscos b/c/riscos
+index e60ae2e..67a08f4 100644
+--- a/c/riscos
++++ b/c/riscos
+@@ -37,7 +37,10 @@
+ #  include "swis.h"
+ #  include "Global/Services.h"
+ #else
+-#  include "sys/wait.h"
++#  include <sys/stat.h>
++#  include <sys/types.h>
++#  include <sys/wait.h>
++#  include <unistd.h>
+ #endif
+ 
+ #include "srcbuild.h"
+@@ -570,7 +573,7 @@ int sb_system(char *command)
+    */
+   pid_t pid;
+   int status = -1;
+-  char **argv, **env, *path;
++  char **env;
+   char buf[256];
+ 
+   fflush(stdout);
+@@ -587,9 +590,7 @@ int sb_system(char *command)
+         sb_setenv("PWD", buf);
+       }
+ 
+-      argv = sb_makeargv(command); /* updates command to 0-terminate the filename */
+       env = sb_putenv();
+-      path = sb_resolve_path(command);
+ 
+       /*
+       for (status = 0; argv[status]; ++status) printf("ARG: %s\n", argv[status]);
+@@ -603,7 +604,12 @@ int sb_system(char *command)
+       if (logfile) {
+         fclose(logfile);
+       }
+-      execve(path, argv, env);
++      {
++        char *const argv[] = { "sh", "-c", command, NULL };
++
++        execve("/bin/sh", argv, env);
++      }
++
+       /* Must NOT allow the C library to interfere with the termination */
+       _exit(errno);
+       _exit(ENOEXEC);

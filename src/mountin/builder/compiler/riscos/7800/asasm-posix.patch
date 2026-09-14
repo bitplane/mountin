@@ -1,0 +1,191 @@
+--- a/riscos/asasm/src/macros.c
++++ b/riscos/asasm/src/macros.c
+@@ -342,6 +342,7 @@
+ static const Macro *
+ Macro_Find (const char *name, size_t len, bool addSfxWildcard)
+ {
++  const Macro *best = NULL;
+   for (const Macro *mP = oMacroListP; mP != NULL; mP = mP->nextP)
+     {
+       /* Check length requirement first.  */
+@@ -350,12 +351,13 @@
+ 	  || (mP->nameLen > len && addSfxWildcard))
+ 	{
+ 	  size_t charsToMatch = len < mP->nameLen ? len : mP->nameLen;
+-	  if (!memcmp (name, mP->name, charsToMatch))
+-	    return mP;
++	  if (!memcmp (name, mP->name, charsToMatch)
++	      && (best == NULL || mP->nameLen > best->nameLen))
++	    best = mP;
+ 	}
+     }
+ 
+-  return NULL;
++  return best;
+ }
+ 
+ 
+@@ -472,45 +474,23 @@
+     }
+   else
+     m.suffixArg = false;
+-  const Macro *prevDefMacro = Macro_Find (macroName, macroNameLen, m.suffixArg);
++  const Macro *prevDefMacro = NULL;
++  for (const Macro *candidate = oMacroListP;
++       candidate != NULL; candidate = candidate->nextP)
++    if (candidate->nameLen == macroNameLen
++        && !memcmp (candidate->name, macroName, macroNameLen))
++      {
++        prevDefMacro = candidate;
++        break;
++      }
+   if (prevDefMacro != NULL)
+     {
+-      assert ((!m.suffixArg && ((prevDefMacro->nameLen == macroNameLen && !prevDefMacro->suffixArg) || (prevDefMacro->nameLen <= macroNameLen && prevDefMacro->suffixArg)))
+-              || (m.suffixArg && ((prevDefMacro->nameLen >= macroNameLen && !prevDefMacro->suffixArg) || prevDefMacro->suffixArg)));
+-      /* Macro definition is matching an already given macro definition
+-         (possibly via a macro suffix).  */
+-      if (prevDefMacro->nameLen == macroNameLen && prevDefMacro->suffixArg == m.suffixArg)
+-	{
+-	  if (m.suffixArg)
+-	    Error (ErrorError, "Macro '%.*s$%s' is already defined",
+-		   (int)macroNameLen, macroName, Macro_GetSuffix (&m));
+-	  else
+-	    Error (ErrorError, "Macro '%.*s' is already defined",
+-		   (int)macroNameLen, macroName);
+-	}
+-      else if (prevDefMacro->nameLen <= macroNameLen && prevDefMacro->suffixArg)
+-	{
+-	  if (m.suffixArg)
+-	    Error (ErrorError, "Macro definition '%.*s$%s' is eclipsed by macro definition '%s$%s'",
+-		   (int)macroNameLen, macroName, Macro_GetSuffix (&m),
+-		   prevDefMacro->name, Macro_GetSuffix (prevDefMacro));
+-	  else
+-	    Error (ErrorError, "Macro definition '%.*s' is eclipsed by macro definition '%s$%s",
+-		   (int)macroNameLen, macroName, prevDefMacro->name, Macro_GetSuffix (prevDefMacro));
+-	}
+-      else if (macroNameLen <= prevDefMacro->nameLen && m.suffixArg)
+-	{
+-	  if (prevDefMacro->suffixArg)
+-	    Error (ErrorError, "Macro definition '%.*s$%s' eclipses macro definition '%s$%s'",
+-		   (int)macroNameLen, macroName, Macro_GetSuffix (&m),
+-		   prevDefMacro->name, Macro_GetSuffix (prevDefMacro));
+-	  else
+-	    Error (ErrorError, "Macro definition '%.*s$%s' eclipses macro definition '%s'",
+-		   (int)macroNameLen, macroName, Macro_GetSuffix (&m),
+-		   prevDefMacro->name);
+-	}
++      if (m.suffixArg)
++        Error (ErrorError, "Macro '%.*s$%s' is already defined",
++               (int)macroNameLen, macroName, Macro_GetSuffix (&m));
+       else
+-	assert (0);
++        Error (ErrorError, "Macro '%.*s' is already defined",
++               (int)macroNameLen, macroName);
+       if (prevDefMacro->suffixArg)
+         Error_Line (prevDefMacro->fileName, prevDefMacro->startLineNum, ErrorError,
+ 		    "note: Macro %s$%s was defined here",
+--- a/riscos/asasm/src/os.c
++++ b/riscos/asasm/src/os.c
+@@ -125,6 +125,7 @@
+ #else
+ /* Non RISC OS version.  */
+ #  include <ctype.h>
++#  include <dirent.h>
+ #  include <string.h>
+ 
+ #  include <glob.h>
+@@ -134,6 +135,56 @@
+ 
+ #endif
+ 
++#ifndef __riscos__
++static bool
++resolve_case_insensitive (const char *fileName, char *resolved, size_t size)
++{
++  const bool absolute = fileName[0] == '/';
++  int written = snprintf (resolved, size, "%s", absolute ? "/" : ".");
++  if (written < 0 || (size_t) written >= size)
++    return true;
++
++  const char *component = fileName + absolute;
++  while (*component != '\0')
++    {
++      while (*component == '/')
++        ++component;
++      if (*component == '\0')
++        break;
++
++      const char *end = strchr (component, '/');
++      size_t length = end == NULL ? strlen (component) : (size_t)(end - component);
++      DIR *directory = opendir (resolved);
++      if (directory == NULL)
++        return true;
++
++      const char *match = NULL;
++      struct dirent *entry;
++      while ((entry = readdir (directory)) != NULL)
++        if (strlen (entry->d_name) == length
++            && strncasecmp (entry->d_name, component, length) == 0)
++          {
++            match = entry->d_name;
++            break;
++          }
++      if (match == NULL)
++        {
++          closedir (directory);
++          return true;
++        }
++
++      size_t used = strlen (resolved);
++      written = snprintf (resolved + used, size - used, "%s%s",
++                          used == 1 && resolved[0] == '/' ? "" : "/", match);
++      closedir (directory);
++      if (written < 0 || (size_t) written >= size - used)
++        return true;
++      component = end == NULL ? component + length : end + 1;
++    }
++  return false;
++}
++#endif
++
+ /**
+  * Create ASFile structure for given filename.
+  * \param fileName Filename for which ASFile object needs to be created.
+@@ -163,18 +214,23 @@
+ #else
+ 
+   struct stat sinfo;
+-  if (stat (fileName, &sinfo) != 0 || !S_ISREG (sinfo.st_mode))
++  char resolvedName[PATH_MAX];
++  const char *actualName = fileName;
++  if ((stat (actualName, &sinfo) != 0 || !S_ISREG (sinfo.st_mode))
++      && !resolve_case_insensitive (fileName, resolvedName, sizeof (resolvedName)))
++    actualName = resolvedName;
++  if (stat (actualName, &sinfo) != 0 || !S_ISREG (sinfo.st_mode))
+     {
+       /* Given file does not exist.  Try with ,XYZ filetype extension.  */
+-      size_t len = strlen (fileName);
++      size_t len = strlen (actualName);
+       /* Bail out when there is already a ,XYZ file extension used.  */
+-      if (len > sizeof (",xyz")-1 && fileName[len - 4] == ',')
++      if (len > sizeof (",xyz")-1 && actualName[len - 4] == ',')
+ 	return true;
+ 
+       char *extFileName = malloc (len + 4 + 1);
+       if (!extFileName)
+ 	Error_OutOfMem ();
+-      memcpy (extFileName, fileName, len);
++      memcpy (extFileName, actualName, len);
+       memcpy (extFileName + len, ",???", sizeof (",???"));
+ 
+       glob_t ginfo;
+@@ -194,7 +250,7 @@
+       globfree (&ginfo);
+     }
+   else
+-    asFileP->canonName = realpath (fileName, NULL);
++    asFileP->canonName = realpath (actualName, NULL);
+   asFileP->size = sinfo.st_size;
+   asFileP->attribs = ((sinfo.st_mode & S_IRUSR) ? (1<<0) : 0)
+ 		       | ((sinfo.st_mode & S_IWUSR) ? (1<<1) : 0)

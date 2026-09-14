@@ -378,3 +378,8 @@ poor isolation - fix the code instead.
 
 The user will build the project, given the time required to run the build and
 the size of the outputs.
+
+Do not use `mountin-build build -f` for focused provider iteration. `-f`
+forces the complete dependency closure and can rebuild every compiler and
+bootstrap beneath the target. Rebuild or invalidate only the leaf provider
+being changed, preserving its already-built dependencies.
