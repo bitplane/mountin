@@ -1,0 +1,165 @@
+--- a/riscos/asasm/src/os.c
++++ b/riscos/asasm/src/os.c
+@@ -125,15 +125,109 @@
+ #else
+ /* Non RISC OS version.  */
+ #  include <ctype.h>
++#  include <dirent.h>
++#  include <errno.h>
+ #  include <string.h>
+ 
+-#  include <glob.h>
++#  include <strings.h>
+ #  include <sys/types.h>
+ #  include <sys/stat.h>
+ #  include <unistd.h>
+ 
+ #endif
+ 
++#ifndef __riscos__
++/* Resolve each component before looking for an implicit filetype suffix.  */
++static bool
++ASFile_Resolve (const char *fileName, char *resolved, size_t size)
++{
++  if (size < 2)
++    return true;
++  const bool absolute = fileName[0] == '/';
++  snprintf (resolved, size, "%s", absolute ? "/" : ".");
++  const char *component = fileName + absolute;
++  while (*component != '\0')
++    {
++      while (*component == '/')
++        ++component;
++      if (*component == '\0')
++        break;
++      const char *end = strchr (component, '/');
++      size_t length = end == NULL ? strlen (component) : (size_t)(end - component);
++      size_t used = strlen (resolved);
++      size_t prefix = used + (resolved[used - 1] != '/');
++      if (prefix + length >= size)
++        return true;
++
++      resolved[prefix - 1] = '/';
++      memcpy (resolved + prefix, component, length);
++      resolved[prefix + length] = '\0';
++      struct stat sinfo;
++      if (stat (resolved, &sinfo) != 0)
++        {
++          resolved[used] = '\0';
++          DIR *directory = opendir (resolved);
++          if (directory == NULL)
++            return true;
++
++          unsigned best = 0;
++          bool ambiguous = false;
++          bool fileType = end == NULL
++                          && !(length > 4 && component[length - 4] == ',');
++          struct dirent *entry;
++          errno = 0;
++          while ((entry = readdir (directory)) != NULL)
++            {
++              size_t entryLen = strlen (entry->d_name);
++              bool suffix = fileType && entryLen == length + 4
++                            && entry->d_name[length] == ','
++                            && isxdigit ((unsigned char)entry->d_name[length + 1])
++                            && isxdigit ((unsigned char)entry->d_name[length + 2])
++                            && isxdigit ((unsigned char)entry->d_name[length + 3]);
++              if ((entryLen != length && !suffix)
++                  || strncasecmp (entry->d_name, component, length) != 0)
++                continue;
++              /* Prefer unsuffixed names, then exact case within each group.  */
++              unsigned rank = suffix ? 1 : 3;
++              if (memcmp (entry->d_name, component, length) == 0)
++                ++rank;
++              if (rank < best)
++                continue;
++              if (rank == best)
++                {
++                  ambiguous = true;
++                  continue;
++                }
++              if (prefix + entryLen >= size)
++                {
++                  closedir (directory);
++                  return true;
++                }
++              resolved[prefix - 1] = '/';
++              memcpy (resolved + prefix, entry->d_name, entryLen + 1);
++              best = rank;
++              ambiguous = false;
++            }
++          int readError = errno;
++          closedir (directory);
++          if (readError != 0 || best == 0)
++            return true;
++          if (ambiguous)
++            {
++              Error (ErrorError, "Ambiguous filename component '%.*s' in '%s'",
++                     (int)length, component, fileName);
++              return true;
++            }
++        }
++      if (end != NULL
++          && (stat (resolved, &sinfo) != 0 || !S_ISDIR (sinfo.st_mode)))
++        return true;
++      component = end == NULL ? component + length : end + 1;
++    }
++  return false;
++}
++#endif
++
+ /**
+  * Create ASFile structure for given filename.
+  * \param fileName Filename for which ASFile object needs to be created.
+@@ -163,38 +257,21 @@
+ #else
+ 
+   struct stat sinfo;
+-  if (stat (fileName, &sinfo) != 0 || !S_ISREG (sinfo.st_mode))
++  char resolvedName[PATH_MAX];
++  const char *actualName = fileName;
++  if (stat (actualName, &sinfo) != 0)
+     {
+-      /* Given file does not exist.  Try with ,XYZ filetype extension.  */
+-      size_t len = strlen (fileName);
+-      /* Bail out when there is already a ,XYZ file extension used.  */
+-      if (len > sizeof (",xyz")-1 && fileName[len - 4] == ',')
+-	return true;
+-
+-      char *extFileName = malloc (len + 4 + 1);
+-      if (!extFileName)
+-	Error_OutOfMem ();
+-      memcpy (extFileName, fileName, len);
+-      memcpy (extFileName + len, ",???", sizeof (",???"));
+-
+-      glob_t ginfo;
+-      if (glob (extFileName, GLOB_ERR | GLOB_NOSORT, NULL, &ginfo) != 0)
+-	{
+-	  free (extFileName);
+-	  return true;
+-	}
+-      free (extFileName);
+-      if (ginfo.gl_pathc != 1
+-          || stat (ginfo.gl_pathv[0], &sinfo) != 0 || !S_ISREG (sinfo.st_mode))
+-	{
+-	  globfree (&ginfo);
+-	  return true;
+-	}
+-      asFileP->canonName = realpath (ginfo.gl_pathv[0], NULL);
+-      globfree (&ginfo);
++      if (ASFile_Resolve (fileName, resolvedName, sizeof (resolvedName)))
++        return true;
++      actualName = resolvedName;
++      if (stat (actualName, &sinfo) != 0)
++        return true;
+     }
+-  else
+-    asFileP->canonName = realpath (fileName, NULL);
++  if (!S_ISREG (sinfo.st_mode))
++    return true;
++  asFileP->canonName = realpath (actualName, NULL);
++  if (asFileP->canonName == NULL)
++    return true;
+   asFileP->size = sinfo.st_size;
+   asFileP->attribs = ((sinfo.st_mode & S_IRUSR) ? (1<<0) : 0)
+ 		       | ((sinfo.st_mode & S_IWUSR) ? (1<<1) : 0)

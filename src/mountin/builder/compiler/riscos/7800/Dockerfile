@@ -18,8 +18,9 @@ RUN tar --no-same-owner -xzf /host/build/sources/gccsdk-7800.tar.gz \
         /opt/mountin/sources/gccsdk/srcdir.orig/
 
 COPY --chmod=755 build-toolbox.sh /build-toolbox.sh
-COPY asasm-posix.patch gcc-sharedclibrary.patch riscostools-host-only.patch /
-RUN patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-posix.patch && \
+COPY asasm-macro-resolution.patch asasm-filename-lookup.patch gcc-sharedclibrary.patch riscostools-host-only.patch /
+RUN patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-macro-resolution.patch && \
+    patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-filename-lookup.patch && \
     patch -d /opt/mountin/sources/gccsdk -p1 < /gcc-sharedclibrary.patch
 RUN /build-toolbox.sh
 
