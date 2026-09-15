@@ -18,24 +18,7 @@ RUN tar --no-same-owner -xzf /host/build/sources/gccsdk-7800.tar.gz \
         /opt/mountin/sources/gccsdk/srcdir.orig/
 
 COPY --chmod=755 build-toolbox.sh /build-toolbox.sh
-COPY asasm-macro-resolution.patch asasm-filename-lookup.patch gcc-sharedclibrary.patch riscostools-host-only.patch /
-RUN patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-macro-resolution.patch && \
-    patch -d /opt/mountin/sources/gccsdk -p1 < /asasm-filename-lookup.patch && \
-    patch -d /opt/mountin/sources/gccsdk -p1 < /gcc-sharedclibrary.patch
 RUN /build-toolbox.sh
-
-COPY asasm-export-alias.patch asasm-divide.patch \
-     asasm-conditional-call-reloc.patch asasm-relative-data.patch /
-RUN patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
-        < /asasm-export-alias.patch && \
-    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
-        < /asasm-divide.patch && \
-    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
-        < /asasm-conditional-call-reloc.patch && \
-    patch -d /opt/mountin/sources/gccsdk/riscos/asasm -p1 \
-        < /asasm-relative-data.patch && \
-    cd /opt/mountin/sources/gccsdk && \
-    ./riscos/build-it -f -host-tools-only cross
 
 RUN ln -s /opt/mountin/sources/gccsdk /opt/mountin/source && \
     ln -s /opt/mountin/sources/gccsdk/builddir /opt/mountin/build && \

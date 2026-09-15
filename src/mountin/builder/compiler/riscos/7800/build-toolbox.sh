@@ -48,5 +48,4 @@ refresh_config_scripts \
     srcdir/binutils srcdir/gcc srcdir/gmp srcdir/mpc srcdir/mpfr
 make "${make_args[@]}" cross-gcc-built
 
-patch -p1 < /riscostools-host-only.patch
 ./riscos/build-it -f -host-tools-only cross

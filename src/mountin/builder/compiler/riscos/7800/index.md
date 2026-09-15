@@ -24,7 +24,7 @@ build_requires:
 # RISC OS GCCSDK r7800 Toolbox
 
 GCCSDK's GCC 4.7.4 cross-compiler, binutils, UnixLib and RISC OS host tools,
-built from the canonical r7800 source snapshot. Every upstream archive is a
+built from the patched r7800 fork source. Every upstream archive is a
 catalogue input; the build performs no network access.
 
 The toolbox builds only the C compiler and static target libraries required by

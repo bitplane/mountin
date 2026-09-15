@@ -11,7 +11,6 @@ RUN mkdir -p /opt/mountin/sources/decgen && \
     unzip -q /host/build/sources/riscos-decgen-1.41b.zip \
         -d /opt/mountin/sources/decgen
 
-COPY cmunge-gcc.patch /patches/
 COPY --chmod=755 build-cmunge.sh /build-cmunge.sh
 RUN /build-cmunge.sh
 
