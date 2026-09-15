@@ -30,3 +30,8 @@ other projects; this image adds the tools and sources for this OS generation.
 The toolbox is self-contained and performs no network access. The operating
 system source is exposed at `/opt/mountin/source`, the BuildHost sources at
 `/opt/mountin/sources/buildhost`, and native build utilities in `/opt/rool/bin`.
+
+The local `resgen` adapter implements the `area output -via file` form used by
+the GNU makefiles. It uses GCCSDK's `mkresfs` to encode ResourceFS data and emits
+an ARM ELF object exporting the named accessor. It is not the original AOF
+ResGen tool or a replacement for its full command-line interface.

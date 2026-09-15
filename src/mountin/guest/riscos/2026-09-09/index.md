@@ -19,3 +19,10 @@ toolbox. It contains no 9d binary or application launcher.
 The product selects `MINIMAL_CLIB=yes` for SharedCLibrary, omitting its complex
 and math implementations. This is an appliance choice; the library's upstream
 build defaults are unchanged by the GNU port.
+
+`BCM2835PicoHeadless` also selects the early boot modules, fixed serial modem
+status, startup module and embedded territory handling. The corresponding
+controls live in the OS component forks; the appliance's names and values
+remain in this product definition. The kernel's minimal boot mode omits
+display/keyboard startup and some peripheral initialization, so it is intended
+for this reduced ROM rather than a full desktop system without a screen.

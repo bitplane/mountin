@@ -6,6 +6,14 @@ if [ "$#" -ne 4 ] || [ "$3" != "-via" ]; then
     exit 2
 fi
 
+area=$1
+case "$area" in
+    ''|[0-9]*|*[!a-zA-Z0-9_]*)
+        echo "area must be a C identifier: $area" >&2
+        exit 2
+        ;;
+esac
+
 output=$2
 via=$4
 case "$output" in
@@ -29,15 +37,16 @@ while read -r source destination; do
     if [ "$parent" != "$destination" ]; then
         mkdir -p "$root/$parent"
     fi
-    cp "$source" "$root/$destination"
+    cp -p "$source" "$root/$destination"
 done < "$via"
 
-mkresfs -o "$temporary/resources.c" "$root"
-sed -i 's/^static const unsigned char payload\[\]/const unsigned char payload[]/' \
-    "$temporary/resources.c"
-cat >> "$temporary/resources.c" <<'EOF'
+mkresfs -o "$temporary/generated.c" "$root"
+sed -n '/^static const unsigned char payload\[\] =/,/^};/p' \
+    "$temporary/generated.c" > "$temporary/resources.c"
+test -s "$temporary/resources.c"
+cat >> "$temporary/resources.c" <<EOF
 
-void *Resources(void)
+void *$area(void)
 {
     return (void *)payload;
 }
