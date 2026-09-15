@@ -15,3 +15,7 @@ compiled kernel and storage modules, OS resources, exported headers, libraries
 and source needed for ROM linking. The system directory preserves the upstream
 RiscOS tree layout so appliance assembly can continue the build with the same
 toolbox. It contains no 9d binary or application launcher.
+
+The product selects `MINIMAL_CLIB=yes` for SharedCLibrary, omitting its complex
+and math implementations. This is an appliance choice; the library's upstream
+build defaults are unchanged by the GNU port.

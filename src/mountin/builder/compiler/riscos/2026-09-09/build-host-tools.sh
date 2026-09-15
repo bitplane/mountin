@@ -14,8 +14,6 @@ export GCCSDK_ROOT=$PWD
 . ./setup-gccsdk-params
 export GCCSDK_MAKE_ARGS="-j$MOUNTIN_BUILD_JOBS"
 unset CC AR STRIP RANLIB
-patch -d "$srcbuild" -p1 < /patches/srcbuild-posix.patch
-patch -d "$clxlite" -p1 < /patches/clxlite-posix.patch
 
 mkdir -p /opt/rool/bin "$objects/include/CLib" "$objects/obj"
 ln -s "$buildhost/Sources/Lib/RISC_OSLib/clib/h/kernel" \

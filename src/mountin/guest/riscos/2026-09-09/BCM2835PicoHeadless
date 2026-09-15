@@ -16,7 +16,7 @@ MessageTrans
 UK
 BufferManager
 DeviceFS
-SharedCLibrary
+SharedCLibrary       -options MINIMAL_CLIB=yes
 MountinSharedULib
 DualSerial
 SerialDeviceSupport
