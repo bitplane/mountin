@@ -24,6 +24,15 @@ RUN ln -s /opt/mountin/sources/gccsdk /opt/mountin/source && \
     ln -s /opt/mountin/sources/gccsdk/builddir /opt/mountin/build && \
     ln -s /opt/gccsdk/cross/arm-unknown-riscos /opt/mountin/sysroot
 
+RUN cd /opt/mountin/source/riscos/elf2aif && \
+    autoreconf --install && \
+    mkdir -p /tmp/elf2aif-build && \
+    cd /tmp/elf2aif-build && \
+    CC=gcc /opt/mountin/source/riscos/elf2aif/configure && \
+    make -j"$MOUNTIN_BUILD_JOBS" && \
+    install -m 755 src/elf2aif /usr/local/bin/elf2aif && \
+    rm -rf /tmp/elf2aif-build
+
 ENV PATH=/opt/gccsdk/cross/bin:$PATH \
     CC=arm-unknown-riscos-gcc \
     AR=arm-unknown-riscos-ar \

@@ -7,16 +7,10 @@ OUTPUT_DIR=/host/build/bin/${MOUNTIN_TARGET_ARCH}-darwin
 
 rm -rf "$SOURCE" "$OBJECTS"
 mkdir -p "$SOURCE" "$OBJECTS" "$OUTPUT_DIR"
-tar -xf /host/build/sources/9d-0.7.16.tar.xz \
+tar -xf /host/build/sources/9d-0.8.0.tar.xz \
     -C "$SOURCE" --strip-components=1
 
-make -C "$SOURCE" release \
-    NETWORK=0 STATIC=0 \
-    THREAD_LIBS= \
-    STRIP="$STRIP -S" \
-    API_CPPFLAGS=-D_XOPEN_SOURCE=600 \
-    RELEASE_CFLAGS="-Os -g0 -DNDEBUG -DS9_PATH_MAX=1024" \
-    LDFLAGS="-Wl,-dead_strip"
+(cd "$SOURCE" && ./scripts/release-binary.sh "${MOUNTIN_TARGET_ARCH}-darwin")
 
 "$OBJDUMP" --macho --private-headers "$SOURCE/build/9d" \
     | grep -Eq 'LC_(BUILD_VERSION|VERSION_MIN_MACOSX)'

@@ -28,5 +28,6 @@ built from the patched r7800 fork source. Every upstream archive is a
 catalogue input; the build performs no network access.
 
 The toolbox builds only the C compiler and static target libraries required by
-Mountin appliances. It exposes the usual source, build and sysroot views under
-`/opt/mountin`, and installs the cross tools in `PATH`.
+Mountin appliances. It also builds GCCSDK's host `elf2aif` converter for
+packaging executable RISC OS programs. It exposes the usual source, build and
+sysroot views under `/opt/mountin`, and installs the tools in `PATH`.
