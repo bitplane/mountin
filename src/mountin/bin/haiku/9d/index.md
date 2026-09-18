@@ -1,7 +1,7 @@
 ---
 title: 9d for Haiku
 requires:
-  - sources/9d-0.7.15.tar.xz
+  - sources/9d-0.7.16.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-haiku/9d
 ---
@@ -9,4 +9,5 @@ provides:
 # 9d for Haiku
 
 POSIX 9d build for Haiku, configured for its connected serial stream.
-The network transport and Haiku network-library dependency are omitted.
+The network transport is disabled; bundled libixp still requires Haiku's
+libnetwork for its socket symbols.
