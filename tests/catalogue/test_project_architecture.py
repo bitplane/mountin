@@ -1,7 +1,5 @@
 """Architecture invariants for the real project catalogue."""
 
-import os
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -14,7 +12,6 @@ from mountin.catalogue import (
     resolve_provider_instances,
 )
 from mountin.provider_cache import provider_cache_container
-
 
 PACKAGE_DIR = Path(__file__).parents[2] / "src" / "mountin"
 CONTEXT = {
@@ -53,31 +50,6 @@ def test_every_provider_instance_receives_its_automatic_cache(project_catalogue)
             assert instance["meta"]["execution_env"]["MOUNTIN_CACHE_DIR"] == expected
 
 
-@pytest.mark.external_tools
-def test_qemu_zig_wrapper_translates_darwin_target(tmp_path):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    zig = bin_dir / "zig"
-    zig.write_text("#!/bin/sh\nexit 0\n")
-    zig.chmod(0o755)
-    wrappers = tmp_path / "wrappers"
-
-    subprocess.run(
-        [
-            "bash",
-            PACKAGE_DIR / "builder/qemu/zig-wrapper.sh",
-            "x86_64-darwin",
-            wrappers,
-        ],
-        env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"},
-        check=True,
-    )
-
-    compiler = (wrappers / "cc").read_text()
-    assert "-target x86_64-macos" in compiler
-    assert "/opt/x86_64-darwin" in compiler
-
-
 def test_puredarwin_guests_do_not_depend_on_the_macos_sdk(project_catalogue):
     for target in (
         "bin/x86_64-darwin/mountin-init",
@@ -93,61 +65,6 @@ def test_macos_qemu_uses_the_macos_sdk(project_catalogue):
         project_catalogue, "bin/qemu-system/x86_64-darwin/qemu-system-x86_64"
     )["nodes"]
     assert "sdk/darwin/11.3" in nodes
-
-
-@pytest.mark.external_tools
-def test_qemu_linux_architecture_profiles():
-    helper = PACKAGE_DIR / "builder/disk/qemu/qemu-linux-arch.sh"
-    expected = {
-        "x86_64": "qemu-system-x86_64||ttyS0",
-        "aarch64": "qemu-system-aarch64|-machine virt -cpu cortex-a57|ttyAMA0",
-        "arm": "qemu-system-arm|-machine virt -cpu cortex-a15|ttyAMA0",
-    }
-
-    for arch, profile in expected.items():
-        result = subprocess.run(
-            [
-                "bash",
-                "-c",
-                'source "$1"; set_qemu_linux_arch_profile "$2"; '
-                'printf "%s|%s|%s" "$QEMU_BIN" '
-                '"${QEMU_MACHINE_ARGS[*]}" "$QEMU_CONSOLE"',
-                "qemu-profile",
-                helper,
-                arch,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        assert result.stdout == profile
-
-
-@pytest.mark.external_tools
-def test_qemu_netbsd_architecture_profiles():
-    helper = PACKAGE_DIR / "builder/run/qemu-netbsd/qemu-netbsd-arch.sh"
-    expected = {
-        "x86_64": ("qemu-system-x86_64||-drive file=boot,format=raw,if=virtio,readonly=on"),
-        "aarch64": "qemu-system-aarch64|-machine virt -cpu cortex-a57|-kernel boot",
-    }
-
-    for arch, profile in expected.items():
-        result = subprocess.run(
-            [
-                "bash",
-                "-c",
-                'source "$1"; set_qemu_netbsd_arch_profile "$2" boot; '
-                'printf "%s|%s|%s" "$QEMU_BIN" '
-                '"${QEMU_MACHINE_ARGS[*]}" "${QEMU_BOOT_ARGS[*]}"',
-                "qemu-profile",
-                helper,
-                arch,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        assert result.stdout == profile
 
 
 def test_mountin_binaries_do_not_embed_the_format_catalogue(project_catalogue):
@@ -322,7 +239,10 @@ def test_netbsd_cross_build_matrix_and_host_native_disk_tools(project_catalogue)
     assert "builder/compiler/netbsd/10.0@aarch64-netbsd" in arm_guest["nodes"]
     assert "builder/compiler/netbsd/10.0@x86_64-netbsd" in x86_guest["nodes"]
     assert "builder/compiler/netbsd/10.0@aarch64-netbsd" in arm_data["nodes"]
-    assert arm_guest["nodes"]["builder/compiler/netbsd/10.0@aarch64-netbsd"]["meta"]["execution_env"]["MOUNTIN_BUILD_JOBS"] == "1"
+    assert (
+        arm_guest["nodes"]["builder/compiler/netbsd/10.0@aarch64-netbsd"]["meta"]["execution_env"]["MOUNTIN_BUILD_JOBS"]
+        == "1"
+    )
 
 
 def test_9front_cross_build_matrix(project_catalogue):

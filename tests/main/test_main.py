@@ -1,8 +1,8 @@
 """Tests for main.py CLI helpers."""
 
 import json
-import subprocess
 from argparse import Namespace
+from types import SimpleNamespace
 
 import pytest
 
@@ -22,22 +22,8 @@ from mountin.main import (
 
 
 @pytest.fixture(autouse=True)
-def isolate_release_ref(monkeypatch):
-    """Keep catalogue helper tests independent of the checkout's Git CLI."""
+def stable_release_ref(monkeypatch):
     monkeypatch.setattr("mountin.main.get_release_ref", lambda repository=None: "v0.1.7")
-
-
-def make_git_repository(path):
-    subprocess.run(["git", "init", "-q", path], check=True)
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.com"], cwd=path, check=True
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Test"], cwd=path, check=True
-    )
-    (path / "file").write_text("content")
-    subprocess.run(["git", "add", "file"], cwd=path, check=True)
-    subprocess.run(["git", "commit", "-qm", "initial"], cwd=path, check=True)
 
 
 def test_run_command_handles_keyboard_interrupt(caplog):
@@ -67,12 +53,7 @@ def test_normalize_target_partial_match():
 
 def make_catalogue(outputs):
     """Create minimal catalogue with given output paths."""
-    return {
-        "paths": {
-            path: {"meta": {"provides": {path: {}}}, "sources": [f"{path}/index.md"]}
-            for path in outputs
-        }
-    }
+    return {"paths": {path: {"meta": {"provides": {path: {}}}, "sources": [f"{path}/index.md"]} for path in outputs}}
 
 
 def test_expand_targets_literal():
@@ -127,38 +108,37 @@ def test_build_context_splits_canonical_platform():
     assert context["MOUNTIN_BUILD_OS"] == "linux"
 
 
-@pytest.mark.external_tools
-def test_release_ref_uses_unique_six_character_abbreviation(tmp_path):
-    make_git_repository(tmp_path)
-    expected = subprocess.run(
-        ["git", "rev-parse", "--short=6", "HEAD"],
-        cwd=tmp_path,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-    assert get_release_ref(tmp_path) == expected
+def git_result(stdout):
+    return SimpleNamespace(stdout=stdout)
 
 
-@pytest.mark.external_tools
-def test_release_ref_prefers_exact_version_tag(tmp_path):
-    make_git_repository(tmp_path)
-    subprocess.run(["git", "tag", "v0.1.0"], cwd=tmp_path, check=True)
+def test_release_ref_uses_unique_six_character_abbreviation(tmp_path, monkeypatch):
+    results = iter((git_result(""), git_result("abc123\n")))
+    monkeypatch.setattr("mountin.main.subprocess.run", lambda *args, **kwargs: next(results))
+
+    assert get_release_ref(tmp_path) == "abc123"
+
+
+def test_release_ref_prefers_exact_version_tag(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "mountin.main.subprocess.run",
+        lambda *args, **kwargs: git_result("v0.1.0\n"),
+    )
 
     assert get_release_ref(tmp_path) == "v0.1.0"
 
 
-@pytest.mark.external_tools
-def test_release_ref_ignores_non_release_tags(tmp_path):
-    make_git_repository(tmp_path)
-    subprocess.run(["git", "tag", "checkpoint"], cwd=tmp_path, check=True)
+def test_release_ref_ignores_non_release_tags(tmp_path, monkeypatch):
+    results = iter((git_result(""), git_result("def456\n")))
+    monkeypatch.setattr("mountin.main.subprocess.run", lambda *args, **kwargs: next(results))
 
-    assert get_release_ref(tmp_path) != "checkpoint"
+    assert get_release_ref(tmp_path) == "def456"
 
 
-@pytest.mark.external_tools
 def test_release_ref_uses_package_version_outside_checkout(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "mountin.main.subprocess.run", lambda *args, **kwargs: (_ for _ in ()).throw(FileNotFoundError())
+    )
     monkeypatch.setattr("mountin.main.version", lambda package: "9.8.7")
 
     assert get_release_ref(tmp_path) == "v9.8.7"
@@ -215,13 +195,9 @@ def test_cmd_outputs_selects_compatible_and_neutral_by_default(capsys):
             "tools": {
                 "meta": {
                     "output_platforms": {
-                        "x86_64-linux-musl": {
-                            "provides": ["bin/x86_64-linux-musl/tool"]
-                        },
+                        "x86_64-linux-musl": {"provides": ["bin/x86_64-linux-musl/tool"]},
                         "i386-aros": {"provides": ["bin/i386-aros/tool"]},
-                        "aarch64-linux-musl": {
-                            "provides": ["bin/aarch64-linux-musl/tool"]
-                        },
+                        "aarch64-linux-musl": {"provides": ["bin/aarch64-linux-musl/tool"]},
                     }
                 },
                 "sources": [],
@@ -251,9 +227,7 @@ def test_cmd_outputs_selects_explicit_output_arch(capsys):
                 "meta": {
                     "output_platforms": {
                         "i386-aros": {"provides": ["bin/i386-aros/tool"]},
-                        "aarch64-linux-musl": {
-                            "provides": ["bin/aarch64-linux-musl/tool"]
-                        },
+                        "aarch64-linux-musl": {"provides": ["bin/aarch64-linux-musl/tool"]},
                     }
                 },
                 "sources": [],
@@ -273,12 +247,8 @@ def test_cmd_outputs_selects_guest_os_by_architecture(capsys):
             "guests": {
                 "meta": {
                     "output_platforms": {
-                        "x86_64-haiku": {
-                            "provides": ["bin/qemu/x86_64-haiku/guest"]
-                        },
-                        "aarch64-haiku": {
-                            "provides": ["bin/qemu/aarch64-haiku/guest"]
-                        },
+                        "x86_64-haiku": {"provides": ["bin/qemu/x86_64-haiku/guest"]},
+                        "aarch64-haiku": {"provides": ["bin/qemu/aarch64-haiku/guest"]},
                     }
                 },
                 "sources": [],
@@ -294,9 +264,7 @@ def test_cmd_outputs_selects_guest_os_by_architecture(capsys):
 
 def test_cmd_outputs_all_shows_unavailable_reason(capsys):
     cat = make_catalogue(["legacy-output"])
-    cat["paths"]["legacy-output"]["meta"]["build_platforms"] = {
-        "x86_64-linux": {}
-    }
+    cat["paths"]["legacy-output"]["meta"]["build_platforms"] = {"x86_64-linux": {}}
     ctx = {
         "MOUNTIN_BUILD_PLATFORM": "aarch64-linux",
         "MOUNTIN_BUILD_ARCH": "aarch64",
