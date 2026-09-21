@@ -4,6 +4,8 @@ import json
 import subprocess
 from argparse import Namespace
 
+import pytest
+
 from mountin.main import (
     build_context,
     cmd_deps,
@@ -17,6 +19,12 @@ from mountin.main import (
     normalize_target,
     run_command,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_release_ref(monkeypatch):
+    """Keep catalogue helper tests independent of the checkout's Git CLI."""
+    monkeypatch.setattr("mountin.main.get_release_ref", lambda repository=None: "v0.1.7")
 
 
 def make_git_repository(path):
@@ -119,6 +127,7 @@ def test_build_context_splits_canonical_platform():
     assert context["MOUNTIN_BUILD_OS"] == "linux"
 
 
+@pytest.mark.external_tools
 def test_release_ref_uses_unique_six_character_abbreviation(tmp_path):
     make_git_repository(tmp_path)
     expected = subprocess.run(
@@ -132,6 +141,7 @@ def test_release_ref_uses_unique_six_character_abbreviation(tmp_path):
     assert get_release_ref(tmp_path) == expected
 
 
+@pytest.mark.external_tools
 def test_release_ref_prefers_exact_version_tag(tmp_path):
     make_git_repository(tmp_path)
     subprocess.run(["git", "tag", "v0.1.0"], cwd=tmp_path, check=True)
@@ -139,6 +149,7 @@ def test_release_ref_prefers_exact_version_tag(tmp_path):
     assert get_release_ref(tmp_path) == "v0.1.0"
 
 
+@pytest.mark.external_tools
 def test_release_ref_ignores_non_release_tags(tmp_path):
     make_git_repository(tmp_path)
     subprocess.run(["git", "tag", "checkpoint"], cwd=tmp_path, check=True)
@@ -146,6 +157,7 @@ def test_release_ref_ignores_non_release_tags(tmp_path):
     assert get_release_ref(tmp_path) != "checkpoint"
 
 
+@pytest.mark.external_tools
 def test_release_ref_uses_package_version_outside_checkout(tmp_path, monkeypatch):
     monkeypatch.setattr("mountin.main.version", lambda package: "9.8.7")
 

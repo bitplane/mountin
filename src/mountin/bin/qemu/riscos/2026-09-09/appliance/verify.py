@@ -48,8 +48,18 @@ class Client:
     def ready(self):
         received = bytearray()
         marker = b"9D-READY\n"
+        deadline = time.monotonic() + 30
         while not received.endswith(marker):
-            received.extend(self.exact(1))
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"RISC OS did not announce 9d readiness; serial tail: "
+                    f"{received[-256:]!r}")
+            try:
+                received.extend(self.exact(1))
+            except TimeoutError as error:
+                raise TimeoutError(
+                    f"RISC OS did not announce 9d readiness; serial tail: "
+                    f"{received[-256:]!r}") from error
 
     def call(self, kind, body=b"", tag=None):
         self.tag += 1

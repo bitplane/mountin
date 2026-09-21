@@ -1,6 +1,8 @@
 import subprocess
 import tarfile
 
+import pytest
+
 from mountin.builder.downloader.download import clone_repo, export_svn, temporary_output
 
 
@@ -16,6 +18,7 @@ def test_temporary_outputs_are_unique(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
+@pytest.mark.external_tools
 def test_clone_repo_publishes_complete_archive(tmp_path):
     repository = tmp_path / "repository"
     destination = tmp_path / "output" / "source.tar.gz"
@@ -76,6 +79,7 @@ def test_clone_repo_publishes_complete_archive(tmp_path):
     assert list(destination.parent.glob("*.tmp")) == []
 
 
+@pytest.mark.external_tools
 def test_full_clone_exports_tree_without_repository_history(tmp_path):
     repository = tmp_path / "repository"
     destination = tmp_path / "output" / "source.tar.gz"
@@ -115,6 +119,7 @@ def test_full_clone_exports_tree_without_repository_history(tmp_path):
         assert not any("/.git" in name for name in names)
 
 
+@pytest.mark.external_tools
 def test_svn_export_publishes_pinned_revision(tmp_path):
     repository = tmp_path / "repository"
     import_tree = tmp_path / "import"

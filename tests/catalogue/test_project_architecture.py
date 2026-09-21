@@ -53,6 +53,7 @@ def test_every_provider_instance_receives_its_automatic_cache(project_catalogue)
             assert instance["meta"]["execution_env"]["MOUNTIN_CACHE_DIR"] == expected
 
 
+@pytest.mark.external_tools
 def test_qemu_zig_wrapper_translates_darwin_target(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -94,6 +95,7 @@ def test_macos_qemu_uses_the_macos_sdk(project_catalogue):
     assert "sdk/darwin/11.3" in nodes
 
 
+@pytest.mark.external_tools
 def test_qemu_linux_architecture_profiles():
     helper = PACKAGE_DIR / "builder/disk/qemu/qemu-linux-arch.sh"
     expected = {
@@ -121,6 +123,7 @@ def test_qemu_linux_architecture_profiles():
         assert result.stdout == profile
 
 
+@pytest.mark.external_tools
 def test_qemu_netbsd_architecture_profiles():
     helper = PACKAGE_DIR / "builder/run/qemu-netbsd/qemu-netbsd-arch.sh"
     expected = {

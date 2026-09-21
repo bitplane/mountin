@@ -1,6 +1,8 @@
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from mountin.source import (
     SourceAuthority,
     distribution_entry,
@@ -19,6 +21,7 @@ def initialize_repository(path):
     )
 
 
+@pytest.mark.external_tools
 def test_project_files_include_working_changes_and_exclude_ignored_files(tmp_path):
     initialize_repository(tmp_path)
     (tmp_path / ".gitignore").write_text("ignored\n")
@@ -36,6 +39,7 @@ def test_project_files_include_working_changes_and_exclude_ignored_files(tmp_pat
     ]
 
 
+@pytest.mark.external_tools
 def test_source_tree_contains_working_tree_and_preserves_file_types(tmp_path):
     repository = tmp_path / "repository"
     repository.mkdir()

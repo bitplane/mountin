@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build
 
-.PHONY: help all install test dev coverage clean gc build archive release cloc
+.PHONY: help all install test test-integration dev coverage clean gc build archive release cloc
 
 PROJECT_NAME := mountin
 
@@ -17,8 +17,11 @@ install: .venv/.installed  ## install the venv and project packages
 
 dev: .venv/.installed-dev  ## prepare local repo and venv for dev
 
-test: .venv/.installed-dev  ## run the project's tests
+test: .venv/.installed-dev  ## run Python-only host tests
 	scripts/test.sh $(PROJECT_NAME)
+
+test-integration:  ## run external-tool tests in Podman
+	scripts/test-integration.sh
 
 coverage: .venv/.installed-dev scripts/coverage.sh  ## build the html coverage report
 	scripts/coverage.sh $(PROJECT_NAME)

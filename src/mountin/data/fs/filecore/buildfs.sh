@@ -4,9 +4,13 @@ set -eu
 input=$1
 output=$2
 commands=/tmp/filecore.commands
+case $output in
+    *.filecore-oldmap) layout=OO20M ;;
+    *) layout=NN20M ;;
+esac
 
 {
-    echo 'new ADFS HDD NN20M'
+    printf 'new ADFS HDD %s\n' "$layout"
     echo 'title basic'
     printf 'add "%s"\n' "$input/*"
     printf 'save "%s"\n' "$output"
