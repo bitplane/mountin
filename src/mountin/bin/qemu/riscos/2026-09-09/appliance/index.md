@@ -22,15 +22,15 @@ requires:
 
 Assembles the prepared OS components into a BCM2835 ROM, adding 9d and its
 launcher. Resource generation and final linking run here so 9d updates reuse
-the compiled OS. The ROM embeds 9d in ResourceFS and serves the selected
-volume over the first PL011 serial port. The current launcher selects
-`SDFS::0.$` explicitly. The verified layout is a whole-device, new-map
-FileCore filesystem. Other RISC OS filing-system drivers are documented in the
-guest component definition; they are not selected for this ROM because their
-device paths have not passed appliance tests. The old-map FileCore fixture
-currently returns an I/O error through SDFS. Partitioned media, FAT image
-files, and CD media need their respective driver paths, runtime root selection,
-and fixture-backed 9P tests.
+the compiled OS. The ROM embeds 9d in ResourceFS and serves a synthetic root
+over the first PL011 serial port. Each active RISC OS filing system appears
+beneath that root; the current ROM exposes the SD card as `/SDFS`, backed by
+`SDFS::0.$`. The verified layout is a whole-device, new-map FileCore
+filesystem. Other RISC OS filing-system drivers are documented in the guest
+component definition; their device paths have not passed appliance tests. The
+old-map FileCore fixture currently returns an I/O error through SDFS.
+Partitioned media, FAT image files, and CD media need their respective driver
+paths and fixture-backed 9P tests.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It

@@ -2,7 +2,7 @@
 title: 9d for RISC OS
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - sources/9d-0.8.0.tar.xz
+  - sources/9d-0.8.1.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_PLATFORM}/9d
 ---

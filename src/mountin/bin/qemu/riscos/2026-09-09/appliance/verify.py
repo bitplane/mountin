@@ -180,17 +180,25 @@ def stop(process):
 def initial_test(client):
     client.attach(1)
     client.open(1)
-    if "basic" not in stat_names(client.read(1)):
+    if "SDFS" not in stat_names(client.read(1)):
+        raise RuntimeError("RISC OS did not expose SDFS in the namespace")
+
+    client.attach(2)
+    client.walk(2, 3, "SDFS")
+    client.open(3)
+    if "basic" not in stat_names(client.read(3)):
         raise RuntimeError("RISC OS did not expose the FileCore fixture")
 
     payload = b"written through RISC OS 9d\n"
     client.attach(4)
-    client.create(4, "MtTest01")
-    client.write(4, payload)
-    client.clunk(4)
+    client.walk(4, 7, "SDFS")
+    client.create(7, "MtTest01")
+    client.write(7, payload)
+    client.clunk(7)
 
     client.attach(5)
-    client.walk(5, 6, "MtTest01")
+    client.walk(5, 8, "SDFS")
+    client.walk(8, 6, "MtTest01")
     client.open(6)
     if client.read(6) != payload:
         raise RuntimeError("RISC OS did not retain the 9P write")
@@ -199,7 +207,8 @@ def initial_test(client):
 
 def persistence_test(client, expected):
     client.attach(1)
-    client.walk(1, 2, "MtTest01")
+    client.walk(1, 3, "SDFS")
+    client.walk(3, 2, "MtTest01")
     client.open(2)
     if client.read(2) != expected:
         raise RuntimeError(

@@ -30,7 +30,8 @@ for this reduced ROM rather than a full desktop system without a screen.
 The verified storage path is SDIODriver → SDFS → FileCore. SDFS presents an
 SD/MMC device as a FileCore disc and reads its geometry from the FileCore boot
 block. The current ROM profile contains this path and serves a whole-device,
-new-map FileCore image through 9d. Its launcher selects `SDFS::0.$`.
+new-map FileCore image through 9d. The 9d synthetic root enumerates active
+filing systems and exposes this volume at `/SDFS`, backed by `SDFS::0.$`.
 
 The upstream BCM2835 product has additional filing systems and device drivers.
 The table records what is present in that source and what the current guest
