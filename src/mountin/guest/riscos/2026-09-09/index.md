@@ -40,7 +40,7 @@ can actually use:
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | QEMU provides the USB bus, but the upstream USBDriver GNU build lacks the TCPIP header integration needed by this toolbox. These modules are not selected by the tested ROM. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | QEMU provides the USB bus. USBDriver's GNU build stops at a missing BSD `sys/callout.h`; staging only that header exposes further missing BSD headers and C type incompatibilities. These modules are not selected by the tested ROM. |
 | CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | Depends on the same unbuilt USB/SCSI path; no CD media test has passed. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
