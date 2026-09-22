@@ -8,14 +8,17 @@ requires:
 provides:
   - data/fs/basic.filecore
   - data/fs/basic.filecore-oldmap
+  - data/fs/basic.filecore-oldmap-newdir
 ---
 
 # Filecore test image
 
 New-map and old-map ADFS hard-disk images containing the standard test-data
-tree. Disc Image Manager creates the new-map image with `NN20M` and the
-old-map image with `OO20M`. Both are whole-device FileCore images, so they
+tree. Disc Image Manager creates a new-map image with `NN20M`, an old-map
+old-directory image with `OO20M`, and an old-map new-directory image with
+`ON20M`. All are whole-device FileCore images, so they
 do not claim partition-table support. The RISC OS appliance verifies the
 new-map image through SDFS/FileCore and 9P, including write persistence
-across reboot. It also exercises NetBSD's native FileCore reader. The old-map image is retained for driver coverage work; the
-current SDFS appliance returns an I/O error when reading its root.
+across reboot. It also exercises NetBSD's native FileCore reader. The
+old-map old-directory image is retained for driver coverage work; the current
+SDFS appliance returns an I/O error when reading its root.

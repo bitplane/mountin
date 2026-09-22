@@ -39,17 +39,21 @@ can actually use:
 
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
-| SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. An old-map image returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | Not selected by the current ROM and no media test has passed. |
-| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | Not selected by the current ROM and no media test has passed. |
+| SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | QEMU provides the USB bus, but the upstream USBDriver GNU build lacks the TCPIP header integration needed by this toolbox. These modules are not selected by the tested ROM. |
+| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | Depends on the same unbuilt USB/SCSI path; no CD media test has passed. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
-The six `basic.filecore-fat*` fixtures hold DOSFS image files in old-map
+The seven `basic.filecore-fat*` fixtures hold DOSFS image files in old-map
 FileCore host filesystems. The guest boots each host through SDFS, then 9d
 lists and reads the image contents through ImageFS. MBR parsing inside DOSFS
-image files is therefore verified for FAT12, FAT16 and FAT32; whole-device
+image files is therefore verified for FAT12, FAT16 and FAT32, including
+preference for a bootable second partition; whole-device
 partitioned media remains unverified because PartitionManager is absent from
 this product.
-The standalone `basic.filecore-oldmap` fixture still returns an I/O error at
-its root through SDFS.
+The standalone `basic.filecore-oldmap-newdir` fixture passes a whole-device
+SDFS read. `basic.filecore-oldmap`, which uses old directories, still returns
+an I/O error at its root. The BCM2835 source does not include PartMan, the
+helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
+media cannot yet be exercised through this ROM.

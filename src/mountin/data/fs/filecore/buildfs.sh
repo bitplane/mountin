@@ -5,9 +5,11 @@ input=$1
 output=$2
 commands=/tmp/filecore.commands
 case $output in
+    *.filecore-oldmap-newdir) layout=ON20M ;;
     *.filecore-oldmap) layout=OO20M ;;
     *) layout=NN20M ;;
 esac
+rm -f "$output"
 
 {
     printf 'new ADFS HDD %s\n' "$layout"

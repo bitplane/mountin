@@ -224,6 +224,14 @@ def persistence_test(client, expected):
             "RISC OS did not persist the 9P write across reboot")
 
 
+def filecore_read_test(client):
+    client.attach(1)
+    client.walk(1, 2, "SDFS")
+    client.open(2)
+    if "basic" not in stat_names(client.read(2)):
+        raise RuntimeError("RISC OS did not read the old-map FileCore root")
+
+
 def imagefs_test(client, image):
     client.attach(1)
     client.walk_path(1, 2, ["SDFS", image])
@@ -247,11 +255,11 @@ def imagefs_test(client, image):
 
 
 def main():
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 6:
         raise SystemExit(
-            "usage: verify.py QEMU ROM FILECORE_IMAGE IMAGEFS_HOST...")
-    qemu, rom, fixture = map(Path, sys.argv[1:4])
-    image_fixtures = [Path(path) for path in sys.argv[4:]]
+            "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE IMAGEFS_HOST...")
+    qemu, rom, fixture, oldmap_fixture = map(Path, sys.argv[1:5])
+    image_fixtures = [Path(path) for path in sys.argv[5:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -276,13 +284,24 @@ def main():
             stream.close()
             stop(process)
 
+        shutil.copyfile(oldmap_fixture, disk)
+        with disk.open("r+b") as stream:
+            stream.truncate(32 * 1024 * 1024)
+        process, stream, client = boot(qemu, rom, disk, directory)
+        try:
+            filecore_read_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
         for image_fixture in image_fixtures:
             variant = image_fixture.name.removeprefix("basic.filecore-")
             if variant not in {
                     "fat12", "fat12-mbr", "fat16", "fat16-mbr",
-                    "fat32", "fat32-mbr"}:
+                    "fat32", "fat32-mbr", "fat-multi-mbr"}:
                 raise ValueError(f"unknown ImageFS fixture: {image_fixture}")
-            image_name = variant.upper().replace("-MBR", "MBR")
+            image_name = ("FATMULTI" if variant == "fat-multi-mbr" else
+                          variant.upper().replace("-MBR", "MBR"))
             shutil.copyfile(image_fixture, disk)
             with disk.open("r+b") as stream:
                 stream.truncate(1 << (image_fixture.stat().st_size - 1).bit_length())

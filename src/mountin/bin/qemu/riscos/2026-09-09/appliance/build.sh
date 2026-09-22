@@ -5,6 +5,7 @@ root=/opt/mountin/source/RiscOS
 system=/host/build/guest/arm-riscos/2026-09-09/system
 rom=$root/Images/BCM2835Mountin
 fixture=/host/build/data/fs/basic.filecore
+oldmap_fixture=/host/build/data/fs/basic.filecore-oldmap-newdir
 image_fixtures=(
     /host/build/data/fs/basic.filecore-fat12
     /host/build/data/fs/basic.filecore-fat12-mbr
@@ -12,6 +13,7 @@ image_fixtures=(
     /host/build/data/fs/basic.filecore-fat16-mbr
     /host/build/data/fs/basic.filecore-fat32
     /host/build/data/fs/basic.filecore-fat32-mbr
+    /host/build/data/fs/basic.filecore-fat-multi-mbr
 )
 qemu=/host/build/bin/qemu-system/${MOUNTIN_BUILD_ARCH}-linux-musl/qemu-system-arm
 output=/host/build/bin/qemu/arm-riscos/2026-09-09/rom
@@ -52,6 +54,6 @@ srcbuild install_rom
 srcbuild join
 
 python3 /build/verify.py \
-    "$qemu" "$rom" "$fixture" "${image_fixtures[@]}"
+    "$qemu" "$rom" "$fixture" "$oldmap_fixture" "${image_fixtures[@]}"
 mkdir -p "${output%/*}"
 cp "$rom" "$output"
