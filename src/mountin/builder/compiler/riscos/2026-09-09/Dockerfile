@@ -35,6 +35,9 @@ RUN rm /opt/mountin/source /opt/mountin/build && \
 
 COPY --chmod=755 resgen /opt/rool/bin/resgen
 
+COPY --chmod=755 build-scl-module.sh /build-scl-module.sh
+RUN /build-scl-module.sh
+
 ENV ROOL_BIN=/opt/rool/bin \
     PATH=/opt/rool/bin:$PATH
 WORKDIR /work
