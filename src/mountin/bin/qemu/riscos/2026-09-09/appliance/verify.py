@@ -247,10 +247,11 @@ def imagefs_test(client, image):
 
 
 def main():
-    if len(sys.argv) != 6:
+    if len(sys.argv) < 5:
         raise SystemExit(
-            "usage: verify.py QEMU ROM FILECORE_IMAGE FAT_HOST MBR_HOST")
-    qemu, rom, fixture, fat_fixture, mbr_fixture = map(Path, sys.argv[1:])
+            "usage: verify.py QEMU ROM FILECORE_IMAGE IMAGEFS_HOST...")
+    qemu, rom, fixture = map(Path, sys.argv[1:4])
+    image_fixtures = [Path(path) for path in sys.argv[4:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -275,11 +276,16 @@ def main():
             stream.close()
             stop(process)
 
-        for image_fixture, image_name in (
-                (fat_fixture, "FAT12"), (mbr_fixture, "FATMBR")):
+        for image_fixture in image_fixtures:
+            variant = image_fixture.name.removeprefix("basic.filecore-")
+            if variant not in {
+                    "fat12", "fat12-mbr", "fat16", "fat16-mbr",
+                    "fat32", "fat32-mbr"}:
+                raise ValueError(f"unknown ImageFS fixture: {image_fixture}")
+            image_name = variant.upper().replace("-MBR", "MBR")
             shutil.copyfile(image_fixture, disk)
             with disk.open("r+b") as stream:
-                stream.truncate(32 * 1024 * 1024)
+                stream.truncate(1 << (image_fixture.stat().st_size - 1).bit_length())
             process, stream, client = boot(qemu, rom, disk, directory)
             try:
                 imagefs_test(client, image_name)

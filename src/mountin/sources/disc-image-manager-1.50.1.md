@@ -2,7 +2,7 @@
 title: Disc Image Manager 1.50.1
 version: 1.50.1
 urls:
-  - git+https://github.com/geraldholdsworth/DiscImageManager.git#v1.50.1
+  - git+https://github.com/bitplane/DiscImageManager.git#mountin-2026-09-22
 provides:
   - sources/disc-image-manager-1.50.1.tar.gz
 ---
