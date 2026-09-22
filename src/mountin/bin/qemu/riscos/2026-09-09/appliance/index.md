@@ -8,6 +8,8 @@ output_platforms:
       - guest/${MOUNTIN_TARGET_PLATFORM}/2026-09-09/system
       - bin/${MOUNTIN_TARGET_PLATFORM}/9d
       - data/fs/basic.filecore
+      - data/fs/basic.filecore-fat12
+      - data/fs/basic.filecore-fat12-mbr
       - bin/qemu-system/${MOUNTIN_BUILD_ARCH}-linux-musl/qemu-system-arm
     provides:
       - bin/qemu/${MOUNTIN_TARGET_PLATFORM}/2026-09-09/rom
@@ -29,10 +31,12 @@ beneath that root; the current ROM exposes the SD card as `/SDFS`, backed by
 filesystem. Other RISC OS filing-system drivers are documented in the guest
 component definition; their device paths have not passed appliance tests. The
 old-map FileCore fixture currently returns an I/O error through SDFS.
-Partitioned media, FAT image files, and CD media need their respective driver
-paths and fixture-backed 9P tests.
+FAT12 image files, including one containing an MBR and FAT partition, pass
+fixture-backed 9P enumeration and reads through DOSFS ImageFS. Whole-device
+partitioned media and CD media still need their driver paths and tests.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It
 boots the ROM, reads and mutates the filesystem over 9P, reboots with the same
-disk, and proves that the mutation persisted.
+disk, and proves that the mutation persisted. It also boots with each DOSFS
+fixture and checks ImageFS root and child enumeration and file contents.

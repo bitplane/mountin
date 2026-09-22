@@ -42,11 +42,13 @@ can actually use:
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. An old-map image returns an I/O error at its root. |
 | USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | Not selected by the current ROM and no media test has passed. |
 | CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | Not selected by the current ROM and no media test has passed. |
-| DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The GNU toolbox does not link DOSFS yet. No FAT or MBR support is advertised. |
+| DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12 files and directories pass fixture-backed 9P reads, both with a raw image and with an MBR inside the image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
-The existing `basic.filecore`, `basic.filecore-oldmap`, `basic.fat16`, and
-`basic.iso9660` fixtures cover candidate media layouts. DOSFS also needs a
-FileCore host image containing a FAT image file, and its MBR branch needs an
-image file containing an MBR and FAT partition. PartitionManager is absent from
-this product, so the guest advertises no partition-table support.
+The `basic.filecore-fat12` and `basic.filecore-fat12-mbr` fixtures hold DOSFS
+image files in an old-map FileCore host filesystem. The guest boots that host
+through SDFS, then 9d lists and reads the image contents through ImageFS. An
+MBR inside a DOSFS image file is therefore verified; whole-device partitioned
+media remains unverified because PartitionManager is absent from this product.
+The standalone `basic.filecore-oldmap` fixture still returns an I/O error at
+its root through SDFS.

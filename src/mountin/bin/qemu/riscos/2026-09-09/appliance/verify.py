@@ -96,6 +96,15 @@ class Client:
     def walk(self, fid, newfid, name):
         self.call(110, struct.pack("<IIH", fid, newfid, 1) + p9_string(name))
 
+    def walk_path(self, fid, newfid, names):
+        body = struct.pack("<IIH", fid, newfid, len(names))
+        body += b"".join(p9_string(name) for name in names)
+        reply = self.call(110, body)
+        walked = struct.unpack_from("<H", reply)[0]
+        if walked != len(names):
+            raise RuntimeError(
+                f"short 9P walk: {walked} of {len(names)} components")
+
     def open(self, fid, mode=0):
         self.call(112, struct.pack("<IB", fid, mode))
 
@@ -215,10 +224,33 @@ def persistence_test(client, expected):
             "RISC OS did not persist the 9P write across reboot")
 
 
+def imagefs_test(client, image):
+    client.attach(1)
+    client.walk_path(1, 2, ["SDFS", image])
+    client.open(2)
+    names = stat_names(client.read(2))
+    if "basic" not in {name.lower() for name in names}:
+        raise RuntimeError(f"DOSFS did not expose {image} root: {names!r}")
+
+    client.attach(3)
+    client.walk_path(3, 4, ["SDFS", image, "BASIC"])
+    client.open(4)
+    names = stat_names(client.read(4))
+    if "hello.txt" not in {name.lower() for name in names}:
+        raise RuntimeError(f"DOSFS did not expose {image}/basic: {names!r}")
+
+    client.attach(5)
+    client.walk_path(5, 6, ["SDFS", image, "BASIC", "HELLO.TXT"])
+    client.open(6)
+    if b"Hello" not in client.read(6):
+        raise RuntimeError(f"DOSFS returned unexpected data from {image}")
+
+
 def main():
-    if len(sys.argv) != 4:
-        raise SystemExit("usage: verify.py QEMU ROM FILECORE_IMAGE")
-    qemu, rom, fixture = map(Path, sys.argv[1:])
+    if len(sys.argv) != 6:
+        raise SystemExit(
+            "usage: verify.py QEMU ROM FILECORE_IMAGE FAT_HOST MBR_HOST")
+    qemu, rom, fixture, fat_fixture, mbr_fixture = map(Path, sys.argv[1:])
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -243,8 +275,20 @@ def main():
             stream.close()
             stop(process)
 
+        for image_fixture, image_name in (
+                (fat_fixture, "FAT12"), (mbr_fixture, "FATMBR")):
+            shutil.copyfile(image_fixture, disk)
+            with disk.open("r+b") as stream:
+                stream.truncate(32 * 1024 * 1024)
+            process, stream, client = boot(qemu, rom, disk, directory)
+            try:
+                imagefs_test(client, image_name)
+            finally:
+                stream.close()
+                stop(process)
+
     print(
-        "RISC OS FileCore read/write over 9P and reboot persistence complete")
+        "RISC OS FileCore and DOSFS ImageFS verification complete")
 
 
 if __name__ == "__main__":

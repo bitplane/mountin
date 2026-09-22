@@ -9,7 +9,7 @@ env:
   MOUNTIN_BUILDER: builder/compiler/puredarwin/17.4/x86_64
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - sources/9d-0.8.1.tar.xz
+  - sources/9d-0.8.2.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-darwin/9d
   - bin/${MOUNTIN_TARGET_ARCH}-darwin/stream64

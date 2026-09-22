@@ -50,6 +50,9 @@ install_messages SDIODriver \
 install_messages SDFS \
     "$root/Sources/FileSys/SDFS/SDFS/Resources/UK/Messages" \
     "$root/Sources/FileSys/SDFS/SDFS/Resources/UK/CmdHelp"
+install_messages DOSFS \
+    "$root/Sources/FileSys/ImageFS/DOSFS/Resources/UK/Messages" \
+    "$root/Sources/FileSys/ImageFS/DOSFS/Resources/UK/CmdHelp"
 install_messages DualSerial \
     "$root/Sources/HWSupport/DualSerial/Resources/UK/Messages"
 install_messages Serial \
