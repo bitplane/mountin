@@ -62,13 +62,11 @@ install_messages Buffers \
 install_messages DeviceFS \
     "$root/Sources/HWSupport/DeviceFS/Resources/UK/Messages"
 install_messages PCI \
-    "$root/Sources/HWSupport/PCI/objs/Resources/UK/Messages"
+    "$root/Sources/HWSupport/PCI/Resources/UK/Messages"
 install_messages CDFSDriver/SCSI \
     "$root/Sources/HWSupport/CD/CDFSSoftSCSI/Resources/UK/Messages"
 mkdir -p "$resources/data/Resources/USBDriver" "$resources/data/Mountin"
 printf '#{Default}\n' > "$resources/data/Resources/USBDriver/USBDevs"
-cp "$root/Sources/Programmer/RTSupport/objs/RTSupport,ffa" \
-    "$resources/data/Mountin/RTSupport,ffa"
 
 cat >> "$root/BuildSys/ModuleDB" <<'EOF'
 MountinResources            ASM   Sources.MountinResources                                             Mountin         MountinResources
@@ -92,6 +90,31 @@ make -C "$riscoslib/objs" -f ../GNUmakefile romcstubs.a
 cp "$riscoslib/objs/romcstubs.a" "$LIBDIR/RISC_OSLib/romcstubs.a"
 make -C "$root/Sources/Lib/AsmUtils" export_libs
 make -C "$root/Sources/Lib/SyncLib" export_libs
+make -C "$root/Sources/Lib/callx" export_libs
+make -C "$root/Sources/Toolbox/tboxlib" export_libs
+# GCCSDK keeps the SCL module startup in a separate prefix. Its default
+# crtbegin is built for a different floating-point ABI, so supply the empty
+# constructor hooks needed by this C-only module instead.
+printf 'void _init(void) {}\nvoid _fini(void) {}\n' \
+    > /tmp/mountin-scl-init.c
+arm-unknown-riscos-gcc -mfpu=fpe3 -mlibscl -c \
+    /tmp/mountin-scl-init.c -o /tmp/mountin-scl-init.o
+make -C "$root/Sources/Programmer/RTSupport/objs" -f ../Makefile \
+    RTSupportHdr.o
+# cmunge names the header for the Acorn linker; GCCSDK's standalone linker
+# places .riscos.module.header at offset zero.
+arm-unknown-riscos-objcopy \
+    --rename-section '!Header$$code'=.riscos.module.header \
+    "$root/Sources/Programmer/RTSupport/objs/RTSupportHdr.o" \
+    "$root/Sources/Programmer/RTSupport/objs/RTSupportStandaloneHdr.o"
+make -C "$root/Sources/Programmer/RTSupport" standalone \
+    SA_LINK_FORMAT=-mmodule \
+    SA_OBJS='RTSupportStandaloneHdr debug global mess scheduler module RTSupportMsgs' \
+    SA_LIBS='/opt/mountin/scl-module/lib/crt0-scl.o /tmp/mountin-scl-init.o' \
+    MODSQZ=: \
+    LDFLAGS='-nostartfiles -L/opt/mountin/scl-module/lib'
+cp "$root/Sources/Programmer/RTSupport/objs/RTSupport,ffa" \
+    "$resources/data/Mountin/RTSupport,ffa"
 export BUILD=ROOL/BCM2835PicoHeadless
 
 cd "$resources"

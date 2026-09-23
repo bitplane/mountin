@@ -34,14 +34,18 @@ new-map FileCore image through 9d. The 9d synthetic root enumerates active
 filing systems and exposes this volume at `/SDFS`, backed by `SDFS::0.$`.
 
 The upstream BCM2835 product has additional filing systems and device drivers.
+The HAL's `BOOT_MODULES` option lists only the core keyboard-scan boot
+dependencies. USB SCSI and CDFS remain in the ROM, but adding them to that
+HAL dependency string stalls a clean boot; the launcher initializes the
+removable-media drivers after startup.
 The table records what is present in that source and what the current guest
 can actually use:
 
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The experimental ROM enumerates a QEMU USB FAT16 disk as `/SCSI-4` and reads `BASIC/HELLO.TXT` through 9P. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. Keeping the serial transport open during USB initialization is also required. Repeated media access can still stall, so the appliance runtime test has not passed. |
-| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The experimental ROM exposes a QEMU USB ISO 9660 CD as `/CDFS` and reads `BASIC/SCRIPT.SH` through 9P. It configures one CD drive and reinitializes the CDFS modules after USB startup. CDFSSoftSCSI uses READ(10) to identify data tracks when the device rejects READ HEADER. Repeated media access can still stall. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads a QEMU USB FAT16 disk at `/SCSI-4` and alternates reads between two disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
+| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads `BASIC/SCRIPT.SH` from an ISO 9660 CD at `/CDFS` both with only the CD attached and with a USB disk attached. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
@@ -58,24 +62,11 @@ an I/O error at its root. The BCM2835 source does not include PartMan, the
 helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
 media cannot yet be exercised through this ROM.
 
-The USB and CD tests attach `basic.fat16` and `basic.iso9660` as separate USB
-mass-storage devices. Single-file reads from both paths have passed in the
-experimental ROM. A later request can stop receiving a 9P reply while the
-guest probes removable media. A diagnostic run completed a CD read, then
-blocked inside the RISC OS `open()` call for a USB file after path resolution
-and `lstat` succeeded. Three repeated reads from one USB disk pass. Two USB
-FAT16 disks can appear as `/SCSI-4` and `/SCSI-5`. The test gives the second
-disk a distinct FAT volume serial; without that, switching disks can stall
-while reading the second volume. With distinct serials, alternating reads
-pass when the 9P file handles stay open. With 50 ms between serial bytes, a
-later request can stall after a file handle is closed, including with the
-original SCSISwitch and SCSISoftUSB code. An instrumented build of 9d v0.9.1
-received the four-byte 9P length and only part of the final request body.
-QEMU traced all 23 bytes reaching the PL011 and being read from its FIFO, so
-the remaining bytes are lost or trapped between the guest serial driver and
-9d's read call. Sending bytes 10 ms apart passes alternating reads and closes
-on both disks in a focused run.
-QEMU completes the final SCSI status transfer in the earlier command traces.
-A boot with only CD media also lacks a `/CDFS` root after waiting for
-enumeration.
-The single-CD, combined-media and two-disk tests remain release gates.
+The USB and CD tests attach `basic.fat16` and `basic.iso9660` as USB
+mass-storage devices. A second FAT16 disk gets a distinct volume serial.
+With 10 ms between serial bytes, the complete appliance verifier passes its
+single-CD, two-disk, and combined-media release gates. A diagnostic run with
+50 ms between bytes stalled during a later 9P request: QEMU delivered the
+whole request to the guest PL011, but 9d received only part of its body.
+The faster test pacing avoids that observed stall; broader serial transport
+reliability remains to be assessed with other clients.

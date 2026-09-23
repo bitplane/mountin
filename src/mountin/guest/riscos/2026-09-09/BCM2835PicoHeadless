@@ -5,7 +5,7 @@
 %JoinerFormat  romlinker
 %noimagesize
 
-HAL_BCM2835           -options BOOT_MODULES=SharedCLibrary,BufferManager,DeviceFS,SerialDeviceSupport,FileCore,SystemDevices,SDIODriver,DOSFS,SDFS,USBDriver,SCSIDriver,SCSISoftUSB,SCSIFS,CDFSDriver,CDFSSoftSCSI,CDFS UART_MODEM_STATUS=0xB0
+HAL_BCM2835           -options BOOT_MODULES=SharedCLibrary,BufferManager,DeviceFS,SerialDeviceSupport,FileCore,SystemDevices,SDIODriver,DOSFS,SDFS UART_MODEM_STATUS=0xB0
 Kernel                -at 0xFC010000 -options KERNEL_ADDRESS=0xFC010000 STARTUP_MODULE=MountinLauncher ASMDEFINES="-PD \"Headless SETL {TRUE}\" -PD \"CMOS_Override SETS \\\"= FileLangCMOS,fsnumber_none,CDROMFSCMOS,fsnumber_none,LanguageCMOS,10\\\"\""
 PCI
 FileSwitch

@@ -43,18 +43,12 @@ partition, pass fixture-backed 9P enumeration and reads through DOSFS ImageFS.
 A mixed MBR checks that DOSFS selects an active second partition. Whole-device
 partitioned media still need a driver path and tests.
 
-The ROM now includes the USB SCSI and CDFS modules. A USB FAT16 disk appears
-at `/SCSI-4` and an ISO 9660 CD at `/CDFS`; single-file 9P reads of both
-fixtures have passed in the experimental ROM. The fixture-backed appliance
-test exercises both media in one boot. A subsequent request can stall during
-removable-media access. Separate fixture-backed tests boot with only a CD and
-switch between two USB disks with distinct FAT volume serials. The CD-only
-boot does not expose `/CDFS`. Alternating USB reads can pass, but later
-requests sent with 50 ms between bytes can stall after closing a file. A trace
-of the failing request shows 9d waiting for the rest of a 9P frame even though
-QEMU delivered every byte to the guest serial port. Sending bytes 10 ms apart
-passes the alternating USB read and close test. The CD-only boot still lacks
-`/CDFS`, so this build has not passed its release gate.
+The ROM includes the USB SCSI and CDFS modules. The fixture-backed verifier
+reads a FAT16 disk at `/SCSI-4`, an ISO 9660 CD at `/CDFS`, and alternates
+reads and closes between two disks with distinct FAT volume serials. It tests
+the CD alone and with a USB disk. All of these runtime gates pass with the
+pinned CDFSSoftSCSI MODE SENSE fix and 10 ms serial byte pacing. The CD fix
+keeps the driver from treating response padding as additional mode pages.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It
