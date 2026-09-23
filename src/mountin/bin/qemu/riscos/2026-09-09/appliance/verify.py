@@ -386,6 +386,9 @@ def main():
             stream.truncate(32 * 1024 * 1024)
         usb_copy = directory / "second-usb.img"
         shutil.copyfile(usb_fixture, usb_copy)
+        with usb_copy.open("r+b") as stream:
+            stream.seek(39)  # FAT16 volume serial in the boot sector
+            stream.write(bytes.fromhex("7145b9c2"))
         process, stream, client = boot(
             qemu, rom, disk, directory, cd=cd_fixture)
         try:
