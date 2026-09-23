@@ -61,5 +61,7 @@ media cannot yet be exercised through this ROM.
 The USB and CD tests attach `basic.fat16` and `basic.iso9660` as separate USB
 mass-storage devices. Single-file reads from both paths have passed in the
 experimental ROM. A later request can stop receiving a 9P reply while the
-guest probes removable media, so the combined fixture-backed runtime test
-remains a release gate.
+guest probes removable media. A diagnostic run completed a CD read, then
+blocked inside the RISC OS `open()` call for a USB file after path resolution
+and `lstat` succeeded. The combined fixture-backed runtime test remains a
+release gate.
