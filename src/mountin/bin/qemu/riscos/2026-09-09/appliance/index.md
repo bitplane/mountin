@@ -48,8 +48,10 @@ at `/SCSI-4` and an ISO 9660 CD at `/CDFS`; single-file 9P reads of both
 fixtures have passed in the experimental ROM. The fixture-backed appliance
 test exercises both media in one boot. A subsequent request can stall during
 removable-media access. Separate fixture-backed tests boot with only a CD and
-switch between two USB disks. The CD-only boot does not expose `/CDFS`, and
-switching USB disks can stall, so this build has not passed its release gate.
+switch between two USB disks with distinct FAT volume serials. The CD-only
+boot does not expose `/CDFS`. Alternating USB reads can pass, but later
+requests can stall after closing a file or while 9d refreshes its namespace,
+so this build has not passed its release gate.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It

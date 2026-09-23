@@ -64,8 +64,13 @@ experimental ROM. A later request can stop receiving a 9P reply while the
 guest probes removable media. A diagnostic run completed a CD read, then
 blocked inside the RISC OS `open()` call for a USB file after path resolution
 and `lstat` succeeded. Three repeated reads from one USB disk pass. Two USB
-FAT16 disks appear as `/SCSI-4` and `/SCSI-5`, but switching between them
-also stalls, whichever disk is read first. QEMU completes the final 13-byte
-SCSI status transfer and the guest acknowledges its USB interrupt. A boot
-with only CD media also lacks a `/CDFS` root after waiting for enumeration.
+FAT16 disks can appear as `/SCSI-4` and `/SCSI-5`. The test gives the second
+disk a distinct FAT volume serial; without that, switching disks can stall
+while reading the second volume. With distinct serials, alternating reads
+pass when the 9P file handles stay open, but later requests can still stall
+after a file handle is closed. The stall also occurs with the original
+SCSISwitch and SCSISoftUSB code. A diagnostic 9d build observed a later
+namespace refresh stall while looking for the second disk. QEMU completes
+the final SCSI status transfer in the earlier command traces. A boot with
+only CD media also lacks a `/CDFS` root after waiting for enumeration.
 The single-CD, combined-media and two-disk tests remain release gates.
