@@ -50,8 +50,9 @@ test exercises both media in one boot. A subsequent request can stall during
 removable-media access. Separate fixture-backed tests boot with only a CD and
 switch between two USB disks with distinct FAT volume serials. The CD-only
 boot does not expose `/CDFS`. Alternating USB reads can pass, but later
-requests can stall after closing a file or while 9d refreshes its namespace,
-so this build has not passed its release gate.
+requests can stall after closing a file. A trace of the failing request shows
+9d waiting for the rest of a 9P frame even though QEMU delivered every byte
+to the guest serial port, so this build has not passed its release gate.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It

@@ -69,8 +69,11 @@ disk a distinct FAT volume serial; without that, switching disks can stall
 while reading the second volume. With distinct serials, alternating reads
 pass when the 9P file handles stay open, but later requests can still stall
 after a file handle is closed. The stall also occurs with the original
-SCSISwitch and SCSISoftUSB code. A diagnostic 9d build observed a later
-namespace refresh stall while looking for the second disk. QEMU completes
-the final SCSI status transfer in the earlier command traces. A boot with
-only CD media also lacks a `/CDFS` root after waiting for enumeration.
+SCSISwitch and SCSISoftUSB code. An instrumented build of 9d v0.9.1 received
+the four-byte 9P length and only part of the final request body. QEMU traced
+all 23 bytes reaching the PL011 and being read from its FIFO, so the remaining
+bytes are lost or trapped between the guest serial driver and 9d's read call.
+QEMU completes the final SCSI status transfer in the earlier command traces.
+A boot with only CD media also lacks a `/CDFS` root after waiting for
+enumeration.
 The single-CD, combined-media and two-disk tests remain release gates.
