@@ -142,7 +142,7 @@ def connect(path, process, deadline):
     raise TimeoutError("QEMU did not create the RISC OS serial endpoint")
 
 
-def boot(qemu, rom, disk, directory):
+def boot(qemu, rom, disk, directory, usb=None, cd=None):
     serial = directory / "serial.sock"
     command = [
         str(qemu),
@@ -164,6 +164,17 @@ def boot(qemu, rom, disk, directory):
         "-serial",
         "null",
     ]
+    if usb is not None:
+        command += [
+            "-drive", f"file={usb},format=raw,if=none,id=mountin-usb",
+            "-device", "usb-storage,drive=mountin-usb",
+        ]
+    if cd is not None:
+        command += [
+            "-drive",
+            f"file={cd},format=raw,if=none,id=mountin-cd,media=cdrom,readonly=on",
+            "-device", "usb-storage,drive=mountin-cd",
+        ]
     process = subprocess.Popen(command)
     try:
         stream = connect(serial, process, time.monotonic() + 30)
@@ -254,12 +265,34 @@ def imagefs_test(client, image):
         raise RuntimeError(f"DOSFS returned unexpected data from {image}")
 
 
+def removable_media_test(client):
+    client.attach(1)
+    client.open(1)
+    roots = stat_names(client.read(1))
+    for name in ("SCSI-4", "CDFS"):
+        if name not in roots:
+            raise RuntimeError(f"RISC OS did not expose {name}: {roots!r}")
+
+    for fid, path, expected in (
+        (2, ["SCSI-4", "BASIC", "HELLO.TXT"], b"Hello"),
+        (4, ["CDFS", "BASIC", "SCRIPT.SH"], b"Executable script ran successfully!"),
+    ):
+        client.attach(fid)
+        client.walk_path(fid, fid + 1, path)
+        client.open(fid + 1)
+        data = client.read(fid + 1)
+        if expected not in data:
+            raise RuntimeError(f"unexpected contents at {'/'.join(path)}: {data!r}")
+
+
 def main():
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 8:
         raise SystemExit(
-            "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE IMAGEFS_HOST...")
+            "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE "
+            "USB_IMAGE CD_IMAGE IMAGEFS_HOST...")
     qemu, rom, fixture, oldmap_fixture = map(Path, sys.argv[1:5])
-    image_fixtures = [Path(path) for path in sys.argv[5:]]
+    usb_fixture, cd_fixture = map(Path, sys.argv[5:7])
+    image_fixtures = [Path(path) for path in sys.argv[7:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -312,8 +345,19 @@ def main():
                 stream.close()
                 stop(process)
 
+        shutil.copyfile(fixture, disk)
+        with disk.open("r+b") as stream:
+            stream.truncate(32 * 1024 * 1024)
+        process, stream, client = boot(
+            qemu, rom, disk, directory, usb_fixture, cd_fixture)
+        try:
+            removable_media_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
     print(
-        "RISC OS FileCore and DOSFS ImageFS verification complete")
+        "RISC OS FileCore, DOSFS ImageFS, USB SCSIFS and CD CDFS verification complete")
 
 
 if __name__ == "__main__":

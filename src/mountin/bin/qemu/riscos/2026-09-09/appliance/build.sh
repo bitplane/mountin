@@ -6,6 +6,8 @@ system=/host/build/guest/arm-riscos/2026-09-09/system
 rom=$root/Images/BCM2835Mountin
 fixture=/host/build/data/fs/basic.filecore
 oldmap_fixture=/host/build/data/fs/basic.filecore-oldmap-newdir
+usb_fixture=/host/build/data/fs/basic.fat16
+cd_fixture=/host/build/data/fs/basic.iso9660
 image_fixtures=(
     /host/build/data/fs/basic.filecore-fat12
     /host/build/data/fs/basic.filecore-fat12-mbr
@@ -54,6 +56,7 @@ srcbuild install_rom
 srcbuild join
 
 python3 /build/verify.py \
-    "$qemu" "$rom" "$fixture" "$oldmap_fixture" "${image_fixtures[@]}"
+    "$qemu" "$rom" "$fixture" "$oldmap_fixture" \
+    "$usb_fixture" "$cd_fixture" "${image_fixtures[@]}"
 mkdir -p "${output%/*}"
 cp "$rom" "$output"

@@ -4,6 +4,8 @@
         GET     Hdr:ModHand
         GET     Hdr:HighFSI
         GET     Hdr:FSNumbers
+        GET     Hdr:HALEntries
+        GET     Hdr:CDFS
         AREA    |MountinLauncher$$Code|, CODE, READONLY
 
 Module_BaseAddr
@@ -35,14 +37,20 @@ MountinLauncher_Init
         MOV     pc, lr
 
 MountinLauncher_Enter
+        ADRL    r0, MountinLauncher_Start
+        MOV     r1, #0
+        SWI     XOS_AddCallBack
+        MOVVC   r0, #0
+        MOV     pc, lr
+
 MountinLauncher_Start
 MountinLauncher_OpenSerial
         MOV     r0, #&CF                 ; DualSerial SERIAL_OUTPUT
-        ADR     r1, MountinLauncher_Serial
+        ADRL    r1, MountinLauncher_Serial
         SWI     XOS_Find
         BVS     MountinLauncher_Reschedule
         MOV     r4, r0
-        ADR     r5, MountinLauncher_Marker
+        ADRL    r5, MountinLauncher_Marker
 MountinLauncher_WriteMarker
         LDRB    r0, [r5], #1
         CMP     r0, #0
@@ -51,6 +59,44 @@ MountinLauncher_WriteMarker
         SWI     XOS_BPut
         BVC     MountinLauncher_WriteMarker
 MountinLauncher_CloseMarker
+        MRS     r0, CPSR
+        BIC     r0, r0, #&80
+        MSR     CPSR_c, r0
+        MOV     r0, #129
+        MOV     r1, #100
+        MOV     r2, #0
+        SWI     XOS_Byte
+        ADRL    r0, MountinLauncher_RTSupport
+        SWI     XOS_CLI
+        BVS     MountinLauncher_Reschedule
+        LDR     r0, =&100000
+        MOV     r8, #OSHW_CallHAL
+        MOV     r9, #EntryNo_HAL_CounterDelay
+        SWI     XOS_Hardware
+        ADRL    r0, MountinLauncher_DWCDriver
+        SWI     XOS_CLI
+        BVS     MountinLauncher_Reschedule
+        MOV     r0, #129
+        MOV     r1, #100
+        MOV     r2, #0
+        SWI     XOS_Byte
+        MOV     r0, #1
+        SWI     XCDFS_SetNumberOfDrives
+        BVS     MountinLauncher_Reschedule
+        ADRL    r5, MountinLauncher_CDModules
+MountinLauncher_NextCDModule
+        LDRB    r0, [r5]
+        CMP     r0, #0
+        BEQ     MountinLauncher_CDModulesDone
+        MOV     r0, r5
+        SWI     XOS_CLI
+        BVS     MountinLauncher_Reschedule
+MountinLauncher_SkipCDModule
+        LDRB    r0, [r5], #1
+        CMP     r0, #0
+        BNE     MountinLauncher_SkipCDModule
+        B       MountinLauncher_NextCDModule
+MountinLauncher_CDModulesDone
         MOV     r0, #0
         MOV     r1, r4
         SWI     XOS_Find
@@ -59,10 +105,10 @@ MountinLauncher_CloseMarker
         SWI     XOS_FSControl
         BVS     MountinLauncher_Reschedule
         MOV     r0, #FSControl_Dir
-        ADR     r1, MountinLauncher_Root
+        ADRL    r1, MountinLauncher_Root
         SWI     XOS_FSControl
         BVS     MountinLauncher_Reschedule
-        ADR     r0, MountinLauncher_9d
+        ADRL    r0, MountinLauncher_9d
         SWI     XOS_CLI
 MountinLauncher_Reschedule
         MOV     r0, #129
@@ -78,7 +124,16 @@ MountinLauncher_Serial
 MountinLauncher_Marker
         DCB     "MOUNTIN-SERIAL1", 10, 0
 MountinLauncher_9d
-        DCB     "Run Resources:$.Mountin.9d -d -R -p stream!/dev/ttyS0", 0
+        DCB     "Run Resources:$.Mountin.9d -R -p stream!/dev/ttyS0", 0
+MountinLauncher_RTSupport
+        DCB     "RMLoad Resources:$.Mountin.RTSupport", 0
+MountinLauncher_DWCDriver
+        DCB     "RMReInit DWCDriver", 0
+MountinLauncher_CDModules
+        DCB     "RMReInit CDFSDriver", 0
+        DCB     "RMReInit CDFSSoftSCSI", 0
+        DCB     "RMReInit CDFS", 0
+        DCB     0
         ALIGN
 
         END

@@ -61,6 +61,14 @@ install_messages Buffers \
     "$root/Sources/HWSupport/Buffers/Resources/UK/Messages"
 install_messages DeviceFS \
     "$root/Sources/HWSupport/DeviceFS/Resources/UK/Messages"
+install_messages PCI \
+    "$root/Sources/HWSupport/PCI/objs/Resources/UK/Messages"
+install_messages CDFSDriver/SCSI \
+    "$root/Sources/HWSupport/CD/CDFSSoftSCSI/Resources/UK/Messages"
+mkdir -p "$resources/data/Resources/USBDriver" "$resources/data/Mountin"
+printf '#{Default}\n' > "$resources/data/Resources/USBDriver/USBDevs"
+cp "$root/Sources/Programmer/RTSupport/objs/RTSupport,ffa" \
+    "$resources/data/Mountin/RTSupport,ffa"
 
 cat >> "$root/BuildSys/ModuleDB" <<'EOF'
 MountinResources            ASM   Sources.MountinResources                                             Mountin         MountinResources

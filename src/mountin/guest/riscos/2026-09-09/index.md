@@ -40,8 +40,8 @@ can actually use:
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | In the experimental ROM, RTSupport's corrected scheduler and TickerV handling let DWCDriver initialize. PCI's message resource is required for its first DMA allocation. USBDriver's statically initialized device lists point into the ROM copy of module data; runtime initialization fixes that failure. The root-device descriptor request then succeeds. GNU CLib places another `0x5a8` bytes of static data after the legacy `0xe64` bytes reserved by client ROM stubs. Consequently `getenv` overwrites USBDriver's callback list. Reserving the extra bytes through CLib's linked symbols allows the original `getenv` path to run and a no-media boot to reach `9D-READY`. With USB storage and CD media attached, a USB transfer callback arrived before `tsleep` registered its wait handle, losing the wakeup. Registering the handle before its clock SWI lets enumeration continue through USB device attach services, but the guest still does not reach 9d readiness after 30 seconds. No USB medium has passed a 9P read. These modules are not selected by the released ROM. |
-| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The three modules initialize in the experimental ROM once CDFSSoftSCSI's message file is installed at `Resources:$.Resources.CDFSDriver.SCSI.Messages`. CD media and 9P reads remain unverified. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The experimental ROM enumerates a QEMU USB FAT16 disk as `/SCSI-4` and reads `BASIC/HELLO.TXT` through 9P. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. Keeping the serial transport open during USB initialization is also required. Repeated media access can still stall, so the appliance runtime test has not passed. |
+| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The experimental ROM exposes a QEMU USB ISO 9660 CD as `/CDFS` and reads `BASIC/SCRIPT.SH` through 9P. It configures one CD drive and reinitializes the CDFS modules after USB startup. CDFSSoftSCSI uses READ(10) to identify data tracks when the device rejects READ HEADER. Repeated media access can still stall. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
@@ -57,3 +57,9 @@ SDFS read. `basic.filecore-oldmap`, which uses old directories, still returns
 an I/O error at its root. The BCM2835 source does not include PartMan, the
 helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
 media cannot yet be exercised through this ROM.
+
+The USB and CD tests attach `basic.fat16` and `basic.iso9660` as separate USB
+mass-storage devices. Single-file reads from both paths have passed in the
+experimental ROM. A later request can stop receiving a 9P reply while the
+guest probes removable media, so the combined fixture-backed runtime test
+remains a release gate.
