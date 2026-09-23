@@ -63,5 +63,9 @@ mass-storage devices. Single-file reads from both paths have passed in the
 experimental ROM. A later request can stop receiving a 9P reply while the
 guest probes removable media. A diagnostic run completed a CD read, then
 blocked inside the RISC OS `open()` call for a USB file after path resolution
-and `lstat` succeeded. The combined fixture-backed runtime test remains a
-release gate.
+and `lstat` succeeded. Three repeated reads from one USB disk pass. Two USB
+FAT16 disks appear as `/SCSI-4` and `/SCSI-5`, but switching between them
+also stalls, whichever disk is read first. QEMU completes the final 13-byte
+SCSI status transfer and the guest acknowledges its USB interrupt. A boot
+with only CD media also lacks a `/CDFS` root after waiting for enumeration.
+The single-CD, combined-media and two-disk tests remain release gates.

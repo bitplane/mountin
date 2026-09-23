@@ -142,7 +142,7 @@ def connect(path, process, deadline):
     raise TimeoutError("QEMU did not create the RISC OS serial endpoint")
 
 
-def boot(qemu, rom, disk, directory, usb=None, cd=None):
+def boot(qemu, rom, disk, directory, usb=None, cd=None, usb2=None):
     serial = directory / "serial.sock"
     command = [
         str(qemu),
@@ -174,6 +174,11 @@ def boot(qemu, rom, disk, directory, usb=None, cd=None):
             "-drive",
             f"file={cd},format=raw,if=none,id=mountin-cd,media=cdrom,readonly=on",
             "-device", "usb-storage,drive=mountin-cd",
+        ]
+    if usb2 is not None:
+        command += [
+            "-drive", f"file={usb2},format=raw,if=none,id=mountin-usb2",
+            "-device", "usb-storage,drive=mountin-usb2",
         ]
     process = subprocess.Popen(command)
     try:
@@ -285,6 +290,37 @@ def removable_media_test(client):
             raise RuntimeError(f"unexpected contents at {'/'.join(path)}: {data!r}")
 
 
+def two_usb_test(client):
+    client.attach(1)
+    client.open(1)
+    roots = stat_names(client.read(1))
+    for name in ("SCSI-4", "SCSI-5"):
+        if name not in roots:
+            raise RuntimeError(f"RISC OS did not expose {name}: {roots!r}")
+
+    for fid, drive in ((2, "SCSI-5"), (4, "SCSI-4"), (6, "SCSI-5")):
+        client.attach(fid)
+        client.walk_path(fid, fid + 1, [drive, "BASIC", "HELLO.TXT"])
+        client.open(fid + 1)
+        if b"Hello" not in client.read(fid + 1):
+            raise RuntimeError(f"unexpected contents at {drive}/BASIC/HELLO.TXT")
+        client.clunk(fid + 1)
+        client.clunk(fid)
+
+
+def single_cd_test(client):
+    client.attach(1)
+    client.open(1)
+    roots = stat_names(client.read(1))
+    if "CDFS" not in roots:
+        raise RuntimeError(f"RISC OS did not expose the CD drive: {roots!r}")
+    client.attach(2)
+    client.walk_path(2, 3, ["CDFS", "BASIC", "SCRIPT.SH"])
+    client.open(3)
+    if b"Executable script ran successfully!" not in client.read(3):
+        raise RuntimeError("unexpected contents in the CD fixture")
+
+
 def main():
     if len(sys.argv) < 8:
         raise SystemExit(
@@ -348,6 +384,24 @@ def main():
         shutil.copyfile(fixture, disk)
         with disk.open("r+b") as stream:
             stream.truncate(32 * 1024 * 1024)
+        usb_copy = directory / "second-usb.img"
+        shutil.copyfile(usb_fixture, usb_copy)
+        process, stream, client = boot(
+            qemu, rom, disk, directory, cd=cd_fixture)
+        try:
+            single_cd_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
+            qemu, rom, disk, directory, usb=usb_fixture, usb2=usb_copy)
+        try:
+            two_usb_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
         process, stream, client = boot(
             qemu, rom, disk, directory, usb_fixture, cd_fixture)
         try:
