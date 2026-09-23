@@ -67,11 +67,11 @@ class Client:
             tag = 0xFFFF if kind == 100 else self.tag
         packet = struct.pack("<IBH", len(body) + 7, kind, tag) + body
 
-        # QEMU's BCM2835 PL011 model has a 16-byte receive FIFO. Pace input so
-        # the non-interleaved guest server can drain it without dropped bytes.
+        # Pace the serial stream, keeping each request contiguous enough for
+        # the guest's DeviceFS and UnixLib receive path to retain the frame.
         for byte in packet:
             self.stream.sendall(bytes((byte, )))
-            time.sleep(0.05)
+            time.sleep(0.01)
 
         size, reply, reply_tag = struct.unpack("<IBH", self.exact(7))
         body = self.exact(size - 7)

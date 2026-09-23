@@ -67,12 +67,14 @@ and `lstat` succeeded. Three repeated reads from one USB disk pass. Two USB
 FAT16 disks can appear as `/SCSI-4` and `/SCSI-5`. The test gives the second
 disk a distinct FAT volume serial; without that, switching disks can stall
 while reading the second volume. With distinct serials, alternating reads
-pass when the 9P file handles stay open, but later requests can still stall
-after a file handle is closed. The stall also occurs with the original
-SCSISwitch and SCSISoftUSB code. An instrumented build of 9d v0.9.1 received
-the four-byte 9P length and only part of the final request body. QEMU traced
-all 23 bytes reaching the PL011 and being read from its FIFO, so the remaining
-bytes are lost or trapped between the guest serial driver and 9d's read call.
+pass when the 9P file handles stay open. With 50 ms between serial bytes, a
+later request can stall after a file handle is closed, including with the
+original SCSISwitch and SCSISoftUSB code. An instrumented build of 9d v0.9.1
+received the four-byte 9P length and only part of the final request body.
+QEMU traced all 23 bytes reaching the PL011 and being read from its FIFO, so
+the remaining bytes are lost or trapped between the guest serial driver and
+9d's read call. Sending bytes 10 ms apart passes alternating reads and closes
+on both disks in a focused run.
 QEMU completes the final SCSI status transfer in the earlier command traces.
 A boot with only CD media also lacks a `/CDFS` root after waiting for
 enumeration.
