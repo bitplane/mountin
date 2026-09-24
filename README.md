@@ -78,16 +78,17 @@ means read-only. Absence of evidence, YMMV, expect occasional regressions etc.
 
 | Guest | Tables / layouts | Filesystems |
 | ----- | ---------------- | ----------- |
-| **Linux 6.12** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Sun SPARC VTOC8, SGI DVH, LDM, Minix, UBI, Acorn, AIX, Ultrix, SYSV68, Rio Karma, OSF/1, HP-UX LIF, QNX4 PT, Plan 9, NetWare, Hybrid MBR, Protective MBR, OpenBSD, DragonFly, CP/M-86 | ext2/3/4, FAT12/16/32, exFAT, NTFS (`ntfs3`), ISO9660, UDF, HFS/HFS+, XFS, JFS, Btrfs, F2FS, bcachefs, EROFS, ReiserFS, Amiga OFS/FFS, Minix, V7, SysV, SquashFS, CramFS, RomFS, EFS, BeFS, HPFS, QNX4/6, ADFS, VxFS, OMFS, NILFS2, GFS2, BFS, JFFS2, UBIFS, High Sierra |
-| **Linux 2.6** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Sun SPARC VTOC8, SGI DVH, Minix, UBI, Acorn, AIX, Ultrix, SYSV68, OSF/1, HP-UX LIF, QNX4 PT, Plan 9, NetWare, Hybrid MBR, Protective MBR, OpenBSD, CP/M-86 | ext2/3/4, FAT12/16/32, ISO9660, UDF, HFS/HFS+, XFS, JFS, Btrfs, ReiserFS, Amiga OFS/FFS, Minix, V7, SquashFS, CramFS, RomFS, EFS, BeFS, HPFS, QNX4, ADFS, VxFS, OMFS, NILFS2, GFS2, OCFS2, BFS, JFFS2, High Sierra |
-| **NetBSD 10** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Hybrid MBR, Protective MBR | ext2/3 (ext3 via ext2), FAT12/16/32, ISO9660, UDF, HFS+, UFS/FFS, LFS, V7, EFS, Filecore |
-| **DragonFly 6.4** | MBR/DOS, GPT, BSD disklabel, Hybrid MBR, Protective MBR | ext2/3 (ext3 via ext2), FAT12/16/32, ISO9660, UDF (ro), UFS1, HAMMER/HAMMER2 |
-| **AROS i386** | MBR/DOS, GPT, Amiga RDB, Protective MBR | FAT12/16/32, ISO9660, Amiga OFS/FFS, SFS, PFS |
-| **Haiku x86_64** | MBR/DOS, GPT, Hybrid MBR, Protective MBR | ext2/3/4, FAT12/16/32, exFAT (ro), NTFS, ISO9660, UDF (ro), Btrfs (ro), ReiserFS (ro), BeFS |
-| **PureDarwin 17.4** | MBR/DOS, GPT, Apple APM, Protective MBR | HFS/HFS+/HFSX |
-| **9front** | MBR/DOS, Plan 9 | FAT12/16/32, ISO9660 (no Rock Ridge symlinks), PAQFS (ro), FlashFS, HJFS, GEFS, CWFS, V5/V6 (ro), UNIX/32V (ro), V10 (ro) |
-| **illumos x86_64** | MBR/DOS, GPT, Solaris x86 VTOC16 (inside MBR) | FAT12/16/32, ISO9660, UFS1 |
-| **TempleOS 5.03** | MBR/DOS, raw volume | RedSea, FAT32 |
+| **[Linux 6.12](src/mountin/guest/linux/6.12/index.md)** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Sun SPARC VTOC8, SGI DVH, LDM, Minix, UBI, Acorn, AIX, Ultrix, SYSV68, Rio Karma, OSF/1, HP-UX LIF, QNX4 PT, Plan 9, NetWare, Hybrid MBR, Protective MBR, OpenBSD, DragonFly, CP/M-86 | ext2/3/4, FAT12/16/32, exFAT, NTFS (`ntfs3`), ISO9660, UDF, HFS/HFS+, XFS, JFS, Btrfs, F2FS, bcachefs, EROFS, ReiserFS, Amiga OFS/FFS, Minix, V7, SysV, SquashFS, CramFS, RomFS, EFS, BeFS, HPFS, QNX4/6, ADFS, VxFS, OMFS, NILFS2, GFS2, BFS, JFFS2, UBIFS, High Sierra |
+| **[Linux 2.6](src/mountin/guest/linux/2.6/index.md)** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Sun SPARC VTOC8, SGI DVH, Minix, UBI, Acorn, AIX, Ultrix, SYSV68, OSF/1, HP-UX LIF, QNX4 PT, Plan 9, NetWare, Hybrid MBR, Protective MBR, OpenBSD, CP/M-86 | ext2/3/4, FAT12/16/32, ISO9660, UDF, HFS/HFS+, XFS, JFS, Btrfs, ReiserFS, Amiga OFS/FFS, Minix, V7, SquashFS, CramFS, RomFS, EFS, BeFS, HPFS, QNX4, ADFS, VxFS, OMFS, NILFS2, GFS2, OCFS2, BFS, JFFS2, High Sierra |
+| **[NetBSD 10](src/mountin/guest/netbsd/10.0/index.md)** | MBR/DOS, GPT, BSD disklabel, Apple APM, Amiga RDB, Atari AHDI, Hybrid MBR, Protective MBR | ext2/3 (ext3 via ext2), FAT12/16/32, ISO9660, UDF, HFS+, UFS/FFS, LFS, V7, EFS, Filecore |
+| **[DragonFly 6.4](src/mountin/guest/dragonfly/6.4.2/index.md)** | MBR/DOS, GPT, BSD disklabel, Hybrid MBR, Protective MBR | ext2/3 (ext3 via ext2), FAT12/16/32, ISO9660, UDF (ro), UFS1, HAMMER/HAMMER2 |
+| **[AROS i386](src/mountin/guest/aros/2026-08-31/index.md)** | MBR/DOS, GPT, Amiga RDB, Protective MBR | FAT12/16/32, ISO9660, Amiga OFS/FFS, SFS, PFS |
+| **[Haiku x86_64](src/mountin/guest/haiku/r1-beta6-hrev59919+1/index.md)** | MBR/DOS, GPT, Hybrid MBR, Protective MBR | ext2/3/4, FAT12/16/32, exFAT (ro), NTFS, ISO9660, UDF (ro), Btrfs (ro), ReiserFS (ro), BeFS |
+| **[RISC OS BCM2835](src/mountin/guest/riscos/2026-09-09/index.md)** | FileCore, DOSFS image MBR | FileCore, FAT12/16/32, ISO9660, Joliet, Rock Ridge, High Sierra |
+| **[PureDarwin 17.4](src/mountin/guest/darwin/17.4/index.md)** | MBR/DOS, GPT, Apple APM, Protective MBR | HFS/HFS+/HFSX |
+| **[9front](src/mountin/guest/9front/11957/index.md)** | MBR/DOS, Plan 9 | FAT12/16/32, ISO9660 (no Rock Ridge symlinks), PAQFS (ro), FlashFS, HJFS, GEFS, CWFS, V5/V6 (ro), UNIX/32V (ro), V10 (ro) |
+| **[illumos x86_64](src/mountin/guest/illumos/2026-08-13/index.md)** | MBR/DOS, GPT, Solaris x86 VTOC16 (inside MBR) | FAT12/16/32, ISO9660, UFS1 |
+| **[TempleOS 5.03](src/mountin/guest/templeos/5.03/index.md)** | MBR/DOS, raw volume | RedSea, FAT32 |
 
 ### 💩 Known bad
 
