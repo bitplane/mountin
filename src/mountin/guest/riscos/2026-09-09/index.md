@@ -44,8 +44,8 @@ can actually use:
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads a QEMU USB FAT16 disk at `/SCSI-4` and alternates reads between two disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
-| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads `BASIC/SCRIPT.SH` from an ISO 9660 CD at `/CDFS` both with only the CD attached and with a USB disk attached. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads QEMU USB FAT16 and FAT32 disks at `/SCSI-4` and alternates reads between two FAT16 disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
+| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads plain ISO 9660 and Rock Ridge CD files at `/CDFS`; it also reads the plain ISO with a USB disk attached. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
@@ -62,11 +62,18 @@ an I/O error at its root. The BCM2835 source does not include PartMan, the
 helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
 media cannot yet be exercised through this ROM.
 
-The USB and CD tests attach `basic.fat16` and `basic.iso9660` as USB
-mass-storage devices. A second FAT16 disk gets a distinct volume serial.
+The USB and CD tests attach `basic.fat16`, `basic.fat32`,
+`basic.iso9660`, and `basic.rock-ridge.iso9660` as removable media. A
+second FAT16 disk gets a distinct volume serial.
 With 10 ms between serial bytes, the complete appliance verifier passes its
 single-CD, two-disk, and combined-media release gates. A diagnostic run with
 50 ms between bytes stalled during a later 9P request: QEMU delivered the
 whole request to the guest PL011, but 9d received only part of its body.
 The faster test pacing avoids that observed stall; broader serial transport
 reliability remains to be assessed with other clients.
+Direct USB `basic.fat12` and CD `basic.joliet.iso9660` and
+`basic.high-sierra.iso9660` expose their roots, but a fixture-directory read
+stalls in repeat probes. `basic.udf-optical` exposes no CDFS root. These
+observations do not establish whether the filing systems or the serial 9P
+path caused the stalls. The appliance verifier gates only the successful
+file reads listed above; other catalogue fixtures are not RISC OS coverage.

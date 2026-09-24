@@ -308,27 +308,28 @@ def two_usb_test(client):
         client.clunk(fid)
 
 
-def single_cd_test(client):
+def single_media_test(client, root, path, expected):
     client.attach(1)
     client.open(1)
     roots = stat_names(client.read(1))
-    if "CDFS" not in roots:
-        raise RuntimeError(f"RISC OS did not expose the CD drive: {roots!r}")
+    if root not in roots:
+        raise RuntimeError(f"RISC OS did not expose {root}: {roots!r}")
     client.attach(2)
-    client.walk_path(2, 3, ["CDFS", "BASIC", "SCRIPT.SH"])
+    client.walk_path(2, 3, [root, *path])
     client.open(3)
-    if b"Executable script ran successfully!" not in client.read(3):
-        raise RuntimeError("unexpected contents in the CD fixture")
+    if expected not in client.read(3):
+        raise RuntimeError(f"unexpected contents at {root}/{'/'.join(path)}")
 
 
 def main():
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 10:
         raise SystemExit(
             "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE "
-            "USB_IMAGE CD_IMAGE IMAGEFS_HOST...")
+            "USB_IMAGE FAT32_IMAGE CD_IMAGE ROCK_RIDGE_IMAGE IMAGEFS_HOST...")
     qemu, rom, fixture, oldmap_fixture = map(Path, sys.argv[1:5])
-    usb_fixture, cd_fixture = map(Path, sys.argv[5:7])
-    image_fixtures = [Path(path) for path in sys.argv[7:]]
+    usb_fixture, fat32_fixture, cd_fixture, rockridge_fixture = map(
+        Path, sys.argv[5:9])
+    image_fixtures = [Path(path) for path in sys.argv[9:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -392,7 +393,18 @@ def main():
         process, stream, client = boot(
             qemu, rom, disk, directory, cd=cd_fixture)
         try:
-            single_cd_test(client)
+            single_media_test(
+                client, "CDFS", ["BASIC", "SCRIPT.SH"],
+                b"Executable script ran successfully!")
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
+            qemu, rom, disk, directory, cd=rockridge_fixture)
+        try:
+            single_media_test(
+                client, "CDFS", ["basic", "hello.txt"], b"Hello, world!")
         finally:
             stream.close()
             stop(process)
@@ -401,6 +413,16 @@ def main():
             qemu, rom, disk, directory, usb=usb_fixture, usb2=usb_copy)
         try:
             two_usb_test(client)
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
+            qemu, rom, disk, directory, usb=fat32_fixture)
+        try:
+            single_media_test(
+                client, "SCSI-4", ["BASIC", "SCRIPT.SH"],
+                b"Executable script ran successfully!")
         finally:
             stream.close()
             stop(process)

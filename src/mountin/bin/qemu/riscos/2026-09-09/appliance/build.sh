@@ -7,7 +7,9 @@ rom=$root/Images/BCM2835Mountin
 fixture=/host/build/data/fs/basic.filecore
 oldmap_fixture=/host/build/data/fs/basic.filecore-oldmap-newdir
 usb_fixture=/host/build/data/fs/basic.fat16
+fat32_fixture=/host/build/data/fs/basic.fat32
 cd_fixture=/host/build/data/fs/basic.iso9660
+rockridge_fixture=/host/build/data/fs/basic.rock-ridge.iso9660
 image_fixtures=(
     /host/build/data/fs/basic.filecore-fat12
     /host/build/data/fs/basic.filecore-fat12-mbr
@@ -57,6 +59,7 @@ srcbuild join
 
 python3 /build/verify.py \
     "$qemu" "$rom" "$fixture" "$oldmap_fixture" \
-    "$usb_fixture" "$cd_fixture" "${image_fixtures[@]}"
+    "$usb_fixture" "$fat32_fixture" "$cd_fixture" "$rockridge_fixture" \
+    "${image_fixtures[@]}"
 mkdir -p "${output%/*}"
 cp "$rom" "$output"
