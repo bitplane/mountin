@@ -212,8 +212,37 @@ def initial_test(client):
     client.attach(1)
     client.open(1)
     roots = stat_names(client.read(1))
-    if not {"Resources", "SDFS", "devices"}.issubset(roots):
+    if not {"Pipe", "Resources", "SDFS", "devices"}.issubset(roots):
         raise RuntimeError(f"RISC OS omitted a ROM filing system: {roots!r}")
+
+    client.attach(60)
+    client.walk(60, 61, "Resources")
+    client.open(61)
+    if "Mountin" not in stat_names(client.read(61)):
+        raise RuntimeError("ResourceFS did not enumerate the embedded tools")
+
+    client.attach(62)
+    client.walk_path(62, 63, ["Resources", "Mountin"])
+    client.open(63)
+    if "9d" not in stat_names(client.read(63)):
+        raise RuntimeError("ResourceFS did not enumerate 9d")
+
+    client.attach(64)
+    client.walk_path(64, 65, ["Resources", "Mountin", "9d"])
+    client.open(65)
+    if len(client.read(65, count=16)) != 16:
+        raise RuntimeError("ResourceFS did not serve the embedded 9d binary")
+
+    client.attach(66)
+    client.walk(66, 67, "devices")
+    client.open(67)
+    if not {"Serial1", "USB1"}.issubset(stat_names(client.read(67))):
+        raise RuntimeError("DeviceFS did not enumerate serial and USB streams")
+
+    client.attach(68)
+    client.walk(68, 69, "Pipe")
+    client.open(69)
+    client.read(69)
 
     client.attach(2)
     client.walk(2, 3, "SDFS")
@@ -275,6 +304,21 @@ def imagefs_test(client, image):
     client.open(6)
     if b"Hello" not in client.read(6):
         raise RuntimeError(f"DOSFS returned unexpected data from {image}")
+
+
+def writable_media_test(client, directory, payload, create):
+    if create:
+        client.attach(70)
+        client.walk_path(70, 71, directory)
+        client.create(71, "MtTest01")
+        client.write(71, payload)
+        client.clunk(71)
+
+    client.attach(72)
+    client.walk_path(72, 73, [*directory, "MtTest01"])
+    client.open(73)
+    if client.read(73) != payload:
+        raise RuntimeError(f"write did not persist at {'/'.join(directory)}")
 
 
 def removable_media_test(client):
@@ -406,9 +450,22 @@ def main():
             process, stream, client = boot(qemu, rom, disk, directory)
             try:
                 imagefs_test(client, image_name)
+                if variant == "fat16":
+                    writable_media_test(
+                        client, ["SDFS", "FAT16", "BASIC"],
+                        b"DOSFS ImageFS write persisted\n", create=True)
             finally:
                 stream.close()
                 stop(process)
+            if variant == "fat16":
+                process, stream, client = boot(qemu, rom, disk, directory)
+                try:
+                    writable_media_test(
+                        client, ["SDFS", "FAT16", "BASIC"],
+                        b"DOSFS ImageFS write persisted\n", create=False)
+                finally:
+                    stream.close()
+                    stop(process)
 
         shutil.copyfile(fixture, disk)
         with disk.open("r+b") as stream:
@@ -468,6 +525,19 @@ def main():
         finally:
             stream.close()
             stop(process)
+
+        usb_write = directory / "writable-usb.img"
+        shutil.copyfile(usb_fixture, usb_write)
+        for create in (True, False):
+            process, stream, client = boot(
+                qemu, rom, disk, directory, usb=usb_write)
+            try:
+                writable_media_test(
+                    client, ["SCSI-4", "BASIC"],
+                    b"USB FAT write persisted\n", create=create)
+            finally:
+                stream.close()
+                stop(process)
 
         process, stream, client = boot(
             qemu, rom, disk, directory, usb=fat32_fixture)

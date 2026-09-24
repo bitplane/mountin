@@ -1,7 +1,7 @@
 ---
 title: 9d for Haiku
 requires:
-  - sources/9d-0.9.3.tar.xz
+  - sources/9d-0.9.4.tar.xz
 provides:
   - bin/${MOUNTIN_TARGET_ARCH}-haiku/9d
 ---

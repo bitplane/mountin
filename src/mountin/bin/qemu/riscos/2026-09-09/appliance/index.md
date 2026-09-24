@@ -45,11 +45,15 @@ launcher. Resource generation and final linking run here so 9d updates reuse
 the compiled OS. The ROM embeds 9d in ResourceFS and serves a synthetic root
 over the first PL011 serial port. Each active RISC OS filing system appears
 beneath that root. The SD card appears at `/SDFS`, backed by `SDFS::0.$`.
+The verifier enumerates ResourceFS and DeviceFS, reads the embedded 9d binary
+from `/Resources/Mountin/9d`, and walks the `/Pipe` root.
 Whole-device new-map and old-map new-directory FileCore filesystems pass the
 guest read checks. The old-map old-directory FileCore fixture returns an I/O
 error through SDFS.
 FAT12, FAT16 and FAT32 image files, each raw or containing an MBR and FAT
 partition, pass fixture-backed 9P enumeration and reads through DOSFS ImageFS.
+A disposable raw FAT16 image also passes a 9P write and reboot persistence
+check.
 A mixed MBR checks that DOSFS selects an active second partition. Whole-device
 partitioned media still need a driver path and tests.
 
@@ -57,8 +61,9 @@ The ROM includes the USB SCSI and CDFS modules. The fixture-backed verifier
 reads FAT12, FAT16 and FAT32 disks at `/SCSI-4`, and plain ISO 9660, Joliet,
 Rock Ridge and High Sierra CDs at `/CDFS`. It checks paged Joliet and High
 Sierra directories, reads files from them, and alternates reads and closes
-between two disks with distinct FAT volume serials. It tests the CD alone and
-with a USB disk. The pinned CDFSSoftSCSI MODE SENSE fix keeps the driver from
+between two disks with distinct FAT volume serials. A disposable FAT16 USB
+disk passes a 9P write and reboot persistence check. It tests the CD alone
+and with a USB disk. The pinned CDFSSoftSCSI MODE SENSE fix keeps the driver from
 treating response padding as additional mode pages. The RISC OS serial
 transport retries when the output queue is full; the verifier still paces
 incoming request bytes at 10 ms so DeviceFS retains each frame.
@@ -75,6 +80,6 @@ CD fixtures, and checks their namespace roots and file contents over 9P.
 This verifies the listed RISC OS paths, not every image in the global test
 catalogue. The FAT12 directory returns each entry once across paged reads.
 An optical UDF fixture does not expose a CDFS root. The
-old-map old-directory FileCore fixture returns an I/O error, and the BCM2835
-ROM has no PartMan driver for whole-device MBR or GPT media. Those cases need
-further investigation before this guest can claim them.
+old-map old-directory FileCore fixture returns `Bad defect list` from the ROM,
+and the BCM2835 ROM has no PartMan driver for whole-device MBR or GPT media.
+Those cases need further work before this guest can claim them.
