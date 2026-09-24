@@ -211,8 +211,9 @@ def stop(process):
 def initial_test(client):
     client.attach(1)
     client.open(1)
-    if "SDFS" not in stat_names(client.read(1)):
-        raise RuntimeError("RISC OS did not expose SDFS in the namespace")
+    roots = stat_names(client.read(1))
+    if not {"Resources", "SDFS", "devices"}.issubset(roots):
+        raise RuntimeError(f"RISC OS omitted a ROM filing system: {roots!r}")
 
     client.attach(2)
     client.walk(2, 3, "SDFS")
@@ -327,7 +328,7 @@ def single_media_test(client, root, path, expected, fid=1):
         raise RuntimeError(f"unexpected contents at {root}/{'/'.join(path)}")
 
 
-def paged_directory_test(client, root, path, expected, allow_duplicates=False):
+def paged_directory_test(client, root, path, expected):
     client.attach(10)
     client.walk_path(10, 11, [root, *path])
     client.open(11)
@@ -342,10 +343,7 @@ def paged_directory_test(client, root, path, expected, allow_duplicates=False):
     else:
         raise RuntimeError(f"directory did not end at {root}/{'/'.join(path)}")
     names = [name for name, _ in entries]
-    if allow_duplicates:
-        if not set(expected).issubset(names):
-            raise RuntimeError(f"missing entries at {root}/{'/'.join(path)}: {names!r}")
-    elif names != expected or len({qid for _, qid in entries}) != len(entries):
+    if names != expected or len({qid for _, qid in entries}) != len(entries):
         raise RuntimeError(f"unexpected entries at {root}/{'/'.join(path)}: {entries!r}")
 
 
@@ -491,7 +489,7 @@ def main():
                 b"Executable script ran successfully!", fid=4)
             paged_directory_test(
                 client, "SCSI-4", ["BASIC"],
-                ["SCRIPT.SH", "HELLO.TXT"], allow_duplicates=True)
+                ["nested_dir", "SCRIPT.SH", "HELLO.TXT"])
         finally:
             stream.close()
             stop(process)

@@ -28,6 +28,7 @@ output_platforms:
       - bin/qemu/${MOUNTIN_TARGET_PLATFORM}/2026-09-09/rom
 support:
   - format/fs/filecore
+  - format/fs/fat12
   - format/fs/fat16
   - format/fs/fat32
   - format/fs/iso9660
@@ -72,9 +73,8 @@ and child enumeration and file contents. It also attaches USB FAT16 and ISO
 CD fixtures, and checks their namespace roots and file contents over 9P.
 
 This verifies the listed RISC OS paths, not every image in the global test
-catalogue. FAT12 directory enumeration now completes, but the guest returns
-`nested_dir` four times in that fixture; FAT12 is not yet declared in the
-capability list. An optical UDF fixture does not expose a CDFS root. The
+catalogue. The FAT12 directory returns each entry once across paged reads.
+An optical UDF fixture does not expose a CDFS root. The
 old-map old-directory FileCore fixture returns an I/O error, and the BCM2835
 ROM has no PartMan driver for whole-device MBR or GPT media. Those cases need
 further investigation before this guest can claim them.

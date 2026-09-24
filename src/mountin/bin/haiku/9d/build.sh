@@ -7,7 +7,7 @@ OUTPUT_DIR=/host/build/bin/${MOUNTIN_TARGET_ARCH}-haiku
 rm -rf "$NINED_SOURCE"
 mkdir -p "$NINED_SOURCE" "$OUTPUT_DIR"
 
-tar -xf /host/build/sources/9d-0.9.2.tar.xz \
+tar -xf /host/build/sources/9d-0.9.3.tar.xz \
     -C "$NINED_SOURCE" --strip-components=1
 
 (cd "$NINED_SOURCE" && ./scripts/release-binary.sh "${MOUNTIN_TARGET_ARCH}-haiku")

@@ -44,10 +44,25 @@ can actually use:
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads QEMU USB FAT12, FAT16 and FAT32 files at `/SCSI-4` and alternates reads between two FAT16 disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. FAT12 enumeration completes but repeats `nested_dir` four times. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads QEMU USB FAT12, FAT16 and FAT32 files at `/SCSI-4` and alternates reads between two FAT16 disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. Paged FAT12 enumeration returns each entry once. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
 | CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads plain ISO 9660, Joliet, Rock Ridge and High Sierra CD files at `/CDFS`; it checks paged Joliet and High Sierra directories and reads the plain ISO with a USB disk attached. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
-| ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
+| ResourceFS | ROM resources | The `/Resources` root is announced, but its directory is empty over 9P and a walk to the known `Mountin` resource fails. The launcher can still run `Resources:$.Mountin.9d` directly. No resource file coverage is claimed. |
+| DeviceFS and SystemDevices | Device streams | The `/devices` root is announced, but its directory is empty over 9P and `/devices/ttyS0` cannot be walked. 9d opens the serial port through UnixLib's `/dev/ttyS0` path. |
+| PipeFS | Named pipes | The module is in the ROM; no PipeFS root is exported in the tested boots. |
+| ADFS | Acorn FileCore volumes | Source is present; no ADFS module is selected for this ROM. |
+| RAMFS | Memory backed files | Source is present; the module is not selected for this ROM. |
+| NetFS | Network file service | Source is present; the module and network stack are not selected for this ROM. |
+| PCCardFS | PC Card storage | Source is present; the module is not selected for this ROM. |
+| HostFS | Emulator host files | Source is present; the module is not selected for this ROM. |
+| OmniLanManFS | LAN Manager shares | Source is present; the module and network stack are not selected for this ROM. |
+
+With only the SD card attached, 9d lists `/Resources`, `/SDFS`, and
+`/devices`. With the USB FAT16 disk and ISO CD attached, it also lists
+`/SCSI-4` and `/CDFS`. The appliance verifier checks the three ROM roots;
+the removable-media checks cover the two conditional roots. Empty roots do
+not establish usable directory or file access, so ResourceFS and DeviceFS
+need separate investigation.
 
 The seven `basic.filecore-fat*` fixtures hold DOSFS image files in old-map
 FileCore host filesystems. The guest boots each host through SDFS, then 9d
@@ -58,9 +73,10 @@ partitioned media remains unverified because PartitionManager is absent from
 this product.
 The standalone `basic.filecore-oldmap-newdir` fixture passes a whole-device
 SDFS read. `basic.filecore-oldmap`, which uses old directories, still returns
-an I/O error at its root. The BCM2835 source does not include PartMan, the
-helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
-media cannot yet be exercised through this ROM.
+an I/O error at its root. FileCore contains old-directory code, so this case
+needs diagnosis before it can be declared unsupported. The BCM2835 source
+does not include PartMan, the helper that selects SCSIFS partition offsets,
+so whole-device MBR and GPT media cannot yet be exercised through this ROM.
 
 The USB and CD tests attach `basic.fat12`, `basic.fat16`, `basic.fat32`,
 `basic.iso9660`, `basic.joliet.iso9660`, `basic.rock-ridge.iso9660`, and
@@ -74,8 +90,10 @@ writer reports success even when that queue drops a byte.
 The earlier directory stalls were in UnixLib `lstat` after native `OS_GBPB`
 returned an entry. 9d now obtains RISC OS metadata through `OS_File`, so
 FAT12, Joliet and High Sierra directory reads reach the end and their files
-can be read. Joliet and High Sierra pass exact paged-entry and distinct 9P
-identity checks. The FAT12 fixture still reports `nested_dir` four times; the
-cause of those duplicate directory entries remains open. `basic.udf-optical`
-exposes no CDFS root. The appliance verifier gates the successful paths
-listed above; other catalogue fixtures are not RISC OS coverage.
+can be read. Native FileSwitch directory cursors skip FAT directory metadata
+entries that UnixLib exposed as duplicates. All three pass exact paged-entry
+and distinct 9P identity checks. `basic.udf-optical`
+exposes no CDFS root; the selected CDFS module has no UDF reader and the
+product source has no UDF filing-system module. The appliance verifier gates
+the successful paths listed above; other catalogue fixtures are not RISC OS
+coverage.
