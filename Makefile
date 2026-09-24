@@ -17,8 +17,8 @@ install: .venv/.installed  ## install the venv and project packages
 
 dev: .venv/.installed-dev  ## prepare local repo and venv for dev
 
-test: .venv/.installed-dev  ## run the project's tests
-	scripts/test.sh $(PROJECT_NAME)
+test:  ## run the project's tests with the existing Python environment
+	.venv/bin/python -m pytest .
 
 coverage: .venv/.installed-dev scripts/coverage.sh  ## build the html coverage report
 	scripts/coverage.sh $(PROJECT_NAME)
