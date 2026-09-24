@@ -15,6 +15,7 @@ output_platforms:
       - data/fs/basic.iso9660
       - data/fs/basic.joliet.iso9660
       - data/fs/basic.rock-ridge.iso9660
+      - data/fs/basic.highsierra
       - data/fs/basic.filecore-fat12
       - data/fs/basic.filecore-fat12-mbr
       - data/fs/basic.filecore-fat16
@@ -30,6 +31,7 @@ support:
   - format/fs/fat16
   - format/fs/fat32
   - format/fs/iso9660
+  - format/fs/highsierra
   - transport/9p
 requires:
   - docker:${MOUNTIN_BUILDER}
@@ -51,12 +53,14 @@ A mixed MBR checks that DOSFS selects an active second partition. Whole-device
 partitioned media still need a driver path and tests.
 
 The ROM includes the USB SCSI and CDFS modules. The fixture-backed verifier
-reads FAT12, FAT16 and FAT32 disks at `/SCSI-4`, plain ISO 9660, Joliet and Rock Ridge CDs
-at `/CDFS`, and alternates
-reads and closes between two disks with distinct FAT volume serials. It tests
-the CD alone and with a USB disk. All of these runtime gates pass with the
-pinned CDFSSoftSCSI MODE SENSE fix and 10 ms serial byte pacing. The CD fix
-keeps the driver from treating response padding as additional mode pages.
+reads FAT12, FAT16 and FAT32 disks at `/SCSI-4`, and plain ISO 9660, Joliet,
+Rock Ridge and High Sierra CDs at `/CDFS`. It checks paged Joliet and High
+Sierra directories, reads files from them, and alternates reads and closes
+between two disks with distinct FAT volume serials. It tests the CD alone and
+with a USB disk. The pinned CDFSSoftSCSI MODE SENSE fix keeps the driver from
+treating response padding as additional mode pages. The RISC OS serial
+transport retries when the output queue is full; the verifier still paces
+incoming request bytes at 10 ms so DeviceFS retains each frame.
 
 Before publication, verification pads a disposable copy of the new-map
 FileCore fixture to the power-of-two SD-card capacity required by QEMU. It
@@ -64,12 +68,13 @@ boots the ROM, reads and mutates the filesystem over 9P, reboots with the same
 disk, and proves that the mutation persisted. It reads an old-map
 new-directory fixture and boots with each DOSFS fixture to check ImageFS root
 and child enumeration and file contents. It also attaches USB FAT16 and ISO
-9660 fixtures, plus FAT12 and FAT32 USB and Joliet and Rock Ridge CD fixtures, and checks their
-namespace roots and file contents over 9P.
+9660 fixtures, plus FAT12 and FAT32 USB and Joliet, Rock Ridge and High Sierra
+CD fixtures, and checks their namespace roots and file contents over 9P.
 
 This verifies the listed RISC OS paths, not every image in the global test
-catalogue. Direct USB FAT12 and Joliet CD files can be read by path, but
-reading their fixture directories stalls. High Sierra exposes a CDFS root,
-but both its directory and direct file reads stall. An optical UDF
-fixture does not expose a CDFS root. These cases need further diagnosis before
-they can be declared supported by this guest.
+catalogue. FAT12 directory enumeration now completes, but the guest returns
+`nested_dir` four times in that fixture; FAT12 is not yet declared in the
+capability list. An optical UDF fixture does not expose a CDFS root. The
+old-map old-directory FileCore fixture returns an I/O error, and the BCM2835
+ROM has no PartMan driver for whole-device MBR or GPT media. Those cases need
+further investigation before this guest can claim them.

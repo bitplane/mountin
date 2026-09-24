@@ -12,6 +12,7 @@ fat32_fixture=/host/build/data/fs/basic.fat32
 cd_fixture=/host/build/data/fs/basic.iso9660
 joliet_fixture=/host/build/data/fs/basic.joliet.iso9660
 rockridge_fixture=/host/build/data/fs/basic.rock-ridge.iso9660
+high_sierra_fixture=/host/build/data/fs/basic.highsierra
 image_fixtures=(
     /host/build/data/fs/basic.filecore-fat12
     /host/build/data/fs/basic.filecore-fat12-mbr
@@ -63,6 +64,7 @@ python3 /build/verify.py \
     "$qemu" "$rom" "$fixture" "$oldmap_fixture" \
     "$usb_fixture" "$fat12_fixture" "$fat32_fixture" \
     "$cd_fixture" "$joliet_fixture" "$rockridge_fixture" \
+    "$high_sierra_fixture" \
     "${image_fixtures[@]}"
 mkdir -p "${output%/*}"
 cp "$rom" "$output"

@@ -44,8 +44,8 @@ can actually use:
 | Driver path | Source capability | Current guest result |
 | --- | --- | --- |
 | SDFS → FileCore | SD/MMC FileCore discs | New-map whole-device image passes 9P read/write and reboot persistence. Old-map with new directories passes 9P reads; old-map with old directories returns an I/O error at its root. |
-| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads QEMU USB FAT12, FAT16 and FAT32 files at `/SCSI-4` and alternates reads between two FAT16 disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. FAT12 directory enumeration remains faulty. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
-| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads plain ISO 9660, Joliet and Rock Ridge CD files at `/CDFS`; it also reads the plain ISO with a USB disk attached. Joliet directory enumeration remains faulty. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
+| USBDriver → DWCDriver → SCSISoftUSB → SCSIFS | SCSI media through the Pi USB host; SCSIFS has partition-offset code | The appliance verifier reads QEMU USB FAT12, FAT16 and FAT32 files at `/SCSI-4` and alternates reads between two FAT16 disks at `/SCSI-4` and `/SCSI-5`, closing each 9P file. FAT12 enumeration completes but repeats `nested_dir` four times. The DWC transfer-length fix prevents stale bulk data from corrupting SCSI status replies. |
+| CDFSDriver → CDFSSoftSCSI → CDFS | CD media on the SCSI path | The appliance verifier reads plain ISO 9660, Joliet, Rock Ridge and High Sierra CD files at `/CDFS`; it checks paged Joliet and High Sierra directories and reads the plain ISO with a USB disk attached. CDFSSoftSCSI uses READ(10) when the device rejects READ HEADER and limits MODE SENSE page parsing to the length declared in the response header. |
 | DOSFS | FAT filesystem images stored as RISC OS files; its image parser also checks for an MBR | The module is included in the ROM. FAT12, FAT16 and FAT32 files and directories pass fixture-backed 9P reads, both with raw images and with an MBR inside each image file. |
 | ADFS | Exported headers in this BCM2835 product | No ADFS filing-system module is selected for the ROM. |
 
@@ -63,27 +63,19 @@ helper that selects SCSIFS partition offsets, so whole-device MBR and GPT
 media cannot yet be exercised through this ROM.
 
 The USB and CD tests attach `basic.fat12`, `basic.fat16`, `basic.fat32`,
-`basic.iso9660`, `basic.joliet.iso9660`, and `basic.rock-ridge.iso9660` as removable media. A
-second FAT16 disk gets a distinct volume serial.
-With 10 ms between serial bytes, the complete appliance verifier passes its
-single-CD, two-disk, and combined-media release gates. A diagnostic run with
-50 ms between bytes stalled during a later 9P request: QEMU delivered the
-whole request to the guest PL011, but 9d received only part of its body.
-The faster test pacing avoids that observed stall; broader serial transport
-reliability remains to be assessed with other clients.
-Direct USB `basic.fat12` and CD `basic.joliet.iso9660` files can be read by
-path, but fixture-directory enumeration stalls in repeat probes. FAT12 repeats
-`nested_dir` at successive directory offsets before stalling. Joliet returns
-its first entry with a small 9P read, then stalls at the next offset.
-An instrumented 9d acknowledged the next 9P read before attempting directory
-enumeration, so the request reached the guest. Its native FileSwitch
-`OS_GBPB` probes (names-only and metadata variants) also returned the first
-entry but stalled when continuing from the saved directory cursor. Changing
-serial byte pacing from 10 ms to 1 ms did not change the FAT12 result. The
-cursor or underlying filing-system response needs further investigation.
-`basic.high-sierra.iso9660` exposes a CDFS root, but its directory and direct
-file reads stall. `basic.udf-optical` exposes no CDFS root. These
-observations do not yet identify whether 9d's cursor handling or the filing
-systems cause the enumeration stalls. The appliance verifier gates only the
-successful file reads listed above; other catalogue fixtures are not RISC OS
-coverage.
+`basic.iso9660`, `basic.joliet.iso9660`, `basic.rock-ridge.iso9660`, and
+`basic.highsierra` as removable media. A second FAT16 disk gets a distinct
+volume serial. The complete appliance verifier passes its single-CD,
+two-disk and combined-media release gates. It paces incoming request bytes at
+10 ms so DeviceFS retains each frame. RISC OS 9d uses a dedicated serial
+output path that retries when the driver queue is full; UnixLib's generic tty
+writer reports success even when that queue drops a byte.
+
+The earlier directory stalls were in UnixLib `lstat` after native `OS_GBPB`
+returned an entry. 9d now obtains RISC OS metadata through `OS_File`, so
+FAT12, Joliet and High Sierra directory reads reach the end and their files
+can be read. Joliet and High Sierra pass exact paged-entry and distinct 9P
+identity checks. The FAT12 fixture still reports `nested_dir` four times; the
+cause of those duplicate directory entries remains open. `basic.udf-optical`
+exposes no CDFS root. The appliance verifier gates the successful paths
+listed above; other catalogue fixtures are not RISC OS coverage.

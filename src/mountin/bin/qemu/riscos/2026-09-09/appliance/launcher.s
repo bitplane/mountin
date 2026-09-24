@@ -124,7 +124,7 @@ MountinLauncher_Serial
 MountinLauncher_Marker
         DCB     "MOUNTIN-SERIAL1", 10, 0
 MountinLauncher_9d
-        DCB     "Run Resources:$.Mountin.9d -R -p stream!/dev/ttyS0", 0
+        DCB     "Run Resources:$.Mountin.9d -R -p serial!/dev/ttyS0", 0
 MountinLauncher_RTSupport
         DCB     "RMLoad Resources:$.Mountin.RTSupport", 0
 MountinLauncher_DWCDriver

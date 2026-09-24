@@ -15,8 +15,8 @@ def p9_string(value):
     return struct.pack("<H", len(encoded)) + encoded
 
 
-def stat_names(data):
-    names = []
+def stat_entries(data):
+    entries = []
     offset = 0
     while offset < len(data):
         size = struct.unpack_from("<H", data, offset)[0]
@@ -24,9 +24,15 @@ def stat_names(data):
         name_offset = 2 + 4 + 13 + 4 + 4 + 4 + 8
         length = struct.unpack_from("<H", stat, name_offset)[0]
         start = name_offset + 2
-        names.append(stat[start:start + length].decode("latin-1"))
+        name = stat[start:start + length].decode("latin-1")
+        qid = struct.unpack_from("<Q", stat, 11)[0]
+        entries.append((name, qid))
         offset += size + 2
-    return names
+    return entries
+
+
+def stat_names(data):
+    return [name for name, _ in stat_entries(data)]
 
 
 class Client:
@@ -308,29 +314,52 @@ def two_usb_test(client):
         client.clunk(fid)
 
 
-def single_media_test(client, root, path, expected):
-    client.attach(1)
-    client.open(1)
-    roots = stat_names(client.read(1))
+def single_media_test(client, root, path, expected, fid=1):
+    client.attach(fid)
+    client.open(fid)
+    roots = stat_names(client.read(fid))
     if root not in roots:
         raise RuntimeError(f"RISC OS did not expose {root}: {roots!r}")
-    client.attach(2)
-    client.walk_path(2, 3, [root, *path])
-    client.open(3)
-    if expected not in client.read(3):
+    client.attach(fid + 1)
+    client.walk_path(fid + 1, fid + 2, [root, *path])
+    client.open(fid + 2)
+    if expected not in client.read(fid + 2):
         raise RuntimeError(f"unexpected contents at {root}/{'/'.join(path)}")
 
 
+def paged_directory_test(client, root, path, expected, allow_duplicates=False):
+    client.attach(10)
+    client.walk_path(10, 11, [root, *path])
+    client.open(11)
+    entries = []
+    offset = 0
+    for _ in range(32):
+        data = client.read(11, offset=offset, count=128)
+        if not data:
+            break
+        entries.extend(stat_entries(data))
+        offset += len(data)
+    else:
+        raise RuntimeError(f"directory did not end at {root}/{'/'.join(path)}")
+    names = [name for name, _ in entries]
+    if allow_duplicates:
+        if not set(expected).issubset(names):
+            raise RuntimeError(f"missing entries at {root}/{'/'.join(path)}: {names!r}")
+    elif names != expected or len({qid for _, qid in entries}) != len(entries):
+        raise RuntimeError(f"unexpected entries at {root}/{'/'.join(path)}: {entries!r}")
+
+
 def main():
-    if len(sys.argv) < 12:
+    if len(sys.argv) < 13:
         raise SystemExit(
             "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE "
             "USB_IMAGE FAT12_IMAGE FAT32_IMAGE CD_IMAGE JOLIET_IMAGE "
-            "ROCK_RIDGE_IMAGE IMAGEFS_HOST...")
+            "ROCK_RIDGE_IMAGE HIGH_SIERRA_IMAGE IMAGEFS_HOST...")
     qemu, rom, fixture, oldmap_fixture = map(Path, sys.argv[1:5])
     (usb_fixture, fat12_fixture, fat32_fixture, cd_fixture,
-     joliet_fixture, rockridge_fixture) = map(Path, sys.argv[5:11])
-    image_fixtures = [Path(path) for path in sys.argv[11:]]
+     joliet_fixture, rockridge_fixture,
+     high_sierra_fixture) = map(Path, sys.argv[5:12])
+    image_fixtures = [Path(path) for path in sys.argv[12:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -415,6 +444,21 @@ def main():
         try:
             single_media_test(
                 client, "CDFS", ["basic", "hello.txt"], b"Hello, world!")
+            paged_directory_test(
+                client, "CDFS", ["basic"],
+                ["hello.txt", "nested_dir", "script.sh"])
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
+            qemu, rom, disk, directory, cd=high_sierra_fixture)
+        try:
+            single_media_test(
+                client, "CDFS", ["BASIC", "HELLO.TXT"], b"Hello, world!")
+            paged_directory_test(
+                client, "CDFS", ["BASIC"],
+                ["HELLO.TXT", "NESTED_D", "SCRIPT.SH"])
         finally:
             stream.close()
             stop(process)
@@ -442,6 +486,12 @@ def main():
         try:
             single_media_test(
                 client, "SCSI-4", ["BASIC", "HELLO.TXT"], b"Hello, world!")
+            single_media_test(
+                client, "SCSI-4", ["BASIC", "SCRIPT.SH"],
+                b"Executable script ran successfully!", fid=4)
+            paged_directory_test(
+                client, "SCSI-4", ["BASIC"],
+                ["SCRIPT.SH", "HELLO.TXT"], allow_duplicates=True)
         finally:
             stream.close()
             stop(process)
