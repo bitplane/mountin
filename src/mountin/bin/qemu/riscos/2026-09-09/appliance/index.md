@@ -10,8 +10,10 @@ output_platforms:
       - data/fs/basic.filecore
       - data/fs/basic.filecore-oldmap-newdir
       - data/fs/basic.fat16
+      - data/fs/basic.fat12
       - data/fs/basic.fat32
       - data/fs/basic.iso9660
+      - data/fs/basic.joliet.iso9660
       - data/fs/basic.rock-ridge.iso9660
       - data/fs/basic.filecore-fat12
       - data/fs/basic.filecore-fat12-mbr
@@ -49,7 +51,7 @@ A mixed MBR checks that DOSFS selects an active second partition. Whole-device
 partitioned media still need a driver path and tests.
 
 The ROM includes the USB SCSI and CDFS modules. The fixture-backed verifier
-reads FAT16 and FAT32 disks at `/SCSI-4`, plain ISO 9660 and Rock Ridge CDs
+reads FAT12, FAT16 and FAT32 disks at `/SCSI-4`, plain ISO 9660, Joliet and Rock Ridge CDs
 at `/CDFS`, and alternates
 reads and closes between two disks with distinct FAT volume serials. It tests
 the CD alone and with a USB disk. All of these runtime gates pass with the
@@ -62,11 +64,12 @@ boots the ROM, reads and mutates the filesystem over 9P, reboots with the same
 disk, and proves that the mutation persisted. It reads an old-map
 new-directory fixture and boots with each DOSFS fixture to check ImageFS root
 and child enumeration and file contents. It also attaches USB FAT16 and ISO
-9660 fixtures, plus FAT32 USB and Rock Ridge CD fixtures, and checks their
+9660 fixtures, plus FAT12 and FAT32 USB and Joliet and Rock Ridge CD fixtures, and checks their
 namespace roots and file contents over 9P.
 
 This verifies the listed RISC OS paths, not every image in the global test
-catalogue. Direct USB FAT12 and Joliet and High Sierra CDs expose their
-namespace roots, but reading the fixture directory stalls. An optical UDF
+catalogue. Direct USB FAT12 and Joliet CD files can be read by path, but
+reading their fixture directories stalls. High Sierra exposes a CDFS root,
+but both its directory and direct file reads stall. An optical UDF
 fixture does not expose a CDFS root. These cases need further diagnosis before
 they can be declared supported by this guest.

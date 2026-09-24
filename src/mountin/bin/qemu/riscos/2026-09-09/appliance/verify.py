@@ -322,14 +322,15 @@ def single_media_test(client, root, path, expected):
 
 
 def main():
-    if len(sys.argv) < 10:
+    if len(sys.argv) < 12:
         raise SystemExit(
             "usage: verify.py QEMU ROM FILECORE_IMAGE OLDMAP_IMAGE "
-            "USB_IMAGE FAT32_IMAGE CD_IMAGE ROCK_RIDGE_IMAGE IMAGEFS_HOST...")
+            "USB_IMAGE FAT12_IMAGE FAT32_IMAGE CD_IMAGE JOLIET_IMAGE "
+            "ROCK_RIDGE_IMAGE IMAGEFS_HOST...")
     qemu, rom, fixture, oldmap_fixture = map(Path, sys.argv[1:5])
-    usb_fixture, fat32_fixture, cd_fixture, rockridge_fixture = map(
-        Path, sys.argv[5:9])
-    image_fixtures = [Path(path) for path in sys.argv[9:]]
+    (usb_fixture, fat12_fixture, fat32_fixture, cd_fixture,
+     joliet_fixture, rockridge_fixture) = map(Path, sys.argv[5:11])
+    image_fixtures = [Path(path) for path in sys.argv[11:]]
 
     cache = Path(os.environ.get("MOUNTIN_CACHE_DIR", "/host/build/cache"))
     cache.mkdir(parents=True, exist_ok=True)
@@ -410,6 +411,15 @@ def main():
             stop(process)
 
         process, stream, client = boot(
+            qemu, rom, disk, directory, cd=joliet_fixture)
+        try:
+            single_media_test(
+                client, "CDFS", ["basic", "hello.txt"], b"Hello, world!")
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
             qemu, rom, disk, directory, usb=usb_fixture, usb2=usb_copy)
         try:
             two_usb_test(client)
@@ -423,6 +433,15 @@ def main():
             single_media_test(
                 client, "SCSI-4", ["BASIC", "SCRIPT.SH"],
                 b"Executable script ran successfully!")
+        finally:
+            stream.close()
+            stop(process)
+
+        process, stream, client = boot(
+            qemu, rom, disk, directory, usb=fat12_fixture)
+        try:
+            single_media_test(
+                client, "SCSI-4", ["BASIC", "HELLO.TXT"], b"Hello, world!")
         finally:
             stream.close()
             stop(process)
