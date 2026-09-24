@@ -75,8 +75,15 @@ Direct USB `basic.fat12` and CD `basic.joliet.iso9660` files can be read by
 path, but fixture-directory enumeration stalls in repeat probes. FAT12 repeats
 `nested_dir` at successive directory offsets before stalling. Joliet returns
 its first entry with a small 9P read, then stalls at the next offset.
+An instrumented 9d acknowledged the next 9P read before attempting directory
+enumeration, so the request reached the guest. Its native FileSwitch
+`OS_GBPB` probes (names-only and metadata variants) also returned the first
+entry but stalled when continuing from the saved directory cursor. Changing
+serial byte pacing from 10 ms to 1 ms did not change the FAT12 result. The
+cursor or underlying filing-system response needs further investigation.
 `basic.high-sierra.iso9660` exposes a CDFS root, but its directory and direct
 file reads stall. `basic.udf-optical` exposes no CDFS root. These
-observations do not establish whether the filing systems or the serial 9P
-path caused the stalls. The appliance verifier gates only the successful
-file reads listed above; other catalogue fixtures are not RISC OS coverage.
+observations do not yet identify whether 9d's cursor handling or the filing
+systems cause the enumeration stalls. The appliance verifier gates only the
+successful file reads listed above; other catalogue fixtures are not RISC OS
+coverage.
