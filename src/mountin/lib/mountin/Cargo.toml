@@ -1,6 +1,6 @@
 [package]
 name = "mountin"
-version = "0.1.11"
+version = "0.1.12"
 edition = "2021"
 license = "WTFPL"
 description = "Universal filesystem detection and mounting library"
