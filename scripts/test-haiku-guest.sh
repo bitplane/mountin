@@ -4,12 +4,12 @@ set -euo pipefail
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 TARGET_ARCH=${MOUNTIN_HAIKU_TARGET_ARCH:-x86_64}
 HOST_ARCH=$(uname -m)
-BOOT_IMAGE=${MOUNTIN_HAIKU_BOOT_IMAGE:-$PROJECT_ROOT/build/bin/qemu/$TARGET_ARCH-haiku/r1-beta6-hrev59919+1/haiku.image}
+BOOT_IMAGE=${MOUNTIN_HAIKU_BOOT_IMAGE:-$PROJECT_ROOT/build/bin/qemu/$TARGET_ARCH-haiku/haiku.image}
 NINEPFUSE=${MOUNTIN_HAIKU_9PFUSE:-$PROJECT_ROOT/build/bin/$HOST_ARCH-linux-musl/9pfuse}
 RUNNER=$PROJECT_ROOT/src/mountin/builder/run/qemu-haiku/run.sh
 PROBE=$PROJECT_ROOT/scripts/probe_9p_socket.py
 TEMPLATE=$PROJECT_ROOT/build/data/templates/basic.tar
-LOG_DIR=$PROJECT_ROOT/build/logs/bin/qemu/$TARGET_ARCH-haiku/r1-beta6-hrev59919+1/integration
+LOG_DIR=$PROJECT_ROOT/build/logs/bin/qemu/$TARGET_ARCH-haiku/integration
 TEMP_PARENT=${MOUNTIN_TEST_TMPDIR:-$PROJECT_ROOT/build/tmp}
 WRITE_TEST_SIZE=${MOUNTIN_HAIKU_WRITE_TEST_SIZE:-4096}
 KEEP_TEST_WORK=${MOUNTIN_KEEP_TEST_WORK:-0}

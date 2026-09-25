@@ -1,5 +1,5 @@
 ARG MOUNTIN_TARGET_ARCH
-FROM builder/compiler/haiku/r1-beta6-hrev59919-1
+FROM builder/compiler/haiku/r1-beta6
 ARG MOUNTIN_TARGET_ARCH
 
 # Build bfs_shell tool

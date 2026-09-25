@@ -56,12 +56,12 @@ def test_provider_environment_exposes_execution_context_only():
 
 def test_local_image_tag_normalizes_invalid_repository_characters_without_collisions():
     normalized = local_image_tag(
-        "guest/haiku/r1-beta6-hrev59919+1", "x86_64-haiku"
+        "guest/haiku/r1-beta6+hrev59919", "x86_64-haiku"
     )
 
     assert re.fullmatch(r"localhost/[a-z0-9._/-]+:[a-z0-9_.-]+", normalized)
     assert normalized != local_image_tag(
-        "guest/haiku/r1-beta6-hrev59919-1", "x86_64-haiku"
+        "guest/haiku/r1-beta6-hrev59919", "x86_64-haiku"
     )
 
 def test_build_image_uses_stable_ownership_label(tmp_path, monkeypatch):
@@ -125,11 +125,11 @@ def test_build_log_path_mirrors_catalogue_path(tmp_path):
     """Stage logs mirror catalogue paths and distinguish command phases."""
     result = build_log_path(
         tmp_path,
-        "guest/aros/2026-09-24",
+        "guest/aros/system",
         "run",
     )
 
-    assert result == (tmp_path / "logs/guest/aros/2026-09-24.run.log")
+    assert result == (tmp_path / "logs/guest/aros/system.run.log")
 
 
 def test_run_streaming_tees_output_to_stream_and_log(tmp_path):

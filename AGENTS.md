@@ -314,28 +314,30 @@ project's changes. Do not add someone else's sign-off on their behalf.
 
 ### Guest versions and build toolboxes
 
-Guest paths identify the upstream operating-system generation, because that is
-what determines kernel, driver and filesystem compatibility. Use the upstream
-release or series version where one exists. For rolling projects without a
-release version, use the date of the newest upstream commit included when the
-fork last diverged or was synchronized, in `YYYY-MM-DD` form.
+Guest paths identify an upstream compatibility generation when one exists,
+because that determines kernel, driver and filesystem compatibility. Use an
+upstream release or series version for those systems. Rolling projects without
+such a generation use a stable guest path; pin the exact source commit and
+fork release in the source definition. Do not put synchronization dates or
+snapshot revisions in public guest or toolbox paths.
 
 Compiler images follow the same separation:
 
 - `builder/compiler/<os>` is a reusable, source-independent host bootstrap.
-- `builder/compiler/<os>/<version>` is the toolbox for one upstream guest
-  generation. It owns the matching compiler, SDK/sysroot and runtime closure.
-- Target-specific variants may live beneath that version when required.
-- Versioned toolboxes contain usable source trees and any prepared object state
+- `builder/compiler/<os>/<generation>` is the toolbox for an upstream guest
+  generation when one exists. Rolling projects use a stable toolbox path.
+  It owns the matching compiler, SDK/sysroot and runtime closure.
+- Target-specific variants may live beneath the toolbox path when required.
+- Guest toolboxes contain usable source trees and any prepared object state
   needed to continue the operating-system build. They must run without the
   Mountin build directory, network access or a provider cache.
-- Versioned toolboxes have no entrypoint, use `/work` for caller source, and
+- Guest toolboxes have no entrypoint, use `/work` for caller source, and
   expose applicable common views beneath `/opt/mountin`: `source`, `sources`,
   `build`, and `sysroot`. Upstream-required physical paths may remain in place
   behind those views.
 - Guest assembly consumes the toolbox; it does not publish build trees,
   sysroots or SDKs as runtime outputs.
-- `guest/<platform>/<version>` contains reusable, inspectable operating-system
+- `guest/<platform>[/<generation>]` contains reusable, inspectable operating-system
   components shared by fixture builders and appliance assembly.
 - `bin/qemu/...` contains only files consumed by the emulator or launcher.
   Intermediate objects belong in the toolbox image or provider cache.

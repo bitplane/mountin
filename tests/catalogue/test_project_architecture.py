@@ -109,7 +109,7 @@ def test_fixed_arch_guests_resolve_on_arm_hosts(project_catalogue):
     assert providers["bin/x86_64-darwin/9d"] == "bin/darwin/9d"
 
     aros = graph_for(
-        project_catalogue, "bin/qemu/i386-aros/2026-09-24/aros.iso", context
+        project_catalogue, "bin/qemu/i386-aros/aros.iso", context
     )
     darwin = graph_for(
         project_catalogue,
@@ -182,12 +182,12 @@ def test_haiku_cross_build_matrix(project_catalogue):
         providers = buildable_providers(project_catalogue, context)
         for arch in ("x86_64", "aarch64"):
             assert (
-                f"docker:builder/compiler/haiku/r1-beta6-hrev59919-1/{arch}"
+                f"docker:builder/compiler/haiku/r1-beta6/{arch}"
                 in providers
             )
             assert f"bin/{arch}-haiku/mountin-init" in providers
             assert (
-                f"bin/qemu/{arch}-haiku/r1-beta6-hrev59919+1/haiku.image"
+                f"bin/qemu/{arch}-haiku/haiku.image"
                 in providers
             )
         assert "data/fs/basic.beos-bfs" in providers
@@ -195,14 +195,14 @@ def test_haiku_cross_build_matrix(project_catalogue):
     for arch in ("x86_64", "aarch64"):
         graph = graph_for(
             project_catalogue,
-            f"bin/qemu/{arch}-haiku/r1-beta6-hrev59919+1/haiku.image",
+            f"bin/qemu/{arch}-haiku/haiku.image",
             arm_context,
         )
         assert (
-            f"builder/compiler/haiku/r1-beta6-hrev59919+1@{arch}-haiku"
+            f"builder/compiler/haiku/r1-beta6@{arch}-haiku"
             in graph["nodes"]
         )
-        assert f"guest/haiku/r1-beta6-hrev59919+1@{arch}-haiku" in graph["nodes"]
+        assert f"guest/haiku/r1-beta6@{arch}-haiku" in graph["nodes"]
 
 
 def test_netbsd_cross_build_matrix_and_host_native_disk_tools(project_catalogue):
@@ -255,29 +255,29 @@ def test_9front_cross_build_matrix(project_catalogue):
 
     for context in (CONTEXT, arm_context):
         providers = buildable_providers(project_catalogue, context)
-        assert "docker:builder/compiler/9front/11957" in providers
-        assert "bin/qemu/x86_64-9front/11957/9front.iso" in providers
-        assert "bin/qemu/aarch64-9front/11957/9front.qcow2" in providers
-        assert "bin/qemu/aarch64-9front/11957/u-boot.bin" in providers
+        assert "docker:builder/compiler/9front/toolbox" in providers
+        assert "bin/qemu/x86_64-9front/9front.iso" in providers
+        assert "bin/qemu/aarch64-9front/9front.qcow2" in providers
+        assert "bin/qemu/aarch64-9front/u-boot.bin" in providers
 
     arm_guest = graph_for(
-        project_catalogue, "bin/qemu/aarch64-9front/11957/9front.qcow2", CONTEXT
+        project_catalogue, "bin/qemu/aarch64-9front/9front.qcow2", CONTEXT
     )
     x86_guest = graph_for(
-        project_catalogue, "bin/qemu/x86_64-9front/11957/9front.iso", arm_context
+        project_catalogue, "bin/qemu/x86_64-9front/9front.iso", arm_context
     )
 
-    assert "guest/9front/11957@aarch64-9front" in arm_guest["nodes"]
-    assert "guest/9front/11957@x86_64-9front" in x86_guest["nodes"]
+    assert "guest/9front/system@aarch64-9front" in arm_guest["nodes"]
+    assert "guest/9front/system@x86_64-9front" in x86_guest["nodes"]
 
 
 def test_fixture_guests_do_not_depend_on_the_transport_server(project_catalogue):
     for target in (
         "guest/x86_64-linux/base/rootfs.img",
         "guest/x86_64-netbsd/10.0/boot/boot.img",
-        "guest/i386-aros/2026-09-24/aros.iso",
-        "guest/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image",
-        "guest/x86_64-illumos/2026-08-13/system",
+        "guest/i386-aros/aros.iso",
+        "guest/x86_64-haiku/haiku.image",
+        "guest/x86_64-illumos/system",
     ):
         nodes = graph_for(project_catalogue, target)["nodes"]
         assert not any(node.startswith("bin/") and "/9d@" in node for node in nodes)
@@ -287,12 +287,12 @@ def test_qemu_appliances_consume_reusable_guest_outputs(project_catalogue):
     pairs = {
         "bin/qemu/x86_64-linux/6.12/boot/rootfs.img": "guest/x86_64-linux/base/rootfs.img",
         "bin/qemu/x86_64-netbsd/10.0/boot/netbsd": "guest/x86_64-netbsd/10.0/kernel/netbsd.gdb",
-        "bin/qemu/i386-aros/2026-09-24/aros.iso": "guest/i386-aros/2026-09-24/aros.iso",
-        "bin/qemu/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image": "guest/x86_64-haiku/r1-beta6-hrev59919+1/haiku.image",
+        "bin/qemu/i386-aros/aros.iso": "guest/i386-aros/aros.iso",
+        "bin/qemu/x86_64-haiku/haiku.image": "guest/x86_64-haiku/haiku.image",
         "bin/qemu/x86_64-darwin/17.4/puredarwin.raw": "guest/x86_64-darwin/17.4/system",
-        "bin/qemu/x86_64-illumos/2026-08-13/rootfs.iso": "guest/x86_64-illumos/2026-08-13/system",
+        "bin/qemu/x86_64-illumos/rootfs.iso": "guest/x86_64-illumos/system",
         "bin/qemu/x86_64-dragonfly/6.4.2/system/dragonfly.iso": "guest/x86_64-dragonfly/6.4.2/dragonfly.iso",
-        "bin/qemu/x86_64-9front/11957/9front.iso": "guest/x86_64-9front/11957/9front.iso",
+        "bin/qemu/x86_64-9front/9front.iso": "guest/x86_64-9front/9front.iso",
     }
     providers = buildable_providers(project_catalogue)
     for appliance, guest in pairs.items():

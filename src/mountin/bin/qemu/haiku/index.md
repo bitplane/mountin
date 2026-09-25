@@ -13,7 +13,7 @@ output_platforms:
     requires:
       - bin/qemu-system/firmware/edk2-aarch64-code.fd
 env:
-  MOUNTIN_BUILDER: builder/compiler/haiku/r1-beta6-hrev59919-1/${MOUNTIN_TARGET_ARCH}
+  MOUNTIN_BUILDER: builder/compiler/haiku/r1-beta6/${MOUNTIN_TARGET_ARCH}
   MOUNTIN_HAIKU_IMAGE_SIZE: "7"
   MOUNTIN_HAIKU_REVISION: hrev59919+1
 execution_env:

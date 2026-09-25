@@ -3,7 +3,7 @@ title: TempleOS 5.03 Toolbox
 build_platforms:
   x86_64-linux: {}
 requires:
-  - docker:builder/compiler/aiwnios/2026-02-02
+  - docker:builder/compiler/aiwnios/toolbox
 build_requires:
   - sources/templeos-5.03.tar.gz
 provides:

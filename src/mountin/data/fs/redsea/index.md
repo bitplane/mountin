@@ -1,7 +1,7 @@
 ---
 format: fs/redsea
 requires:
-  - docker:builder/compiler/aiwnios/2026-02-02
+  - docker:builder/compiler/aiwnios/toolbox
 build_requires:
   - data/templates/basic.tar
 provides:

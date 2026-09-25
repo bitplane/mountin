@@ -1,4 +1,4 @@
-FROM builder/compiler/aiwnios/2026-02-02
+FROM builder/compiler/aiwnios/toolbox
 
 COPY *.patch /tmp/templeos-patches/
 

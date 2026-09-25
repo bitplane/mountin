@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-system=/host/build/guest/x86_64-illumos/2026-08-13/system
+system=/host/build/guest/x86_64-illumos/system
 output=/host/build/data/fs/basic.ufs-solaris
 
 rm -rf /work/boot /work/fixture /work/root /work/rootfs.iso

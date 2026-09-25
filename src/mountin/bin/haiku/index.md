@@ -11,7 +11,7 @@ output_platforms:
     env:
       MOUNTIN_HAIKU_ARCH: arm64
 env:
-  MOUNTIN_BUILDER: builder/compiler/haiku/r1-beta6-hrev59919-1/${MOUNTIN_TARGET_ARCH}
+  MOUNTIN_BUILDER: builder/compiler/haiku/r1-beta6/${MOUNTIN_TARGET_ARCH}
 requires:
   - docker:${MOUNTIN_BUILDER}
 ---

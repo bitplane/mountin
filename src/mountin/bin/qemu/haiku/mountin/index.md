@@ -4,11 +4,11 @@ env:
   MOUNTIN_BUILDER: builder/disk/haiku
 requires:
   - docker:${MOUNTIN_BUILDER}
-  - guest/${MOUNTIN_TARGET_ARCH}-haiku/r1-beta6-hrev59919+1/haiku.image
+  - guest/${MOUNTIN_TARGET_ARCH}-haiku/haiku.image
   - bin/${MOUNTIN_TARGET_ARCH}-haiku/9d
   - bin/${MOUNTIN_TARGET_ARCH}-haiku/mountin-init
 provides:
-  - bin/qemu/${MOUNTIN_TARGET_ARCH}-haiku/r1-beta6-hrev59919+1/haiku.image
+  - bin/qemu/${MOUNTIN_TARGET_ARCH}-haiku/haiku.image
 ---
 
 # Haiku mountin Appliance

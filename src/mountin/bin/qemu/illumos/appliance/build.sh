@@ -3,9 +3,9 @@ set -eu
 
 test "$MOUNTIN_TARGET_ARCH" = x86_64
 
-system=/host/build/guest/${MOUNTIN_TARGET_PLATFORM}/2026-08-13/system
+system=/host/build/guest/${MOUNTIN_TARGET_PLATFORM}/system
 staging=/work/root
-output_base=/host/build/bin/qemu/${MOUNTIN_TARGET_PLATFORM}/2026-08-13
+output_base=/host/build/bin/qemu/${MOUNTIN_TARGET_PLATFORM}
 output=$output_base/rootfs.iso
 
 rm -rf "$staging"
