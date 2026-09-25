@@ -34,10 +34,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mtools \
     nasm \
     netpbm \
+    ninja-build \
     pkg-config \
     python3 \
     python3-distutils-extra \
     python3-mako \
+    python3-yaml \
     texinfo \
     unzip \
     wget \

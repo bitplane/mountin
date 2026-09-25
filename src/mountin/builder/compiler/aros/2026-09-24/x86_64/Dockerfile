@@ -7,7 +7,7 @@ ARG MOUNTIN_CACHE_DIR
 ENV TAR_OPTIONS=--no-same-owner
 
 RUN set -eu; \
-    SOURCE_ARCHIVE=/host/build/sources/aros-2026-08-31.tar.gz; \
+    SOURCE_ARCHIVE=/host/build/sources/aros-2026-09-24.tar.gz; \
     CACHE_DIR=$MOUNTIN_CACHE_DIR; \
     SOURCE_DIR=$CACHE_DIR/source; \
     BUILD_DIR=$CACHE_DIR/toolchain-build; \
@@ -25,32 +25,33 @@ RUN set -eu; \
     mkdir -p "$BUILD_DIR" "$INSTALL_DIR"; \
     cd "$BUILD_DIR"; \
     "$SOURCE_DIR/configure" \
-        --target=raspi-aarch64 \
+        --target=pc-x86_64 \
         --enable-build-type=nightly \
         --enable-ccache \
-        --with-binutils-version=2.47 \
-        --with-gcc-version=16.2.0 \
+        --enable-rust \
+        --with-binutils-version=2.32 \
+        --with-gcc-version=10.5.0 \
         --with-portssources=/host/build/sources/aros-ports \
         --with-aros-toolchain-install="$INSTALL_DIR" \
         --with-optimization="-Os"; \
     make -j1 tools; \
     make -j"${MOUNTIN_BUILD_JOBS}" crosstools; \
+    make -j"${MOUNTIN_BUILD_JOBS}" tools-crosstools-rust-check; \
     HOST_TOOLS=bin/linux-${MOUNTIN_BUILD_ARCH}/tools; \
-    mkdir -p /opt/aros-toolbox/bin/raspi-aarch64/AROS \
+    mkdir -p /opt/aros-toolbox/bin/pc-x86_64/AROS \
         "/opt/aros-toolbox/$HOST_TOOLS"; \
-    cp -a "$BUILD_DIR/bin/raspi-aarch64/AROS/Developer" \
-        /opt/aros-toolbox/bin/raspi-aarch64/AROS/; \
+    cp -a "$BUILD_DIR/bin/pc-x86_64/AROS/Developer" \
+        /opt/aros-toolbox/bin/pc-x86_64/AROS/; \
     cp -a "$BUILD_DIR/$HOST_TOOLS/collect-aros" \
         "/opt/aros-toolbox/$HOST_TOOLS/"; \
-    mkdir -p /opt/mountin/sources/aros-ports \
-        /opt/mountin/sources/linux; \
+    mkdir -p /opt/mountin/sources/aros-ports; \
     cp -a "$SOURCE_DIR" /opt/mountin/source; \
     cp /host/build/sources/aros-ports/UnicodeData.txt \
         /host/build/sources/aros-ports/SpecialCasing.txt \
         /opt/mountin/sources/aros-ports/; \
     for archive in \
-        binutils-2.47.tar.bz2 gcc-16.2.0.tar.xz \
-        gmp-6.3.0.tar.bz2 isl-0.27.tar.bz2 \
+        binutils-2.32.tar.bz2 gcc-10.5.0.tar.xz \
+        gmp-6.3.0.tar.bz2 isl-0.25.tar.bz2 \
         mpc-1.4.1.tar.xz mpfr-4.2.2.tar.bz2; \
     do \
         name=${archive%.tar.*}; \
@@ -58,20 +59,22 @@ RUN set -eu; \
         tar -xf "/host/build/sources/aros-ports/$archive" \
             -C "/opt/mountin/sources/$name" --strip-components=1; \
     done; \
-    tar -xf /host/build/sources/linux-6.12.tar.xz \
-        -C /opt/mountin/sources/linux --strip-components=1; \
     ln -s /opt/aros-toolbox /opt/mountin/build; \
-    ln -s /opt/aros-toolbox/bin/raspi-aarch64/AROS/Developer \
+    ln -s /opt/aros-toolbox/bin/pc-x86_64/AROS/Developer \
         /opt/mountin/sysroot
 
 COPY --chmod=755 cc.sh /usr/local/bin/aros-cc
 
-RUN ln -s /opt/aros-toolchain/aarch64-aros-ar /usr/local/bin/aros-ar && \
-    ln -s /opt/aros-toolchain/aarch64-aros-strip /usr/local/bin/aros-strip
+RUN ln -s /opt/aros-toolchain/x86_64-aros-ar /usr/local/bin/aros-ar && \
+    ln -s /opt/aros-toolchain/x86_64-aros-strip /usr/local/bin/aros-strip
 
-ENV AROS_SYSROOT=/opt/aros-toolbox/bin/raspi-aarch64/AROS/Developer \
+ENV AROS_SYSROOT=/opt/aros-toolbox/bin/pc-x86_64/AROS/Developer \
     CC=aros-cc \
     AR=aros-ar \
-    STRIP=aros-strip
+    STRIP=aros-strip \
+    PATH=/opt/aros-toolchain/bin:$PATH \
+    CARGO_BUILD_TARGET=x86_64-unknown-aros \
+    CARGO_TARGET_X86_64_UNKNOWN_AROS_LINKER=aros-cc \
+    RUSTFLAGS="-C panic=abort"
 
 WORKDIR /work

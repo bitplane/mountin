@@ -1,5 +1,5 @@
 ---
-title: AROS 2026-08-31 PC x86_64 Cross-Compiler
+title: AROS 2026-09-24 PC x86_64 Cross-Compiler
 env:
   MOUNTIN_BUILDER: builder/compiler/aros
 execution_env:
@@ -7,7 +7,11 @@ execution_env:
 requires:
   - docker:${MOUNTIN_BUILDER}
 build_requires:
-  - sources/aros-2026-08-31.tar.gz
+  - sources/aros-2026-09-24.tar.gz
+  - sources/aros-ports/rustc-1.98.1-src.tar.xz
+  - sources/aros-ports/rustc-1.98.1-${MOUNTIN_BUILD_ARCH}-unknown-linux-gnu.tar.xz
+  - sources/aros-ports/rust-std-1.98.1-${MOUNTIN_BUILD_ARCH}-unknown-linux-gnu.tar.xz
+  - sources/aros-ports/cargo-1.98.1-${MOUNTIN_BUILD_ARCH}-unknown-linux-gnu.tar.xz
   - sources/aros-ports/binutils-2.32.tar.bz2
   - sources/aros-ports/gcc-10.5.0.tar.xz
   - sources/aros-ports/gmp-6.3.0.tar.bz2
@@ -34,14 +38,14 @@ build_requires:
   - sources/aros-ports/zlib.tar.gz
   - sources/aros-ports/zstd-1.5.7.tar.gz
 provides:
-  - docker:builder/compiler/aros/2026-08-31/x86_64
+  - docker:builder/compiler/aros/2026-09-24/x86_64
 ---
 
-# AROS 2026-08-31 PC x86_64 Cross-Compiler
+# AROS 2026-09-24 PC x86_64 Cross-Compiler
 
 AROS's x86_64 GCC and binutils cross-toolchain and matching Developer tree for
 64-bit PC guests. The image contains the source tree, prepared build tree,
 toolchain, and sysroot for this AROS source checkpoint.
 
-Consumers inherit `CC`, `AR`, `STRIP`, and `AROS_SYSROOT`. The compiler wrapper
+Consumers inherit `CC`, `AR`, `STRIP`, `AROS_SYSROOT`, Cargo, and Rust 1.98.1 with `x86_64-unknown-aros` std. The compiler wrapper
 supplies the matching Developer tree as its sysroot.

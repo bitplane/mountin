@@ -1,0 +1,7 @@
+---
+title: Pixman 0.46.4
+urls:
+  - https://www.cairographics.org/releases/pixman-0.46.4.tar.gz
+provides:
+  - sources/aros-ports/pixman-0.46.4.tar.gz
+---

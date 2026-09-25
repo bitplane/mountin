@@ -20,6 +20,17 @@
       - [ ] Linux 2.6
       - [x] Haiku
       - [ ] AROS
+      - [ ] Remove the temporary m68k AROS builder exception: build and install
+            Rust alongside the C toolchain, as the other AROS builders do.
+            Rust 1.98.1's bundled LLVM m68k backend crashes with SIGILL in
+            `M68kAsmBackend::fixupNeedsRelaxation` while compiling target
+            `proc_macro`, before Rust can be installed. Track
+            https://github.com/llvm/llvm-project/issues/181481 and
+            https://github.com/aros-development-team/AROS/issues/1317.
+            After LLVM's fix reaches the Rust source used by AROS, remove the
+            m68k exception, rebuild its toolbox, compile and run a Rust smoke
+            program, and restore one shared Rust toolchain contract for all
+            AROS builder images.
     - [x] add an aarch64 kernel configuration and QEMU boot path for NetBSD
     - [ ] define fallback policy for guests that only support x86
 

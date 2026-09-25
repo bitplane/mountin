@@ -6,7 +6,7 @@ SOURCE_DIR=$CACHE_DIR/source
 TOOLCHAIN_DIR=/opt/aros-toolchain
 PORTS_DIR=/opt/mountin/sources/aros-ports
 GUEST_BUILD_DIR=$CACHE_DIR/toolchain-build
-OUTPUT_DIR=/host/build/guest/${MOUNTIN_TARGET_ARCH}-aros/2026-08-31
+OUTPUT_DIR=/host/build/guest/${MOUNTIN_TARGET_ARCH}-aros/2026-09-24
 ISO_OUTPUT=$OUTPUT_DIR/aros.iso
 MOUNTIN_BUILD_JOBS=${MOUNTIN_BUILD_JOBS:-1}
 
@@ -112,6 +112,12 @@ else
 fi
 "$SOURCE_DIR/configure" "$@"
 
+# AROS fetches pci.ids from its generated-file directory rather than from
+# PORTSSOURCEDIR. Supply the pinned copy before either architecture builds.
+PCI_IDS_DIR="$GUEST_BUILD_DIR/bin/$MOUNTIN_AROS_TARGET${MOUNTIN_AROS_VARIANT:+-$MOUNTIN_AROS_VARIANT}/gen/rom/hidds/pci"
+mkdir -p "$PCI_IDS_DIR"
+cp "$PORTS_DIR/pci.ids" "$PCI_IDS_DIR/pci.ids"
+
 if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     make -j"$MOUNTIN_BUILD_JOBS" kernel-package-raspi-aarch64
     make -j"$MOUNTIN_BUILD_JOBS" kernel-raspi-aarch64
@@ -160,20 +166,17 @@ if [ "$MOUNTIN_TARGET_ARCH" = aarch64 ]; then
     exit 0
 fi
 
-# Unlike the other fetched build inputs, AROS looks for pci.ids in its
-# generated-file directory rather than PORTSSOURCEDIR.
-PCI_IDS_DIR="$GUEST_BUILD_DIR/bin/${MOUNTIN_AROS_TARGET}-${MOUNTIN_AROS_VARIANT}/gen/rom/hidds/pci"
-mkdir -p "$PCI_IDS_DIR"
-cp "$PORTS_DIR/pci.ids" "$PCI_IDS_DIR/pci.ids"
-
-# Build only the serial HIDD stubs needed by serial.device. AROS's aggregate
-# libhiddstubs target collects every HIDD stub and, through the global linklibs
-# target, expands this appliance build into the complete SDK.
+# Build only the serial HIDD stubs needed by serial.device. The matching SDK
+# already contains their headers. The AROS metatarget pulls in the global
+# includes closure, including unrelated Mesa and Boost ports.
 HIDDSTUBS=$GUEST_BUILD_DIR/bin/${MOUNTIN_AROS_TARGET}-${MOUNTIN_AROS_VARIANT}/AROS/Developer/lib/libhiddstubs.a
-make -j"$MOUNTIN_BUILD_JOBS" hidd-serial-stubs
-mkdir -p "$(dirname "$HIDDSTUBS")"
+SERIAL_STUB=$GUEST_BUILD_DIR/bin/${MOUNTIN_AROS_TARGET}-${MOUNTIN_AROS_VARIANT}/gen/lib/hidd/serial_stubs.o
+mkdir -p "$(dirname "$HIDDSTUBS")" "$(dirname "$SERIAL_STUB")"
+aros-cc -Os -fno-defer-pop -mpreferred-stack-boundary=4 \
+    -c "$SOURCE_DIR/workbench/hidds/serial/serial_stubs.c" \
+    -o "$SERIAL_STUB"
 /opt/aros-toolchain/i386-aros-ar rcs "$HIDDSTUBS" \
-    "$GUEST_BUILD_DIR/bin/${MOUNTIN_AROS_TARGET}-${MOUNTIN_AROS_VARIANT}/gen/lib/hidd/serial_stubs.o"
+    "$SERIAL_STUB"
 MOUNTIN_TARGET_ARCH=${MOUNTIN_AROS_TARGET%-*}
 TARGET_CPU=${MOUNTIN_AROS_TARGET#*-}
 export AROS_HOST_ARCH=linux

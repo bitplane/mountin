@@ -9,6 +9,7 @@ includes-asm_h
 kernel-acpica-sharedlib-includes
 linklibs-libinit
 libinit-libentry
+linklibs-smbios
 kernel-pc-acpica-quick
 kernel-kernel-kobj-quick
 kernel-exec-kobj-quick
@@ -49,8 +50,8 @@ kernel-bsp-pc-i386-compress-quick
 linklibs-udis86
 kernel-aros-quick
 kernel-bootloader-quick
-workbench-libs-dos-catalogs
 linklibs-romhack
+workbench-libs-dos-catalogs
 kernel-dos-quick
 linklibs-loadseg
 kernel-dos64-quick
