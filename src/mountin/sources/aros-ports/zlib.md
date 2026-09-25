@@ -1,6 +1,7 @@
 ---
 title: Chromium zlib snapshot 3008c4b3
 urls:
+  - https://android.googlesource.com/platform/external/zlib/+archive/3008c4b3a06bd65392c31db8846000a21e3d03c5.tar.gz
   - https://chromium.googlesource.com/chromium/src/third_party/zlib/+archive/3008c4b3a06bd65392c31db8846000a21e3d03c5.tar.gz
 provides:
   - sources/aros-ports/zlib.tar.gz
