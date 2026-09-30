@@ -14,7 +14,7 @@ platforms_from_targets() {
 
     for target in "$@"; do
         case "$target" in
-            bin/qemu-system/*/qemu-system-*)
+            bin/qemu-system/*/qemu-system-*|bin/qemu-system/*/qemu-img*)
                 platform=${target#bin/qemu-system/}
                 platform=${platform%%/*}
                 seen=0
@@ -489,6 +489,18 @@ build_qemu_for_target() {
         --prefix=/usr \
         $STATIC_FLAG \
         --without-default-features \
+        --enable-tools \
+        --enable-bochs \
+        --enable-cloop \
+        --enable-dmg \
+        --enable-qcow1 \
+        --enable-vdi \
+        --enable-vhdx \
+        --enable-vmdk \
+        --enable-vpc \
+        --enable-vvfat \
+        --enable-qed \
+        --enable-parallels \
         --disable-werror \
         --disable-install-blobs \
         --audio-drv-list= \
@@ -499,7 +511,8 @@ build_qemu_for_target() {
         "qemu-system-x86_64$SUFFIX$EXT" \
         "qemu-system-aarch64$SUFFIX$EXT" \
         "qemu-system-arm$SUFFIX$EXT" \
-        "qemu-system-m68k$SUFFIX$EXT"
+        "qemu-system-m68k$SUFFIX$EXT" \
+        "qemu-img$EXT"
 
     # Copy outputs. On macOS, QEMU's meson build produces *-unsigned
     # binaries expecting a post-build codesign step. We don't sign in
@@ -509,6 +522,7 @@ build_qemu_for_target() {
     cp build/qemu-system-aarch64$SUFFIX$EXT $OUTDIR/qemu-system-aarch64$EXT
     cp build/qemu-system-arm$SUFFIX$EXT $OUTDIR/qemu-system-arm$EXT
     cp build/qemu-system-m68k$SUFFIX$EXT $OUTDIR/qemu-system-m68k$EXT
+    cp build/qemu-img$EXT $OUTDIR/qemu-img$EXT
 
     # Strip binaries
     # zig doesn't have strip for all targets, so skip if not available

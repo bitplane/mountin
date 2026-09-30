@@ -1,6 +1,7 @@
 ---
 format: fs/lfs
 requires:
+  - docker:builder/emulator/qemu
   - docker:builder/disk/netbsd
   - guest/x86_64-netbsd/10.0/boot/boot.img
   - bin/x86_64-netbsd/newfs_lfs

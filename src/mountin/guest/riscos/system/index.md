@@ -117,9 +117,11 @@ two-disk and combined-media release gates. It paces incoming request bytes at
 backend can retain a 16-byte read limit after the guest disables the FIFO,
 overwriting the one-byte receive buffer. Refreshing the backend after line
 control changes passes the complete existing gate twice without pacing, plus
-the development old-directory and partition tests. The correction still needs
-a maintained QEMU release and catalogue pin before pacing can be removed from
-the production gate. RISC OS 9d uses a dedicated serial
+the development old-directory and partition tests. The correction is released in the shared QEMU `mountin-2026-10-01` pin.
+The binary built by the shared provider passes the complete unpaced
+development gate, including the additional old-directory and partition
+checks. Removing pacing from the production gate remains part of the guest
+integration work. RISC OS 9d uses a dedicated serial
 output path that retries when the driver queue is full; UnixLib's generic tty
 writer reports success even when that queue drops a byte.
 

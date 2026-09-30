@@ -1,10 +1,11 @@
+FROM builder/emulator/qemu AS qemu
+
 FROM alpine:3.23
 ARG MOUNTIN_BUILD_ARCH
 
 # Runtime tools
 RUN apk add --no-cache \
     bash tar xz jq findutils \
-    qemu-system-x86_64 qemu-system-aarch64 \
     e2fsprogs e2fsprogs-extra \
     xfsprogs jfsutils f2fs-tools hfsprogs \
     udftools nilfs-utils exfatprogs ntfs-3g-progs \
@@ -36,3 +37,7 @@ WORKDIR /build
 COPY qemu-linux-arch.sh /build/qemu-linux-arch.sh
 COPY --chmod=755 build.sh /build/build.sh
 ENTRYPOINT ["/build/build.sh"]
+
+COPY --from=qemu /usr/bin/qemu-system-x86_64 /usr/bin/qemu-system-x86_64
+COPY --from=qemu /usr/bin/qemu-system-aarch64 /usr/bin/qemu-system-aarch64
+COPY --from=qemu /usr/share/qemu/ /usr/share/qemu/

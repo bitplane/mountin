@@ -1,6 +1,7 @@
 ---
 title: Guest Disk Builder
 requires:
+  - docker:builder/emulator/qemu
   - docker:builder/disk/alpine
 provides:
   - docker:builder/disk/guest

@@ -1,4 +1,6 @@
 ---
+requires:
+  - docker:builder/emulator/qemu
 title: QEMU Disk Builder
 build_requires:
   - sources/bcachefs-tools-1.20.0.tar.gz

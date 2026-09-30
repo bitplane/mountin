@@ -1,4 +1,6 @@
 ---
+requires:
+  - docker:builder/emulator/qemu
 title: 9front Compiler Bootstrap
 build_platforms:
   x86_64-linux: {}

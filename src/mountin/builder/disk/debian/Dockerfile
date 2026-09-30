@@ -1,3 +1,5 @@
+FROM builder/emulator/qemu AS qemu
+
 FROM debian:bookworm-slim
 
 # Debian disk tools for creating filesystem images without mount access
@@ -17,10 +19,11 @@ RUN apt-get update && \
         makefs \
         parted \
         python3 \
-        qemu-utils \
         xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY --chmod=755 build.sh /build/build.sh
 ENTRYPOINT ["/build/build.sh"]
+
+COPY --from=qemu /usr/bin/qemu-img /usr/bin/qemu-img

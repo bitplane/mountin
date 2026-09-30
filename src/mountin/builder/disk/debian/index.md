@@ -1,4 +1,6 @@
 ---
+requires:
+  - docker:builder/emulator/qemu
 title: Debian Disk Builder
 provides:
   - docker:builder/disk/debian

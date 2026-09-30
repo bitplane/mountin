@@ -1,5 +1,5 @@
 ARG MOUNTIN_BUILDER
 FROM ${MOUNTIN_BUILDER}
 
-COPY --chmod=755 build.sh /build.sh
-ENTRYPOINT ["/build.sh"]
+COPY build.py /build.py
+ENTRYPOINT ["python3", "/build.py"]

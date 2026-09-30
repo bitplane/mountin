@@ -1,14 +1,15 @@
 ---
 title: QEMU PC Firmware
 env:
-  MOUNTIN_BUILDER: builder/disk/debian
+  MOUNTIN_BUILDER: builder/downloader
 requires:
-  - docker:builder/disk/debian
+  - docker:${MOUNTIN_BUILDER}
   - sources/qemu-10.2.3.tar.gz
 provides:
   - bin/qemu-system/firmware/bios-256k.bin
   - bin/qemu-system/firmware/linuxboot_dma.bin
   - bin/qemu-system/firmware/efi-e1000.rom
+  - bin/qemu-system/firmware/efi-e1000e.rom
   - bin/qemu-system/firmware/efi-virtio.rom
   - bin/qemu-system/firmware/vgabios-stdvga.bin
   - bin/qemu-system/firmware/kvmvapic.bin
