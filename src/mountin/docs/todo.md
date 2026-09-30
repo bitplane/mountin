@@ -64,7 +64,14 @@
 
 - [ ] add more guests
   - [ ] Atari ST
-  - [ ] RISC OS
+  - [x] RISC OS ([guest coverage](../guest/riscos/system/index.md))
+    - [ ] Diagnose old-map old-directory FileCore access: the current ROM
+          rejects the fixtures with `Bad defect list` or `Broken directory`.
+    - [ ] Add a verified whole-device partition path for MBR and GPT;
+          the current product lacks PartMan. DOSFS image-file MBR parsing
+          is already verified.
+    - [ ] Resolve serial receive loss so the 9P verifier no longer needs
+          to pace incoming bytes at 10 ms.
 - [ ] bundle source
   - [ ] firstly, download source packages into builder images for archival
         purposes

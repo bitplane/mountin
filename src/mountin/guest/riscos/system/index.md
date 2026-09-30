@@ -1,5 +1,5 @@
 ---
-title: RISC OS BCM2835 2026-09-09 guest components
+title: RISC OS BCM2835 guest components
 output_platforms:
   arm-riscos:
     requires:
@@ -8,7 +8,7 @@ output_platforms:
       - guest/arm-riscos/system
 ---
 
-# RISC OS BCM2835 2026-09-09 guest components
+# RISC OS BCM2835 guest components
 
 Prepared headless BCM2835 operating-system build, including the Pi fixes,
 compiled kernel and storage modules, OS resources, exported headers, libraries

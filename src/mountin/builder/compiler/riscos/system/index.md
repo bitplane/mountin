@@ -1,5 +1,5 @@
 ---
-title: RISC OS BCM2835 2026-09-09 Toolbox
+title: RISC OS BCM2835 Toolbox
 build_platforms:
   x86_64-linux: {}
   aarch64-linux: {}
@@ -17,7 +17,7 @@ build_requires:
   - sources/riscos-territory-manager-0.58.tar.gz
 ---
 
-# RISC OS BCM2835 2026-09-09 Toolbox
+# RISC OS BCM2835 Toolbox
 
 The pinned BCM2835 source product, its pinned BuildHost source product, GCCSDK
 r7800, CMunge 0.85, and the POSIX host utilities required to continue the RISC

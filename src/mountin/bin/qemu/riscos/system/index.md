@@ -1,7 +1,8 @@
 ---
-title: RISC OS BCM2835 2026-09-09
+title: RISC OS BCM2835
 ---
 
-# RISC OS BCM2835 2026-09-09
+# RISC OS BCM2835
 
-The BCM2835 generation used by the source-built RISC OS appliance.
+The source-built BCM2835 appliance uses a stable catalogue path. Exact source
+revisions and fork releases are pinned in the source definitions.

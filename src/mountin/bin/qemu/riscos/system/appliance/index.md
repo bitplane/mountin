@@ -1,5 +1,5 @@
 ---
-title: RISC OS BCM2835 2026-09-09 mountin appliance
+title: RISC OS BCM2835 mountin appliance
 env:
   MOUNTIN_BUILDER: builder/compiler/riscos/system
 output_platforms:
@@ -38,7 +38,7 @@ requires:
   - docker:${MOUNTIN_BUILDER}
 ---
 
-# RISC OS BCM2835 2026-09-09 mountin appliance
+# RISC OS BCM2835 mountin appliance
 
 Assembles the prepared OS components into a BCM2835 ROM, adding 9d and its
 launcher. Resource generation and final linking run here so 9d updates reuse
