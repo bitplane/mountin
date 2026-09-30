@@ -65,13 +65,12 @@
 - [ ] add more guests
   - [ ] Atari ST
   - [x] RISC OS ([guest coverage](../guest/riscos/system/index.md))
-    - [ ] Diagnose old-map old-directory FileCore access: the current ROM
-          rejects the fixtures with `Bad defect list` or `Broken directory`.
-    - [ ] Add a verified whole-device partition path for MBR and GPT;
-          the current product lacks PartMan. DOSFS image-file MBR parsing
-          is already verified.
-    - [ ] Resolve serial receive loss so the 9P verifier no longer needs
-          to pace incoming bytes at 10 ms.
+    - [ ] Release and integrate the verified old-map old-directory FileCore,
+          SDFS and fixture-generator fixes; add the native regression gate.
+    - [ ] Release and integrate the verified native PartMan MBR/GPT path;
+          gate primary and extended partition marker reads in the appliance.
+    - [ ] Release and integrate the verified QEMU UART backend-capacity fix,
+          then remove request-byte pacing from the appliance verifier.
 - [ ] bundle source
   - [ ] firstly, download source packages into builder images for archival
         purposes

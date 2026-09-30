@@ -92,23 +92,34 @@ A development ROM now reads an old-directory fixture through 9P and passes
 the complete existing appliance verifier. It extends FileCore's fixed-media
 identification to old directories and makes SDFS use the logical sector size
 from FileCore's disc record instead of assuming 512 bytes. Its buffered
-scatter-read path also needs to copy each segment's length. The repaired
-fixture reserves the hard-disc boot block, generates directory checks and
-sets native read permissions. These changes remain on local contribution
-branches; the pinned appliance does not yet include them.
+scatter-read path also needs to copy each segment's length. The fixture-generator development branch now creates the standard test-data
+image with the hard-disc boot block reserved, directory checks generated and
+native read/write permissions set during import. That freshly generated image
+passes a native old-directory read without manual repairs. These changes remain
+on local contribution branches; the pinned appliance does not yet include them.
 
 The pinned product does not
 include PartMan, the helper that selects SCSIFS partition offsets. Its
 [upstream source](https://gitlab.riscosopen.org/RiscOS/Sources/FileSys/SCSIFS/PartMan)
-contains GPT support; ordinary MBR partition enumeration and integration into
-this ROM still need work. Whole-device MBR and GPT access remains unverified.
+contains GPT support. A development ROM adds its native partition-offset
+integration and an MBR reader supporting primary and extended partitions.
+GPT, primary MBR and chained extended MBR fixtures pass distinct partition
+marker reads, including alternating reads between partitions. These tests also
+pass without serial byte pacing. The pinned product still needs the maintained
+fork releases and these checks added to its appliance gate.
 
 The USB and CD tests attach `basic.fat12`, `basic.fat16`, `basic.fat32`,
 `basic.iso9660`, `basic.joliet.iso9660`, `basic.rock-ridge.iso9660`, and
 `basic.highsierra` as removable media. A second FAT16 disk gets a distinct
 volume serial. The complete appliance verifier passes its single-CD,
 two-disk and combined-media release gates. It paces incoming request bytes at
-10 ms so DeviceFS retains each frame. RISC OS 9d uses a dedicated serial
+10 ms. A UART trace identified a QEMU receive-capacity bug: its socket
+backend can retain a 16-byte read limit after the guest disables the FIFO,
+overwriting the one-byte receive buffer. Refreshing the backend after line
+control changes passes the complete existing gate twice without pacing, plus
+the development old-directory and partition tests. The correction still needs
+a maintained QEMU release and catalogue pin before pacing can be removed from
+the production gate. RISC OS 9d uses a dedicated serial
 output path that retries when the driver queue is full; UnixLib's generic tty
 writer reports success even when that queue drops a byte.
 
