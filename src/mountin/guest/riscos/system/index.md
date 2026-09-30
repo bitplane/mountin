@@ -78,8 +78,13 @@ FileCore's `Bad defect list` error at its root. Disc Image Manager's `OO20M`
 layout places file data at the hard-disc defect-list address. Reserving that
 area and generating directory check bytes advances the guest to `Broken
 directory`. A genuine ADFS L old-directory image returns `Broken directory`
-on SD and `Bad defect list` over USB. FileCore contains old-directory code,
-but this BCM2835 appliance has no verified route to it. The source does not
+on SD and `Bad defect list` over USB. FileCore contains old-directory code, but `ReadFsMap` selects it only
+for a FileCore floppy disc with 256-byte sectors and 16 sectors per track.
+SDFS mounts its media using the fixed-disc path, which selects new directories
+and a root at offset `0x400` instead of the old-directory root at `0x200`.
+Correcting the generated fixture alone therefore does not enable this path.
+The native mount logic and block-size handling need investigation before
+this appliance can claim old-directory support. The source does not
 include PartMan, the helper
 that selects SCSIFS partition offsets, so whole-device MBR and GPT media
 cannot yet be exercised through this ROM.
