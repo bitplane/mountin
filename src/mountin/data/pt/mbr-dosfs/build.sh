@@ -1,9 +1,62 @@
 #!/bin/sh
 set -eu
 
+temporary=$(mktemp -d)
+trap 'rm -rf "$temporary"' EXIT
+
 for target do
     output=/host/build/$target
     case "$target" in
+        */basic-fat16-fat32.mbr|*/basic-fat-extended.mbr)
+            for kind in fat12 fat16 fat32; do
+                source=/host/build/data/fs/basic.$kind
+                if [ "$kind" = fat12 ]; then
+                    source=/host/build/data/fs/basic.dosfs-fat12
+                fi
+                cp "$source" "$temporary/$kind.img"
+                printf '%s partition\n' "$(printf '%s' "$kind" | tr '[:lower:]' '[:upper:]')" > "$temporary/marker"
+                mcopy -o -i "$temporary/$kind.img" "$temporary/marker" ::PART.TXT
+            done
+            first=2048
+            first_sectors=$(( $(stat -c %s "$temporary/fat16.img") / 512 ))
+            second=$(( ((first + first_sectors + 2047) / 2048) * 2048 ))
+            fat12_sectors=$(( $(stat -c %s "$temporary/fat12.img") / 512 ))
+            fat32_sectors=$(( $(stat -c %s "$temporary/fat32.img") / 512 ))
+            mkdir -p "$(dirname "$output")"
+            case "$target" in
+                */basic-fat-extended.mbr)
+                    logical_first=$(( second + 2048 ))
+                    logical_second=$(( ((logical_first + fat12_sectors + 2047) / 2048) * 2048 + 2048 ))
+                    end=$(( logical_second + fat32_sectors ))
+                    truncate -s $(( (end + 2048) * 512 )) "$output"
+                    sfdisk "$output" <<EOF
+label: dos
+start=$first, size=$first_sectors, type=6
+start=$second, size=$(( end - second )), type=f
+start=$logical_first, size=$fat12_sectors, type=1
+start=$logical_second, size=$fat32_sectors, type=c
+EOF
+                    dd if="$temporary/fat12.img" of="$output" bs=512 seek=$logical_first conv=notrunc status=none
+                    dd if="$temporary/fat32.img" of="$output" bs=512 seek=$logical_second conv=notrunc status=none
+                    dd if="$output" bs=512 skip=$logical_first count=$fat12_sectors status=none | cmp - "$temporary/fat12.img"
+                    dd if="$output" bs=512 skip=$logical_second count=$fat32_sectors status=none | cmp - "$temporary/fat32.img"
+                    ;;
+                *)
+                    truncate -s $(( (second + fat32_sectors + 2048) * 512 )) "$output"
+                    sfdisk "$output" <<EOF
+label: dos
+start=$first, size=$first_sectors, type=6
+start=$second, size=$fat32_sectors, type=c
+EOF
+                    dd if="$temporary/fat32.img" of="$output" bs=512 seek=$second conv=notrunc status=none
+                    dd if="$output" bs=512 skip=$second count=$fat32_sectors status=none | cmp - "$temporary/fat32.img"
+                    ;;
+            esac
+            dd if="$temporary/fat16.img" of="$output" bs=512 seek=$first conv=notrunc status=none
+            dd if="$output" bs=512 skip=$first count=$first_sectors status=none | cmp - "$temporary/fat16.img"
+            sfdisk --verify "$output"
+            continue
+            ;;
         */basic-fat-multi.mbr)
             fat16=/host/build/data/fs/basic.fat16
             fat12=/host/build/data/fs/basic.dosfs-fat12
