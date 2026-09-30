@@ -62,6 +62,12 @@ class Client:
                     f"{received[-256:]!r}")
             try:
                 received.extend(self.exact(1))
+                if received.endswith(b"\n"):
+                    line = received.rsplit(b"\n", 2)[-2]
+                    if line.startswith(b"MOUNTIN-ERROR: "):
+                        raise RuntimeError(
+                            "RISC OS launcher failed: "
+                            + line[len(b"MOUNTIN-ERROR: "):].decode("latin-1"))
             except TimeoutError as error:
                 raise TimeoutError(
                     f"RISC OS did not announce 9d readiness; serial tail: "
