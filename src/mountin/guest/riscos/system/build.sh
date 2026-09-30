@@ -63,8 +63,27 @@ install_messages DeviceFS \
     "$root/Sources/HWSupport/DeviceFS/Resources/UK/Messages"
 install_messages PCI \
     "$root/Sources/HWSupport/PCI/Resources/UK/Messages"
+install_messages DWCDriver \
+    "$root/Sources/HWSupport/USB/Controllers/DWCDriver/Resources/UK/Messages"
+install_messages USBDriver \
+    "$root/Sources/HWSupport/USB/USBDriver/Resources/UK/Messages"
+install_messages SCSIDriver \
+    "$root/Sources/HWSupport/SCSI/SCSISwitch/Resources/UK/Messages" \
+    "$root/Sources/HWSupport/SCSI/SCSISwitch/Resources/UK/CmdHelp"
+install_messages SCSIFS \
+    "$root/Sources/FileSys/SCSIFS/SCSIFS/Resources/UK/Messages"
+install_messages SCSISoftUSB \
+    "$root/Sources/HWSupport/SCSI/SCSISoftUSB/Resources/UK/Messages"
+install_messages CDFS \
+    "$root/Sources/FileSys/CDFS/CDFS/Resources/UK/Messages"
+install_messages CDFSDriver \
+    "$root/Sources/HWSupport/CD/CDFSDriver/Resources/UK/Messages"
 install_messages CDFSDriver/SCSI \
     "$root/Sources/HWSupport/CD/CDFSSoftSCSI/Resources/UK/Messages"
+install_messages RTSupport \
+    "$root/Sources/Programmer/RTSupport/Resources/UK/Messages"
+cp "$root/Sources/Programmer/RTSupport/Resources/Priorities" \
+    "$resources/data/Resources/RTSupport/Priorities"
 mkdir -p "$resources/data/Resources/USBDriver" "$resources/data/Mountin"
 printf '#{Default}\n' > "$resources/data/Resources/USBDriver/USBDevs"
 

@@ -16,6 +16,11 @@ and source needed for ROM linking. The system directory preserves the upstream
 RiscOS tree layout so appliance assembly can continue the build with the same
 toolbox. It contains no 9d binary or application launcher.
 
+The prepared resources include the USB, SCSI, CD and RTSupport message files
+and RTSupport's priorities file. These are required at runtime as well as
+the compiled modules; appliance assembly must not depend on resources left
+by earlier builds.
+
 The product selects `MINIMAL_CLIB=yes` for SharedCLibrary, omitting its complex
 and math implementations. This is an appliance choice; the library's upstream
 build defaults are unchanged by the GNU port.
@@ -84,10 +89,11 @@ SDFS mounts its media using the fixed-disc path, which selects new directories
 and a root at offset `0x400` instead of the old-directory root at `0x200`.
 Correcting the generated fixture alone therefore does not enable this path.
 The native mount logic and block-size handling need investigation before
-this appliance can claim old-directory support. The source does not
-include PartMan, the helper
-that selects SCSIFS partition offsets, so whole-device MBR and GPT media
-cannot yet be exercised through this ROM.
+this appliance can claim old-directory support. The pinned product does not
+include PartMan, the helper that selects SCSIFS partition offsets. Its
+[upstream source](https://gitlab.riscosopen.org/RiscOS/Sources/FileSys/SCSIFS/PartMan)
+contains GPT support; ordinary MBR partition enumeration and integration into
+this ROM still need work. Whole-device MBR and GPT access remains unverified.
 
 The USB and CD tests attach `basic.fat12`, `basic.fat16`, `basic.fat32`,
 `basic.iso9660`, `basic.joliet.iso9660`, `basic.rock-ridge.iso9660`, and
