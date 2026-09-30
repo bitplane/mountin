@@ -6,7 +6,7 @@ RUN apt-get update && \
 
 RUN set -eu; \
     mkdir -p /work/disc-image-manager; \
-    tar -xzf /host/build/sources/disc-image-manager-1.50.1.tar.gz \
+    tar -xzf /host/build/sources/disc-image-manager-1.50.5.tar.gz \
         -C /work/disc-image-manager --strip-components=1; \
     cd '/work/disc-image-manager/LazarusSource 1.50'; \
     fpc -O3 -dNO_GUI DiscImageManagerCLI.lpr; \

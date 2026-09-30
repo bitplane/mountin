@@ -1,7 +1,7 @@
 ---
 format: fs/filecore
 build_requires:
-  - sources/disc-image-manager-1.50.1.tar.gz
+  - sources/disc-image-manager-1.50.5.tar.gz
 requires:
   - docker:builder/disk/debian
   - data/templates/basic.tar
