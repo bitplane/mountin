@@ -88,8 +88,16 @@ for a FileCore floppy disc with 256-byte sectors and 16 sectors per track.
 SDFS mounts its media using the fixed-disc path, which selects new directories
 and a root at offset `0x400` instead of the old-directory root at `0x200`.
 Correcting the generated fixture alone therefore does not enable this path.
-The native mount logic and block-size handling need investigation before
-this appliance can claim old-directory support. The pinned product does not
+A development ROM now reads an old-directory fixture through 9P and passes
+the complete existing appliance verifier. It extends FileCore's fixed-media
+identification to old directories and makes SDFS use the logical sector size
+from FileCore's disc record instead of assuming 512 bytes. Its buffered
+scatter-read path also needs to copy each segment's length. The repaired
+fixture reserves the hard-disc boot block, generates directory checks and
+sets native read permissions. These changes remain on local contribution
+branches; the pinned appliance does not yet include them.
+
+The pinned product does not
 include PartMan, the helper that selects SCSIFS partition offsets. Its
 [upstream source](https://gitlab.riscosopen.org/RiscOS/Sources/FileSys/SCSIFS/PartMan)
 contains GPT support; ordinary MBR partition enumeration and integration into
